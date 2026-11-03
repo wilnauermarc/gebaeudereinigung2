@@ -155,6 +155,17 @@
 	let repDlg = $state(false);
 	let rf = $state({ from: today, to: today, text: '', siteId: '' , photo: '' });
 	function openReport(k: 'krank' | 'urlaub' | 'defekt') { rf = { from: today, to: today, text: '', siteId: todays[0]?.siteId ?? shifts[0]?.siteId ?? '', photo: '' }; flash = ''; repOpen = k; repDlg = true; }
+	// ── Korrektur einer gebuchten Zeit beantragen ──
+	let corrDlg = $state(false);
+	let cf = $state({ entryId: '', label: '', start: '', end: '', breakMin: 0, reason: '' });
+	function openCorr(x: { id: string; date: string; start: string; end: string; breakMin: number }) { cf = { entryId: x.id, label: `${dShort(x.date)} · ${x.start}–${x.end}`, start: x.start, end: x.end, breakMin: x.breakMin, reason: '' }; flash = ''; corrDlg = true; }
+	async function submitCorr(e: SubmitEvent) {
+		e.preventDefault();
+		const r = await send('/api/me/correction', { entryId: cf.entryId, start: cf.start, end: cf.end, breakMin: Number(cf.breakMin) || 0, reason: cf.reason });
+		if (r.offline) { flash = L.offlineQ; return; }
+		if (!r.ok) { flash = r.error ?? ''; return; }
+		corrDlg = false; flash = L.corrSent; await load();
+	}
 	const sitesList = $derived([...new Map(shifts.map((s) => [s.siteId, s])).values()]);
 	async function submitReport(e: SubmitEvent) {
 		e.preventDefault();
@@ -336,7 +347,7 @@
 			</div>
 			{#if v.requests.length}
 				<h3 class="mt-4 mb-1 text-xs font-bold tracking-wide text-muted uppercase">{L.myReports}</h3>
-				<ul class="divide-y divide-line text-sm">{#each v.requests as r}<li class="flex items-center justify-between gap-3 py-2"><span class="min-w-0 truncate">{r.kind === 'absence' ? `${kindLabel(r.label)} ${dShort(r.from!)}${r.to !== r.from ? ' – ' + dShort(r.to!) : ''}` : r.label}</span><span class="shrink-0 rounded-full bg-subtle px-2.5 py-0.5 text-xs font-semibold">{r.status === 'offen' ? L.open : L.taken}</span></li>{/each}</ul>
+				<ul class="divide-y divide-line text-sm">{#each v.requests as r}<li class="flex items-center justify-between gap-3 py-2"><span class="min-w-0 truncate">{r.kind === 'correction' ? `${L.corrBtn}: ${r.label}` : r.kind === 'absence' ? `${kindLabel(r.label)} ${dShort(r.from!)}${r.to !== r.from ? ' – ' + dShort(r.to!) : ''}` : r.label}</span><span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold {r.status === 'genehmigt' ? 'bg-success/15 text-success' : r.status === 'abgelehnt' ? 'bg-danger-soft text-danger' : 'bg-subtle'}">{r.status === 'offen' ? L.open : r.status === 'genehmigt' ? L.corrOk : r.status === 'abgelehnt' ? L.corrNo : L.taken}</span></li>{#if r.reply}<li class="pb-2 text-xs text-muted">{r.reply}</li>{/if}{/each}</ul>
 			{/if}
 		</section>
 
@@ -352,7 +363,7 @@
 				<h3 class="mt-5 mb-1 text-xs font-bold tracking-wide text-muted uppercase">{L.myTimes}</h3>
 				<ul class="divide-y divide-line text-sm">
 					{#each v.times.slice(0, 12) as x (x.id)}
-						<li class="flex items-center justify-between gap-3 py-2 {x.voided ? 'opacity-50' : ''}"><div class="min-w-0"><p class="num font-medium {x.voided ? 'line-through' : ''}">{dShort(x.date)} · {x.start}–{x.end}{#if x.breakMin} <span class="text-muted">(−{x.breakMin} {L.min})</span>{/if}</p>{#if x.pending || x.edited || x.voided || x.offline}<p class="text-xs text-muted">{[x.pending ? L.pendingL : '', x.edited ? L.changed : '', x.voided ? L.voidedL : '', x.offline ? '⚡' : ''].filter(Boolean).join(' · ')}</p>{/if}{#if x.history.length}<p class="text-xs text-muted">{x.history.at(-1)}</p>{/if}</div><span class="num shrink-0 font-semibold">{fmt(x.hours)} {L.hours}</span></li>
+						<li class="flex items-center justify-between gap-3 py-2 {x.voided ? 'opacity-50' : ''}"><div class="min-w-0"><p class="num font-medium {x.voided ? 'line-through' : ''}">{dShort(x.date)} · {x.start}–{x.end}{#if x.breakMin} <span class="text-muted">(−{x.breakMin} {L.min})</span>{/if}</p>{#if x.pending || x.edited || x.voided || x.offline}<p class="text-xs text-muted">{[x.pending ? L.pendingL : '', x.edited ? L.changed : '', x.voided ? L.voidedL : '', x.offline ? '⚡' : ''].filter(Boolean).join(' · ')}</p>{/if}{#if x.history.length}<p class="text-xs text-muted">{x.history.at(-1)}</p>{/if}{#if !x.voided}<button class="mt-1 text-xs font-semibold text-accent underline" onclick={() => openCorr(x)}>{L.corrBtn}</button>{/if}</div><span class="num shrink-0 font-semibold">{fmt(x.hours)} {L.hours}</span></li>
 					{/each}
 				</ul>
 			{/if}
@@ -395,6 +406,17 @@
 		</form>
 	{/snippet}
 	{#snippet footer()}<button class="btn" type="button" onclick={() => (repDlg = false)}>{L.cancel}</button><button class="btn btn-primary" type="submit" form="rep-form"><Send size={14} /> {L.send}</button>{/snippet}
+</Dialog>
+
+<Dialog bind:open={corrDlg} title={L.corrBtn} description="{cf.label}. {L.corrHint}" width={440}>
+	{#snippet children()}
+		<form id="corr-form" class="grid gap-3" onsubmit={submitCorr}>
+			<div class="grid grid-cols-3 gap-3"><div><label class="label" for="cf-s">{L.corrFrom}</label><input id="cf-s" type="time" class="input h-11 text-base" bind:value={cf.start} required /></div><div><label class="label" for="cf-e">{L.corrTo}</label><input id="cf-e" type="time" class="input h-11 text-base" bind:value={cf.end} required /></div><div><label class="label" for="cf-b">{L.pause} ({L.min})</label><input id="cf-b" type="number" min="0" max="120" step="5" class="input h-11 text-base" bind:value={cf.breakMin} /></div></div>
+			<div><label class="label" for="cf-r">{L.corrWhy}</label><textarea id="cf-r" class="input text-base" rows="3" maxlength="300" required bind:value={cf.reason}></textarea></div>
+			{#if flash}<p class="text-sm text-danger" role="alert">{flash}</p>{/if}
+		</form>
+	{/snippet}
+	{#snippet footer()}<button class="btn" type="button" onclick={() => (corrDlg = false)}>{L.cancel}</button><button class="btn btn-primary" type="submit" form="corr-form"><Send size={14} /> {L.send}</button>{/snippet}
 </Dialog>
 
 <Dialog bind:open={notifOpen} title={L.notifTitle} width={440}>

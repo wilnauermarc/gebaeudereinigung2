@@ -7,10 +7,10 @@ import type { Data } from './types';
 
 export interface StaffShift { siteId: string; date: string; start: string; end: string; customer: string; site: string; street: string; note: string; chemicals: string }
 export interface StaffTime { id: string; date: string; start: string; end: string; breakMin: number; hours: number; voided: boolean; edited: boolean; source: string; history: string[]; pending: boolean; offline: boolean }
-export interface StaffRequest { id: string; kind: 'absence' | 'defect'; label: string; from?: string; to?: string; status: string; createdAt: string }
+export interface StaffRequest { id: string; kind: 'absence' | 'defect' | 'correction'; label: string; from?: string; to?: string; status: string; reply?: string; createdAt: string }
 export interface StaffOpen { id: string; startedAt: string; siteId: string; site: string }
 /** Eingang des Servers für diese Person (Stempelungen und Meldungen, die die Verwaltung noch nicht übernommen hat oder die gerade laufen) */
-export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect'; payload: any; created_at: string; status: string; closed: boolean }
+export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect' | 'correction'; payload: any; created_at: string; status: string; closed: boolean }
 export interface StaffView {
 	name: string; role: string; contract: 'vollzeit' | 'teilzeit' | 'minijob'; weeklyHours: number;
 	shifts: StaffShift[];
@@ -64,6 +64,8 @@ export function staffView(d: Data, employeeId: string, today: string, inbox: Sta
 	const openRow = inbox.find((i) => i.kind === 'punch' && !i.closed);
 	const requests: StaffRequest[] = inbox.filter((i) => i.kind !== 'punch').map((i) => i.kind === 'absence'
 		? { id: i.id, kind: 'absence' as const, label: i.payload.kind, from: i.payload.from, to: i.payload.to, status: i.status === 'neu' ? 'offen' : 'übernommen', createdAt: i.created_at }
+		: i.kind === 'correction'
+		? (() => { const c = (d.corrections ?? []).find((x) => x.id === 'c' + i.id); return { id: i.id, kind: 'correction' as const, label: `${i.payload.date.slice(8)}.${i.payload.date.slice(5, 7)}. ${i.payload.start}–${i.payload.end}`, status: c?.status ?? 'offen', reply: c?.reply || undefined, createdAt: i.created_at }; })()
 		: { id: i.id, kind: 'defect' as const, label: String(i.payload.text).slice(0, 80), status: i.status === 'neu' ? 'offen' : 'übernommen', createdAt: i.created_at });
 
 	return {

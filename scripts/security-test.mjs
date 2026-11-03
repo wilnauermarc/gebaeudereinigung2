@@ -170,6 +170,40 @@ ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requ
 	ok('Schalter aus: Server speichert keinen Standort-Vermerk', off.s === 200 && !(await owner.req('GET', '/api/inbox')).j.items.some((i) => i.payload.geoIn && i.id === off.j.id));
 }
 
+// ── Korrekturworkflow: Antrag → Prüfung → Freigabe ──
+{
+	const t0 = (await st2.req('GET', '/api/me/view')).j.times.find((t) => !t.voided);
+	ok('Es gibt eine Buchung zum Korrigieren', !!t0);
+	const body = { entryId: t0.id, start: '07:00', end: '11:30', breakMin: 15, reason: 'Ich habe die Pause vergessen' };
+	ok('Ungültige Uhrzeit abgelehnt (400)', (await st2.req('POST', '/api/me/correction', { ...body, start: '25:99' })).s === 400);
+	ok('Ohne Begründung abgelehnt (400)', (await st2.req('POST', '/api/me/correction', { ...body, reason: '' })).s === 400);
+	ok('Fremde/unbekannte Buchung = 404', (await st2.req('POST', '/api/me/correction', { ...body, entryId: 'gibt-es-nicht' })).s === 404);
+	const c1 = await st2.req('POST', '/api/me/correction', body);
+	ok('Antrag wird angenommen', c1.s === 200 && !!c1.j.id, JSON.stringify(c1.j));
+	ok('Zweiter Antrag zur selben Buchung = 409', (await st2.req('POST', '/api/me/correction', body)).s === 409);
+	ok('Anonym nicht möglich (401)', (await anon.req('POST', '/api/me/correction', body)).s === 401);
+	const view1 = (await st2.req('GET', '/api/me/view')).j;
+	ok('Mitarbeiter sieht den Antrag als offen', view1.requests.some((r) => r.kind === 'correction' && r.status === 'offen'), JSON.stringify(view1.requests));
+	const inb = (await owner.req('GET', '/api/inbox')).j.items.find((i) => i.id === c1.j.id);
+	ok('Verwaltung sieht den Antrag im Eingang', inb?.kind === 'correction' && inb.payload.start === '07:00');
+	// Verwaltung entscheidet (die App schreibt das Ergebnis in den Datenbestand)
+	const cur = (await owner.req('GET', '/api/state')).j;
+	cur.data.corrections = [{ id: 'c' + c1.j.id, employeeId: 'm5', entryId: t0.id, date: t0.date, old: { start: t0.start, end: t0.end, breakMin: t0.breakMin }, proposed: { start: '07:00', end: '11:30', breakMin: 15 }, reason: body.reason, status: 'abgelehnt', reply: 'Bitte Nachweis mitbringen', createdAt: new Date().toISOString(), decidedOn: new Date().toISOString() }];
+	ok('Verwaltung speichert Entscheidung', (await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data })).s === 200);
+	const view2 = (await st2.req('GET', '/api/me/view')).j;
+	const r2 = view2.requests.find((r) => r.kind === 'correction');
+	ok('Mitarbeiter sieht Entscheidung und Antwort', r2?.status === 'abgelehnt' && r2.reply === 'Bitte Nachweis mitbringen', JSON.stringify(r2));
+	await owner.req('POST', '/api/inbox/ack', { ids: [c1.j.id] });
+	ok('Nach Entscheidung ist ein neuer Antrag möglich', (await st2.req('POST', '/api/me/correction', body)).s === 200);
+	cur.rev = (await owner.req('GET', '/api/state')).j.rev;
+	cur.data.lockedMonths = [...(cur.data.lockedMonths ?? []), t0.date.slice(0, 7)];
+	await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data });
+	ok('Abgeschlossener Monat: Antrag online nicht möglich (400)', (await st2.req('POST', '/api/me/correction', { ...body, reason: 'noch einmal' })).s === 400);
+	const cur4 = (await owner.req('GET', '/api/state')).j;
+	cur4.data.lockedMonths = cur4.data.lockedMonths.filter((m) => m !== t0.date.slice(0, 7));
+	await owner.req('PUT', '/api/state', { rev: cur4.rev, data: cur4.data });
+}
+
 // ── Schichttausch ──
 {
 	// Lukas (m7) bekommt einen Zugang und wird für den Test von allen Plänen genommen, damit er sicher frei ist

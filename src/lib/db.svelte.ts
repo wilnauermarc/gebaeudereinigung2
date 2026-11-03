@@ -80,7 +80,7 @@ class Db {
 		try {
 			const r = await fetch('/api/inbox');
 			if (!r.ok) return;
-			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect'; payload: any; createdAt: string; hasPhoto: boolean }[] };
+			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect' | 'correction'; payload: any; createdAt: string; hasPhoto: boolean }[] };
 			if (!items.length) return;
 			const today = todayKey();
 			const d = this.data;
@@ -103,6 +103,15 @@ class Db {
 					const p = it.payload;
 					d.absences.push({ id: aid, employeeId: it.employeeId, kind: p.kind, from: p.from, to: p.to, status: p.kind === 'krank' ? 'genehmigt' : 'beantragt' });
 					if (p.kind === 'krank') d.tasks.push({ id: 'a' + it.id, title: `Krankmeldung ${who(it.employeeId)} (${p.from.split('-').reverse().slice(0, 2).join('.')}.): Vertretung klären`, dueOn: today, customerId: null, done: false });
+					n++;
+				} else if (it.kind === 'correction') {
+					const cid = 'c' + it.id;
+					const corr = (d.corrections ??= []);
+					if (corr.some((c) => c.id === cid)) continue;
+					const p = it.payload;
+					const t = this.correctionTarget(p.entryId);
+					corr.push({ id: cid, employeeId: it.employeeId, entryId: t?.id ?? p.entryId, date: p.date, old: t ? { start: t.start, end: t.end, breakMin: t.breakMin } : { start: '', end: '', breakMin: 0 }, proposed: { start: p.start, end: p.end, breakMin: p.breakMin ?? 0 }, reason: String(p.reason).slice(0, 300), status: 'offen', reply: '', createdAt: it.createdAt, decidedOn: null });
+					d.tasks.push({ id: 'a' + it.id, title: `Zeitkorrektur von ${who(it.employeeId)} prüfen (${p.date.split('-').reverse().slice(0, 2).join('.')}.)`, dueOn: today, customerId: null, done: false });
 					n++;
 				} else if (it.kind === 'defect') {
 					const did = 'd' + it.id.slice(0, 12);
@@ -327,6 +336,35 @@ class Db {
 		const absent = regular.filter((e) => this.isAbsent(e.id, date) && !replaced(e.id));
 		const covers = this.data.covers.filter((c) => c.siteId === siteId && c.date === date).map((c) => ({ cover: c, emp: this.employee(c.employeeId)! }));
 		return { present, absent, covers, understaffed: present.length + covers.length < regular.length, empty: present.length + covers.length === 0 };
+	}
+	/** Die Buchung, auf die sich ein Korrekturantrag bezieht (die App-Stempelung heißt im Bestand „t“ + Eingangs-ID) */
+	correctionTarget = (entryId: string) => this.data.timeEntries.find((t) => t.id === entryId || t.id === 't' + entryId);
+	/** Offene Korrekturanträge */
+	get openCorrections() { return (this.data.corrections ?? []).filter((c) => c.status === 'offen'); }
+	/**
+	 * Antrag freigeben oder ablehnen. Freigabe schreibt die Zeiten in die Buchung und ins Änderungsprotokoll,
+	 * Ablehnung braucht eine Antwort. Abgeschlossene Monate bleiben gesperrt. Gibt eine Fehlermeldung zurück oder null.
+	 */
+	decideCorrection(id: string, approve: boolean, reply: string): string | null {
+		const c = (this.data.corrections ?? []).find((x) => x.id === id);
+		if (!c || c.status !== 'offen') return 'Der Antrag ist schon entschieden.';
+		const by = this.session?.display ?? 'Büro';
+		const stamp = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'short', timeStyle: 'short' });
+		if (!approve) {
+			if (reply.trim().length < 3) return 'Bitte eine kurze Begründung für die Ablehnung angeben.';
+			c.status = 'abgelehnt'; c.reply = reply.trim().slice(0, 300); c.decidedOn = new Date().toISOString();
+			const t = this.correctionTarget(c.entryId);
+			t?.history.push(`${stamp}: Korrekturantrag ${c.proposed.start}–${c.proposed.end} abgelehnt (${by}): ${c.reply}`);
+			return null;
+		}
+		const t = this.correctionTarget(c.entryId);
+		if (!t) return 'Die Buchung ist noch nicht übernommen oder wurde entfernt.';
+		if (t.voided) return 'Die Buchung ist ungültig gesetzt.';
+		if (this.isLocked(t.date)) return 'Der Monat ist abgeschlossen. Erst entsperren, dann freigeben.';
+		t.history.push(`${stamp}: Korrektur auf Antrag freigegeben (${by}): ${t.start}–${t.end} (Pause ${t.breakMin}) → ${c.proposed.start}–${c.proposed.end} (Pause ${c.proposed.breakMin}). Grund: ${c.reason}`);
+		Object.assign(t, { start: c.proposed.start, end: c.proposed.end, breakMin: c.proposed.breakMin, editedAt: new Date().toISOString() });
+		c.status = 'genehmigt'; c.reply = reply.trim().slice(0, 300); c.decidedOn = new Date().toISOString();
+		return null;
 	}
 	isLocked = (date: string) => this.data.lockedMonths.includes(date.slice(0, 7));
 	/** Zuschlag in Cent für eine Zeitbuchung (Basis: Stundenlohn aus den Kalkulationsannahmen) */

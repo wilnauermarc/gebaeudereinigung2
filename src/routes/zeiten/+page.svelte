@@ -45,6 +45,14 @@
 
 	// Monatsabschluss: abgeschlossene Monate sind gegen Änderungen gesperrt
 	const locked = $derived(db.data.lockedMonths.includes(month));
+	/** Korrekturanträge: Antwort-Feld je Antrag */
+	let replies = $state<Record<string, string>>({});
+	const recentCorrections = $derived((db.data.corrections ?? []).filter((c) => c.status !== 'offen').sort((a, b) => (b.decidedOn ?? '').localeCompare(a.decidedOn ?? '')).slice(0, 5));
+	function decide(id: string, approve: boolean) {
+		const err = db.decideCorrection(id, approve, replies[id] ?? '');
+		if (err) return toasts.push(err, { tone: 'error' });
+		toasts.push(approve ? 'Korrektur freigegeben und in die Buchung übernommen. Sie steht im Änderungsprotokoll.' : 'Antrag abgelehnt. Die Person sieht Ihre Antwort.', { tone: 'success' });
+	}
 	let lockOpen = $state(false);
 	function toggleLock() {
 		if (locked) {
@@ -199,6 +207,33 @@
 	</select>
 	<span class="num ml-auto text-sm text-muted">{entries.length} Buchungen · <strong class="text-fg">{fmt(total)} Std.</strong></span>
 </div>
+
+{#if db.openCorrections.length || recentCorrections.length}
+	<section class="card mb-4 overflow-hidden" aria-labelledby="h-corr">
+		<h2 id="h-corr" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">Korrekturanträge{#if db.openCorrections.length} <span class="ml-1 rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn normal-case">{db.openCorrections.length} offen</span>{/if}</h2>
+		<ul class="divide-y divide-line">
+			{#each db.openCorrections as c (c.id)}
+				{@const t = db.correctionTarget(c.entryId)}
+				{@const s = t ? db.site(t.siteId) : null}
+				<li class="grid gap-2 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-start">
+					<div class="min-w-0">
+						<p class="font-semibold">{db.employee(c.employeeId)?.name ?? ''} <span class="num font-normal text-muted">· {formatDate(c.date)}{#if s} · {s.site.name}{/if}</span></p>
+						<p class="num mt-1 text-sm"><span class="text-muted line-through">{c.old.start}–{c.old.end} (Pause {c.old.breakMin})</span> → <strong>{c.proposed.start}–{c.proposed.end} (Pause {c.proposed.breakMin})</strong></p>
+						<p class="mt-1 text-sm">„{c.reason}“</p>
+						{#if !t}<p class="mt-1 text-xs text-warn">Die Buchung ist noch nicht übernommen oder wurde entfernt.</p>{:else if db.isLocked(c.date)}<p class="mt-1 text-xs text-warn">Der Monat ist abgeschlossen. Zum Freigeben erst entsperren.</p>{/if}
+					</div>
+					<div class="flex flex-col gap-2 sm:w-64">
+						<input class="input" placeholder="Antwort (bei Ablehnung Pflicht)" aria-label="Antwort an {db.employee(c.employeeId)?.name}" bind:value={replies[c.id]} maxlength="300" />
+						<div class="flex gap-2"><button class="btn btn-primary flex-1" onclick={() => decide(c.id, true)} disabled={!t || db.isLocked(c.date)}>Freigeben</button><button class="btn flex-1" onclick={() => decide(c.id, false)}>Ablehnen</button></div>
+					</div>
+				</li>
+			{/each}
+			{#each recentCorrections as c (c.id)}
+				<li class="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-sm text-muted"><span class="min-w-0 truncate">{db.employee(c.employeeId)?.name} · {formatDate(c.date)} · {c.proposed.start}–{c.proposed.end}{#if c.reply} · „{c.reply}“{/if}</span><span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold {c.status === 'genehmigt' ? 'bg-success/15 text-success' : 'bg-danger-soft text-danger'}">{c.status}</span></li>
+			{/each}
+		</ul>
+	</section>
+{/if}
 
 <div class="mb-5 grid gap-4 lg:grid-cols-5">
 	<div class="card overflow-x-auto lg:col-span-3">

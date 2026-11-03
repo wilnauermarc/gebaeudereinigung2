@@ -174,6 +174,22 @@ export interface TimeEntry {
 	/** Änderungsprotokoll */
 	history: string[];
 }
+/** Antrag einer Person, eine eigene Zeitbuchung zu korrigieren. Gebucht wird erst nach Freigabe durch das Büro. */
+export interface TimeCorrection {
+	id: string;
+	employeeId: string;
+	/** Zeitbuchung, auf die sich der Antrag bezieht */
+	entryId: string;
+	date: string;
+	old: { start: string; end: string; breakMin: number };
+	proposed: { start: string; end: string; breakMin: number };
+	reason: string;
+	status: 'offen' | 'genehmigt' | 'abgelehnt';
+	/** Antwort des Büros (bei Ablehnung Pflicht) */
+	reply: string;
+	createdAt: string;
+	decidedOn: string | null;
+}
 export type DefectStatus = 'offen' | 'in_bearbeitung' | 'erledigt';
 export interface Defect {
 	id: string;
@@ -318,6 +334,8 @@ export interface Data {
 	material: MaterialItem[];
 	/** abgeschlossene Monate (YYYY-MM), Zeitbuchungen sind dort gesperrt */
 	lockedMonths: string[];
+	/** Korrekturanträge der Mitarbeitenden */
+	corrections?: TimeCorrection[];
 	inspections: Inspection[];
 	keys: KeyItem[];
 	employees: Employee[];
