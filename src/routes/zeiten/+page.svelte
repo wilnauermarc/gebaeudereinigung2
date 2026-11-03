@@ -13,6 +13,7 @@
 	import { downloadBytes, toCsv } from '#lib/download.ts';
 	import { Plus, Download, ChevronLeft, ChevronRight, Pencil, Ban, RotateCcw, Clock, Lock, LockOpen } from '@lucide/svelte';
 	import type { TimeEntry } from '#lib/types.ts';
+	import { closeReport, exportedSinceClose } from '#lib/monthClose.ts';
 
 	const today = todayKey();
 	let month = $state(db.refMonth);
@@ -54,12 +55,28 @@
 		toasts.push(approve ? 'Korrektur freigegeben und in die Buchung übernommen. Sie steht im Änderungsprotokoll.' : 'Antrag abgelehnt. Die Person sieht Ihre Antwort.', { tone: 'success' });
 	}
 	let lockOpen = $state(false);
+	let closeAck = $state(false);
+	let reopenWhy = $state('');
+	const report = $derived(closeReport(db.data, month, today, (t) => db.hoursOf(t)));
+	const exportedAt = $derived(exportedSinceClose(db.data.monthLog, month));
+	const monthLog = $derived((db.data.monthLog ?? []).filter((x) => x.month === month).sort((a, b) => b.at.localeCompare(a.at)));
+	const logLabel = { abgeschlossen: 'Abgeschlossen', entsperrt: 'Entsperrt', lohnexport: 'Lohnexport erzeugt' } as const;
+	const stampOf = (iso: string) => new Date(iso).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'short', timeStyle: 'short' });
+	function logMonth(kind: 'abgeschlossen' | 'entsperrt' | 'lohnexport', note = '') {
+		(db.data.monthLog ??= []).push({ month, kind, at: new Date().toISOString(), by: db.me, note });
+	}
+	function openLock() { closeAck = false; reopenWhy = ''; lockOpen = true; }
 	function toggleLock() {
 		if (locked) {
+			if (reopenWhy.trim().length < 3) return toasts.push('Bitte einen Grund für das Entsperren angeben.', { tone: 'error' });
 			db.data.lockedMonths = db.data.lockedMonths.filter((m) => m !== month);
-			toasts.push(`${monthLabel} entsperrt.`);
+			logMonth('entsperrt', reopenWhy.trim());
+			toasts.push(`${monthLabel} entsperrt. Der Grund ist protokolliert.`);
 		} else {
+			if (report.blockers.length) return;
+			if (report.warnings.length && !closeAck) return;
 			db.data.lockedMonths.push(month);
+			logMonth('abgeschlossen', report.warnings.length ? `Mit Hinweisen: ${report.warnings.map((w) => w.text).join(' ')}` : `${report.entries} Buchungen, ${report.hours.toFixed(2).replace('.', ',')} Std.`);
 			toasts.push(`${monthLabel} abgeschlossen. Buchungen sind jetzt gesperrt.`, { tone: 'success' });
 		}
 		lockOpen = false;
@@ -147,6 +164,7 @@
 		const cfg = exportSettings.cfg;
 		const rows = payrollRows(db.data, month, cfg, (t) => db.hoursOf(t));
 		downloadBytes(toCsv(payrollCsvRows(rows, month)), `Lohnstunden-${month}.csv`, 'text/csv;charset=utf-8');
+		logMonth('lohnexport', locked ? '' : 'Monat war beim Export noch nicht abgeschlossen');
 		const missing = rows.some((r) => !r.lohnart);
 		toasts.push(`Lohnstunden für ${monthLabel} exportiert.${missing ? ' Es fehlen Lohnart-Nummern (Einstellungen).' : ''} Das ist keine Lohnabrechnung.`, { tone: missing ? 'default' : 'success', ms: 8000 });
 	}
@@ -179,7 +197,7 @@
 	]);
 	const nextStep = $derived<NextStep>(
 		missing ? { tone: 'warn', text: `${missing} eingeplante ${missing === 1 ? 'Einsatz hat' : 'Einsätze haben'} keine Zeitbuchung. Bitte nachtragen (Frist: 7 Tage).`, cta: { label: 'Im Cockpit prüfen', href: '/cockpit' } }
-		: !locked && month < today.slice(0, 7) ? { tone: 'info', text: `${monthLabel} ist vorbei. Schließen Sie den Monat ab, dann ist er gegen Änderungen geschützt.`, cta: { label: 'Monat abschließen', onclick: () => (lockOpen = true) } }
+		: !locked && month < today.slice(0, 7) ? { tone: 'info', text: `${monthLabel} ist vorbei. Schließen Sie den Monat ab, dann ist er gegen Änderungen geschützt.`, cta: { label: 'Monat abschließen', onclick: openLock } }
 		: { tone: 'ok', text: 'Alle Einsätze sind gebucht.' }
 	);
 </script>
@@ -188,7 +206,7 @@
 
 <PageHead title="Zeiten" subtitle={'Arbeitszeit-Nachweis mit Beginn, Ende und Dauer. Erfassung binnen 7 Tagen, Aufbewahrung 2 Jahre.'} {instruments} next={nextStep}>
 	{#snippet actions()}
-		<button class="btn" onclick={() => (lockOpen = true)}>{#if locked}<LockOpen size={14} /> Entsperren{:else}<Lock size={14} /> Monat abschließen{/if}</button>
+		<button class="btn" onclick={openLock}>{#if locked}<LockOpen size={14} /> Entsperren{:else}<Lock size={14} /> Monat abschließen{/if}</button>
 		<button class="btn" onclick={exportPayroll} disabled={!entries.length} title="Stunden je Lohnart (Arbeit, Weg, Rüst, Zuschläge) für die Lohnabrechnung"><Download size={14} /> Lohnstunden</button>
 		<button class="btn" onclick={exportCsv} disabled={!entries.length}><Download size={14} /> CSV</button>
 		<button class="btn btn-primary" onclick={openNew}><Plus size={15} /> Zeit erfassen</button>
@@ -207,6 +225,13 @@
 	</select>
 	<span class="num ml-auto text-sm text-muted">{entries.length} Buchungen · <strong class="text-fg">{fmt(total)} Std.</strong></span>
 </div>
+
+{#if monthLog.length}
+	<details class="mb-4 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm">
+		<summary class="cursor-pointer font-semibold">Abschlussprotokoll {monthLabel} <span class="font-normal text-muted">({monthLog.length})</span></summary>
+		<ul class="mt-2 divide-y divide-line">{#each monthLog as x}<li class="py-1.5"><span class="num text-muted">{stampOf(x.at)}</span> · <strong>{logLabel[x.kind]}</strong> · {x.by}{#if x.note}<span class="block text-xs text-muted">{x.note}</span>{/if}</li>{/each}</ul>
+	</details>
+{/if}
 
 {#if db.openCorrections.length || recentCorrections.length}
 	<section class="card mb-4 overflow-hidden" aria-labelledby="h-corr">
@@ -319,10 +344,22 @@
 	{/snippet}
 </Dialog>
 
-<Dialog bind:open={lockOpen} title={locked ? `${monthLabel} entsperren?` : `${monthLabel} abschließen?`} description={locked ? 'Buchungen dieses Monats sind danach wieder änderbar.' : 'Nach dem Abschluss lassen sich Buchungen dieses Monats nicht mehr ändern, löschen oder neu erfassen. Das schützt die Grundlage für Lohn und Rechnung.'}>
-	{#snippet children()}{/snippet}
+<Dialog bind:open={lockOpen} title={locked ? `${monthLabel} entsperren?` : `${monthLabel} abschließen?`} description={locked ? 'Buchungen dieses Monats sind danach wieder änderbar. Das Entsperren wird mit Ihrem Namen und dem Grund protokolliert.' : 'Nach dem Abschluss lassen sich Buchungen dieses Monats nicht mehr ändern, auch nicht über Korrekturanträge.'}>
+	{#snippet children()}
+		{#if locked}
+			{#if exportedAt}<p class="mb-3 rounded-lg bg-warn-soft px-3 py-2.5 text-sm text-warn">Für diesen Monat wurde am {stampOf(exportedAt)} schon ein Lohnexport erzeugt. Änderungen danach müssen der Lohnbuchhaltung nachgemeldet und der Export erneut erzeugt werden.</p>{/if}
+			<label class="label" for="why">Grund für das Entsperren</label>
+			<textarea id="why" class="input" rows="2" maxlength="300" bind:value={reopenWhy} placeholder="z. B. Stunden von Herrn Nowak nachtragen"></textarea>
+		{:else}
+			<p class="num mb-3 text-sm text-muted">{report.entries} gültige Buchungen · {report.hours.toFixed(1).replace('.', ',')} Std.</p>
+			{#each report.blockers as b}<p class="mb-2 flex items-start gap-2 rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger"><Ban size={15} class="mt-0.5 shrink-0" /> {b.text}</p>{/each}
+			{#each report.warnings as w}<p class="mb-2 flex items-start gap-2 rounded-lg bg-warn-soft px-3 py-2.5 text-sm text-warn"><Clock size={15} class="mt-0.5 shrink-0" /> {w.text}</p>{/each}
+			{#if !report.blockers.length && !report.warnings.length}<p class="rounded-lg bg-success/10 px-3 py-2.5 text-sm text-success">Alles in Ordnung: keine offenen Anträge, keine Lücken, keine Auffälligkeiten.</p>{/if}
+			{#if !report.blockers.length && report.warnings.length}<label class="mt-3 flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-0.5 size-[18px] accent-[var(--accent)]" bind:checked={closeAck} /> Ich habe die Hinweise geprüft und schließe den Monat trotzdem ab.</label>{/if}
+		{/if}
+	{/snippet}
 	{#snippet footer()}
 		<button class="btn" onclick={() => (lockOpen = false)}>Abbrechen</button>
-		<button class="btn btn-primary" onclick={toggleLock}>{#if locked}<LockOpen size={14} /> Entsperren{:else}<Lock size={14} /> Abschließen{/if}</button>
+		<button class="btn btn-primary" onclick={toggleLock} disabled={!locked && (report.blockers.length > 0 || (report.warnings.length > 0 && !closeAck))}>{#if locked}<LockOpen size={14} /> Entsperren{:else}<Lock size={14} /> Abschließen{/if}</button>
 	{/snippet}
 </Dialog>

@@ -336,6 +336,8 @@ export interface Data {
 	lockedMonths: string[];
 	/** Korrekturanträge der Mitarbeitenden */
 	corrections?: TimeCorrection[];
+	/** Protokoll der Monatsabschlüsse: Abschluss, Entsperren mit Grund, Lohnexport */
+	monthLog?: { month: string; kind: 'abgeschlossen' | 'entsperrt' | 'lohnexport'; at: string; by: string; note: string }[];
 	inspections: Inspection[];
 	keys: KeyItem[];
 	employees: Employee[];
