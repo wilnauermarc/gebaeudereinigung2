@@ -134,6 +134,11 @@
 		<section class="card p-5" aria-labelledby="h-qr">
 			<h2 id="h-qr" class="card-title mb-1">Stempeln</h2>
 			<label class="flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-1 size-[18px] accent-[var(--accent)]" checked={!!db.data.settings?.requireQr} onchange={(e) => { (db.data.settings ??= {}).requireQr = e.currentTarget.checked; }} /><span><strong>Einstempeln nur per QR-Code am Objekt</strong><span class="block text-xs text-muted">Mitarbeitende müssen den Aushang im Objekt scannen. Das belegt, dass sie vor Ort sind, ohne Standortdaten zu erheben. Den Aushang drucken Sie beim Kunden unter Objekte → „Stempel-QR“. Ausstempeln ist auch ohne Scan möglich.</span></span></label>
+			<label class="mt-4 flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-1 size-[18px] accent-[var(--accent)]" checked={!!db.data.settings?.geo} onchange={(e) => { (db.data.settings ??= {}).geo = e.currentTarget.checked; }} /><span><strong>Standort beim Stempeln abgleichen</strong><span class="block text-xs text-muted">Nur im Moment des Ein- und Ausstempelns fragt das Handy den Standort ab und vergleicht ihn mit der Objektposition (Karte). Gespeichert wird nur das Ergebnis, etwa „ca. 420 m entfernt“, keine Koordinaten und kein Verlauf. Es ist ein Hinweis fürs Büro und sperrt nie das Stempeln. Ohne Freigabe am Handy wird „kein Standort übermittelt“ vermerkt. Vor dem Einschalten: Betriebsrat beteiligen (§ 87 Abs. 1 Nr. 6 BetrVG), Beschäftigte informieren und Verarbeitungsverzeichnis ergänzen; lassen Sie das juristisch prüfen.</span></span></label>
+			{#if db.data.settings?.geo}
+				<label class="mt-3 ml-7 flex items-center gap-2 text-sm">Radius um das Objekt <input type="number" min="30" max="2000" step="10" class="input-bare w-24 rounded-lg border border-line px-2 py-1.5 text-right" value={db.data.settings?.geoRadius ?? 150} onchange={(e) => { (db.data.settings ??= {}).geoRadius = Math.min(2000, Math.max(30, Number(e.currentTarget.value) || 150)); }} /> m</label>
+				<p class="mt-2 ml-7 text-xs text-muted">Objekte ohne Position (Karte → Objekt setzen) werden nicht abgeglichen. Abweichungen erscheinen als Notiz in der Zeitbuchung.</p>
+			{/if}
 		</section>
 		<AccessPanel />
 		<section class="card p-5" aria-labelledby="h-demo">

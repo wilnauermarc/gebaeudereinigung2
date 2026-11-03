@@ -38,7 +38,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	res.headers.set('X-Frame-Options', 'DENY');
 	// Nur der Ursprung (ohne Pfad) geht an andere Seiten. OpenStreetMap verlangt eine Referer-Angabe und sperrt Anfragen ohne sie.
 	res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-	res.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self)');
+	res.headers.set('Permissions-Policy', 'geolocation=(self), microphone=(), camera=(self)');
 	if (path.startsWith('/api/')) res.headers.set('Cache-Control', 'no-store');
 	return res;
 };

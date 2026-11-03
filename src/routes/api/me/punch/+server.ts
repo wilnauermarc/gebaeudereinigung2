@@ -3,10 +3,19 @@ import { randomUUID } from 'node:crypto';
 import { store } from '#lib/server/store.ts';
 import { MAX_SHIFT_MS, berlinParts, punchTime } from '#lib/server/inbox.ts';
 import { staffView } from '#lib/staffView.ts';
+import { geoCheck, GEO_DEFAULT_RADIUS_M, type GeoResult } from '#lib/geo.ts';
 import { timingSafeEqual } from 'node:crypto';
 import type { RequestHandler } from './$types';
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Standort-Abgleich: nur wenn der Betrieb ihn eingeschaltet hat. Koordinaten werden nur hier berechnet und nie gespeichert, abgelegt wird allein das Ergebnis. */
+function geoOf(doc: any, siteId: string, b: any): GeoResult | undefined {
+	if (!doc?.settings?.geo) return undefined;
+	const site = (doc.customers ?? []).flatMap((c: any) => c.sites).find((x: any) => x.id === siteId);
+	const radius = Number.isFinite(doc.settings.geoRadius) ? Math.min(2000, Math.max(30, doc.settings.geoRadius)) : GEO_DEFAULT_RADIUS_M;
+	return geoCheck(site ?? {}, b.geo && typeof b.geo === 'object' ? b.geo : null, radius);
+}
 
 /** Ein- und Ausstempeln. Person und Zeit bestimmt der Server; Einsatzort nur aus den eigenen Einsätzen des Tages. */
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -36,11 +45,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const tokenOk = !!want && got.length === want.length && timingSafeEqual(Buffer.from(got), Buffer.from(want));
 		if (doc?.settings?.requireQr && !tokenOk) return json({ error: 'Bitte scannen Sie den QR-Code im Objekt, um einzustempeln.', needsQr: true }, { status: 400 });
 		if (got && !tokenOk) return json({ error: 'Dieser QR-Code ist ungültig oder abgelaufen. Bitte den aktuellen Aushang scannen.' }, { status: 400 });
-		s.inboxAdd({ id, employeeId: emp, kind: 'punch', closed: false, payload: { siteId: site.siteId, startAt: at.toISOString(), offline, qr: tokenOk } });
+		s.inboxAdd({ id, employeeId: emp, kind: 'punch', closed: false, payload: { siteId: site.siteId, startAt: at.toISOString(), offline, qr: tokenOk, geoIn: geoOf(doc, site.siteId, b) } });
 		s.audit('punch_in', u.id, site.siteId);
 		return json({ ok: true, id, startedAt: at.toISOString() });
 	}
 	if (b.action === 'out') {
+		const state = s.getState();
 		if (!open) {
 			const prev = s.inboxOf(emp, new Date(Date.now() - 2 * 86400_000).toISOString()).find((i) => i.kind === 'punch' && i.payload.outId === b.clientId && typeof b.clientId === 'string');
 			return prev ? json({ ok: true, duplicate: true }) : json({ error: 'Sie sind nicht eingestempelt.' }, { status: 409 });
@@ -55,7 +65,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (breakMin >= mins) return json({ error: 'Die Pause ist länger als die Arbeitszeit.' }, { status: 400 });
 		const suspect = at.getTime() - start > MAX_SHIFT_MS;
 		const end = suspect ? new Date(start + MAX_SHIFT_MS) : at;
-		s.inboxUpdate(open.id, { ...open.payload, endAt: end.toISOString(), breakMin, offline: open.payload.offline || offline, suspect, outId: typeof b.clientId === 'string' ? b.clientId : undefined }, true);
+		s.inboxUpdate(open.id, { ...open.payload, endAt: end.toISOString(), breakMin, offline: open.payload.offline || offline, suspect, outId: typeof b.clientId === 'string' ? b.clientId : undefined, geoOut: geoOf(state ? JSON.parse(state.json) : null, open.payload.siteId, b) }, true);
 		s.audit('punch_out', u.id, open.payload.siteId);
 		return json({ ok: true, suspect });
 	}

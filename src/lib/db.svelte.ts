@@ -1,3 +1,4 @@
+import { geoLabel } from '#lib/geo.ts';
 import { company, type Company } from './company';
 import { createDemoData, createEmptyData } from './demo.ts';
 import { todayKey } from './format';
@@ -93,7 +94,7 @@ class Db {
 					const loc = (iso: string) => ({ date: new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' }), time: new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }) });
 					const a = loc(p.startAt), z = loc(p.endAt);
 					if (a.time === z.time && a.date === z.date) continue; // gleiche Minute: nichts zu buchen
-					const notes = [p.offline ? 'Offline erfasst, nachgereicht' : '', p.suspect ? 'Länger als 14 Std., bitte prüfen' : '', this.isLocked(a.date) ? 'Monat war schon abgeschlossen' : ''].filter(Boolean).join('; ');
+					const notes = [p.offline ? 'Offline erfasst, nachgereicht' : '', p.suspect ? 'Länger als 14 Std., bitte prüfen' : '', geoLabel(p.geoIn, 'Ein'), geoLabel(p.geoOut, 'Aus'), this.isLocked(a.date) ? 'Monat war schon abgeschlossen' : ''].filter(Boolean).join('; ');
 					d.timeEntries.push({ id: tid, employeeId: it.employeeId, siteId: p.siteId, date: a.date, start: a.time, end: z.time, breakMin: p.breakMin ?? 0, note: notes, createdAt: p.endAt, editedAt: null, source: 'app', voided: false, history: [] });
 					n++;
 				} else if (it.kind === 'absence') {

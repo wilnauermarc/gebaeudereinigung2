@@ -132,16 +132,21 @@
 	let now = $state(Date.now());
 	$effect(() => { const i = setInterval(() => (now = Date.now()), 30000); return () => clearInterval(i); });
 	const runningMin = $derived(open ? Math.max(0, Math.floor((now - Date.parse(open.startedAt)) / 60000)) : 0);
+	/** Standort nur im Moment des Stempelns und nur, wenn der Betrieb es eingeschaltet hat. Wird nicht gespeichert, nur abgeglichen. */
+	function fix(): Promise<{ lat: number; lon: number; acc: number } | null> {
+		if (!v?.geo || !('geolocation' in navigator)) return Promise.resolve(null);
+		return new Promise((res) => navigator.geolocation.getCurrentPosition((p) => res({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }), () => res(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }));
+	}
 	let outOpen = $state(false);
 	let breakMin = $state(0);
 	async function punchIn(s: { siteId: string; customer: string; site: string }, token?: string) {
 		flash = '';
 		const startedAt = new Date().toISOString();
-		const ok = await act('/api/me/punch', { action: 'in', siteId: s.siteId, token, clientId: crypto.randomUUID(), clientAt: startedAt }, () => { localOpen = { startedAt, siteId: s.siteId, site: s.site }; clearQr(); });
+		const ok = await act('/api/me/punch', { action: 'in', siteId: s.siteId, token, geo: await fix(), clientId: crypto.randomUUID(), clientAt: startedAt }, () => { localOpen = { startedAt, siteId: s.siteId, site: s.site }; clearQr(); });
 		if (!ok) flash = flash || '';
 	}
 	async function punchOut() {
-		const ok = await act('/api/me/punch', { action: 'out', breakMin, clientId: crypto.randomUUID(), clientAt: new Date().toISOString() }, () => { localOpen = null; });
+		const ok = await act('/api/me/punch', { action: 'out', breakMin, geo: await fix(), clientId: crypto.randomUUID(), clientAt: new Date().toISOString() }, () => { localOpen = null; });
 		if (ok) { outOpen = false; breakMin = 0; clearQr(); }
 	}
 
@@ -239,6 +244,7 @@
 		<!-- Stempeln -->
 		<section class="card overflow-hidden" aria-labelledby="h-punch">
 			<h2 id="h-punch" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">{L.punchTitle}</h2>
+			{#if v?.geo}<p class="flex items-start gap-2 border-b border-line bg-info-soft/50 px-5 py-2.5 text-xs text-info"><MapPin size={14} class="mt-0.5 shrink-0" /> {L.geoHint}</p>{/if}
 			{#if qr && v}
 				{@const qs = todays.find((x) => x.siteId === qr!.s)}
 				<div class="border-b border-line bg-accent-soft/50 px-5 py-4">

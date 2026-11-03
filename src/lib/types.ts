@@ -300,7 +300,14 @@ export interface Case {
 }
 export interface Data {
 	/** Betriebsweite Einstellungen */
-	settings?: { /** Einstempeln nur per QR-Code am Objekt */ requireQr?: boolean };
+	settings?: {
+		/** Einstempeln nur per QR-Code am Objekt */
+		requireQr?: boolean;
+		/** Standort-Abgleich beim Ein- und Ausstempeln (nur Plausibilitätshinweis, nie Sperre) */
+		geo?: boolean;
+		/** Radius um das Objekt in Metern (Standard 150) */
+		geoRadius?: number;
+	};
 	/** Gewähltes Profilfoto je Person (Name → Foto-Kürzel, siehe photos.ts) */
 	avatars?: Record<string, string>;
 	/** Absenderdaten des Betriebs für alle Dokumente (PDF) */

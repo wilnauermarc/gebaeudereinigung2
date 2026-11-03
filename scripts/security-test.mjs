@@ -147,6 +147,29 @@ ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requ
 	ok('aufräumen', wrongOpt.s === 200);
 }
 
+// ── Standort-Abgleich beim Stempeln ──
+{
+	const cur = (await owner.req('GET', '/api/state')).j;
+	const site = cur.data.customers.flatMap((c) => c.sites).find((x) => x.id === todayShift.siteId);
+	site.lat = 50.1109; site.lon = 8.6821;
+	cur.data.settings = { geo: true, geoRadius: 150 };
+	ok('Verwaltung schaltet Standort-Abgleich ein', (await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data })).s === 200);
+	ok('Mitarbeiter-Ansicht kennt den Schalter, aber keine Position', (await st2.req('GET', '/api/me/view')).j.geo === true && !JSON.stringify((await st2.req('GET', '/api/me/view')).j).includes('50.1109'));
+	const gin = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, geo: { lat: 50.2109, lon: 8.6821, acc: 10 }, clientId: '88888888-8888-4888-8888-888888888888', clientAt: new Date(Date.now() - 5 * 60000).toISOString() });
+	ok('Weit entfernt: Einstempeln wird NICHT gesperrt', gin.s === 200, JSON.stringify(gin.j));
+	const gout = await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0, geo: { lat: 'x', lon: 'y' } });
+	ok('Ungültige Koordinaten: Ausstempeln klappt trotzdem', gout.s === 200);
+	const items = (await owner.req('GET', '/api/inbox')).j.items.filter((i) => i.kind === 'punch');
+	const mine = items.find((i) => i.payload.geoIn);
+	ok('Nur das Ergebnis wird gespeichert (fern, ohne Koordinaten)', mine && mine.payload.geoIn.s === 'fern' && mine.payload.geoOut.s === 'verweigert' && !JSON.stringify(mine.payload).includes('50.2109'), JSON.stringify(mine?.payload));
+	const cur3 = (await owner.req('GET', '/api/state')).j;
+	cur3.data.settings = {};
+	await owner.req('PUT', '/api/state', { rev: cur3.rev, data: cur3.data });
+	const off = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, geo: { lat: 1, lon: 1 }, clientId: '99999999-9999-4999-8999-999999999999' });
+	await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0 });
+	ok('Schalter aus: Server speichert keinen Standort-Vermerk', off.s === 200 && !(await owner.req('GET', '/api/inbox')).j.items.some((i) => i.payload.geoIn && i.id === off.j.id));
+}
+
 // ── Schichttausch ──
 {
 	// Lukas (m7) bekommt einen Zugang und wird für den Test von allen Plänen genommen, damit er sicher frei ist

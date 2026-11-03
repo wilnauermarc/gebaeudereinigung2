@@ -19,6 +19,8 @@ export interface StaffView {
 	open: StaffOpen | null;
 	/** Einstempeln nur per QR-Code am Objekt */
 	requireQr: boolean;
+	/** Standort-Abgleich beim Stempeln aktiv */
+	geo: boolean;
 	month: string; hours: number; soll: number;
 	minijob: { earnedCents: number; limitCents: number } | null;
 	leave: { from: string; to: string; kind: 'urlaub' | 'krank'; status: 'beantragt' | 'genehmigt' }[];
@@ -65,7 +67,7 @@ export function staffView(d: Data, employeeId: string, today: string, inbox: Sta
 		: { id: i.id, kind: 'defect' as const, label: String(i.payload.text).slice(0, 80), status: i.status === 'neu' ? 'offen' : 'übernommen', createdAt: i.created_at });
 
 	return {
-		requireQr: !!d.settings?.requireQr, times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
+		requireQr: !!d.settings?.requireQr, geo: !!d.settings?.geo, times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
 		name: e.name, role: e.role, contract: e.contract, weeklyHours: e.weeklyHours,
 		shifts, month, hours, soll: (e.weeklyHours * days) / 7,
 		minijob: e.contract === 'minijob' ? { earnedCents: Math.round(hours * 1500), limitCents: MINIJOB_LIMIT } : null,
