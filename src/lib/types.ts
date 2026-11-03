@@ -323,6 +323,8 @@ export interface Data {
 		geo?: boolean;
 		/** Radius um das Objekt in Metern (Standard 150) */
 		geoRadius?: number;
+		/** Der Bestand besteht aus erfundenen Demodaten (steuert den Hinweis in der Kopfleiste) */
+		demo?: boolean;
 	};
 	/** Gewähltes Profilfoto je Person (Name → Foto-Kürzel, siehe photos.ts) */
 	avatars?: Record<string, string>;

@@ -64,7 +64,8 @@ function q(
 export function createEmptyData(keep?: Pick<Data, 'company' | 'calc'>): Data {
 	return {
 		company: { ...(keep?.company ?? defaultCompany) }, cases: [], tasks: [], docs: [], material: [], lockedMonths: [], inspections: [], keys: [], customers: [], quotes: [], events: [], appointments: [],
-		invoices: [], employees: [], absences: [], covers: [], timeEntries: [], defects: [], calc: { ...(keep?.calc ?? defaultCalc) }
+		invoices: [], employees: [], absences: [], covers: [], timeEntries: [], defects: [], calc: { ...(keep?.calc ?? defaultCalc) },
+		settings: { demo: false }
 	};
 }
 
@@ -371,5 +372,5 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 		cs('k9', 'k9-s1', 'Büroreinigung Notariat', 160, { decision: 'declined', declineNotedAt: at(-158), dataConfirmed: false })
 	];
 
-	return { company: { ...defaultCompany }, cases, tasks, docs, material, lockedMonths: [on(-45).slice(0, 7)], inspections, keys, customers, quotes, events, appointments, invoices, employees, absences, covers: [], timeEntries, defects, calc: { ...defaultCalc } };
+	return { company: { ...defaultCompany }, cases, tasks, docs, material, lockedMonths: [on(-45).slice(0, 7)], inspections, keys, customers, quotes, events, appointments, invoices, employees, absences, covers: [], timeEntries, defects, calc: { ...defaultCalc }, settings: { demo: true } };
 }

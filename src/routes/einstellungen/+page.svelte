@@ -16,6 +16,13 @@
 	import type { Company } from '#lib/company.ts';
 	import type { Data } from '#lib/types.ts';
 
+	/** Bereiche statt einer langen Seite: Betrieb, Zugänge, Aussehen, Daten */
+	type Tab = 'betrieb' | 'zugaenge' | 'aussehen' | 'daten';
+	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
+	let tab = $state<Tab>('betrieb');
+	function pick(t: Tab) { tab = t; try { history.replaceState(history.state, '', `/einstellungen#${t === 'zugaenge' ? 'zugaenge' : t}`); } catch { /* ignorieren */ } }
+	$effect(() => { const h = location.hash.slice(1); if (h === 'zugaenge' || h === 'aussehen' || h === 'daten' || h === 'betrieb') tab = h as Tab; });
+
 	let f = $state<Company>({ ...db.data.company });
 	let err = $state<Record<string, string>>({});
 	const isPlaceholder = $derived(f.iban.replace(/\s/g, '').startsWith('DE0000') || f.email.endsWith('example.com'));
@@ -84,9 +91,16 @@
 
 <svelte:head><title>Einstellungen · Objektia</title></svelte:head>
 
-<PageHead title="Einstellungen" subtitle="Betriebsdaten für Ihre Dokumente und Sicherung Ihrer Daten." />
+<PageHead title="Einstellungen" subtitle="Betrieb, Zugänge, Aussehen und Daten, jeweils in einem eigenen Bereich." />
 
-<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+<div class="mb-5 flex flex-wrap gap-1 border-b border-line" role="tablist" aria-label="Bereiche der Einstellungen">
+	{#each tabList as t}
+		<button role="tab" id="tab-{t.id}" aria-selected={tab === t.id} aria-controls="panel-{t.id}" class="tab" onclick={() => pick(t.id)}>{t.label}</button>
+	{/each}
+</div>
+
+<div class="grid items-start gap-5 {tab === 'betrieb' ? 'xl:grid-cols-[minmax(0,1fr)_380px]' : 'mx-auto max-w-3xl'}" role="tabpanel" id="panel-{tab}" aria-labelledby="tab-{tab}">
+	{#if tab === 'betrieb'}
 	<form class="card p-5" onsubmit={save} novalidate aria-labelledby="h-firm">
 		<h2 id="h-firm" class="card-title mb-1">Betriebsdaten</h2>
 		<p class="mb-4 text-sm text-muted">Diese Angaben stehen auf Angeboten, Rechnungen, Mahnungen und Berichten (Briefkopf und Fußzeile).</p>
@@ -108,8 +122,10 @@
 		</div>
 		<div class="mt-5 flex justify-end"><button class="btn btn-primary"><Save size={15} /> Speichern</button></div>
 	</form>
+	{/if}
 
 	<div class="flex flex-col gap-4">
+		{#if tab === 'daten'}
 		<section class="card p-5" aria-labelledby="h-backup">
 			<h2 id="h-backup" class="card-title mb-1">Sicherung und Datenübernahme</h2>
 			<p class="mb-3 text-sm text-muted">Ihre Daten gehören Ihnen. Laden Sie jederzeit alles als eine Datei herunter oder spielen Sie eine Sicherung ein.</p>
@@ -121,6 +137,8 @@
 			{#if importErr}<p class="mt-3 text-sm text-danger" role="alert">{importErr}</p>{/if}
 			<p class="mt-3 text-xs text-muted">Im Prototyp liegen die Daten nur in diesem Browser. Machen Sie regelmäßig eine Sicherung, bevor Sie Browserdaten löschen.</p>
 		</section>
+		{/if}
+		{#if tab === 'aussehen'}
 		<section class="card p-5" aria-labelledby="h-photo">
 			<h2 id="h-photo" class="card-title mb-1">Mein Profilfoto</h2>
 			<p class="mb-3 text-xs text-muted">Die Fotos sind Platzhalter (Unsplash) und zeigen nicht die angemeldete Person. Später lässt sich hier ein eigenes Foto hochladen.</p>
@@ -131,6 +149,8 @@
 				{/each}
 			</div>
 		</section>
+		{/if}
+		{#if tab === 'zugaenge'}
 		<section class="card p-5" aria-labelledby="h-qr">
 			<h2 id="h-qr" class="card-title mb-1">Stempeln</h2>
 			<label class="flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-1 size-[18px] accent-[var(--accent)]" checked={!!db.data.settings?.requireQr} onchange={(e) => { (db.data.settings ??= {}).requireQr = e.currentTarget.checked; }} /><span><strong>Einstempeln nur per QR-Code am Objekt</strong><span class="block text-xs text-muted">Mitarbeitende müssen den Aushang im Objekt scannen. Das belegt, dass sie vor Ort sind, ohne Standortdaten zu erheben. Den Aushang drucken Sie beim Kunden unter Objekte → „Stempel-QR“. Ausstempeln ist auch ohne Scan möglich.</span></span></label>
@@ -140,7 +160,9 @@
 				<p class="mt-2 ml-7 text-xs text-muted">Objekte ohne Position (Karte → Objekt setzen) werden nicht abgeglichen. Abweichungen erscheinen als Notiz in der Zeitbuchung.</p>
 			{/if}
 		</section>
-		<AccessPanel />
+		{/if}
+		{#if tab === 'zugaenge'}<AccessPanel />{/if}
+		{#if tab === 'daten'}
 		<section class="card p-5" aria-labelledby="h-demo">
 			<h2 id="h-demo" class="card-title mb-1">Demodaten</h2>
 			<p class="mb-3 text-xs text-muted">Alle Daten in diesem Prototyp sind erfunden und liegen nur im Browser. Starten Sie leer, um mit eigenen Daten zu arbeiten, oder laden Sie eine Demo in der Größe Ihres Teams. <strong>Sichern Sie vorher</strong> (Abschnitt Datensicherung), das Ersetzen lässt sich nicht rückgängig machen.</p>
@@ -150,6 +172,8 @@
 				<button class="btn btn-primary" onclick={() => askDemo('team12')}><Users size={14} /> Demo mit 12 Personen</button>
 			</div>
 		</section>
+		{/if}
+		{#if tab === 'aussehen'}
 		<section class="card p-5" aria-labelledby="h-pal">
 			<h2 id="h-pal" class="card-title mb-1">Farbwelt</h2>
 			<p class="mb-3 text-xs text-muted">Ein Set bestimmt Akzentfarbe, Seitenleiste und Kopfbereich. Die Auswahl gilt für dieses Gerät und wirkt sofort. Statusfarben (grün, gelb, rot) bleiben unverändert.</p>
@@ -163,6 +187,8 @@
 			</div>
 			{#if ui.palette === 'eigen'}<div class="mt-3 flex items-center gap-3"><label class="label !mb-0" for="pal-c">Akzentfarbe</label><input id="pal-c" type="color" class="h-9 w-14 cursor-pointer rounded border border-line-strong bg-surface p-0.5" value={ui.custom} oninput={(e) => ui.setCustom(e.currentTarget.value)} /><span class="num text-xs text-muted">{ui.custom}</span></div>{/if}
 		</section>
+		{/if}
+		{#if tab === 'aussehen'}
 		<section class="card p-5" aria-labelledby="h-role">
 			<h2 id="h-role" class="card-title mb-1">Ansicht: Rolle und Basismodus</h2>
 			<p class="mb-3 text-xs text-muted">Blendet Bereiche in der Navigation aus, damit jede Person nur sieht, was sie braucht. <strong>Das ist kein Zugriffsschutz:</strong> ohne Backend und Anmeldung bleiben alle Seiten per Adresse erreichbar.</p>
@@ -171,6 +197,8 @@
 				<label class="flex cursor-pointer items-end gap-2 pb-2 text-sm"><input type="checkbox" class="size-[18px] accent-[var(--accent)]" bind:checked={ui.basic} onchange={() => ui.save()} /><span><strong>Basismodus</strong> <span class="text-muted">nur die täglichen Bereiche</span></span></label>
 			</div>
 		</section>
+		{/if}
+		{#if tab === 'betrieb'}
 		<section class="card p-5" aria-labelledby="h-exp">
 			<h2 id="h-exp" class="card-title mb-1">Schnittstellen für die Steuerberatung</h2>
 			<p class="mb-3 text-xs text-muted">Diese Angaben stecken in den Exporten (Rechnungen → DATEV-Buchungsstapel, Zeiten → Lohnstunden). <strong>Nicht von DATEV zertifiziert:</strong> Konten und Lohnarten bitte mit der Steuerberatung abstimmen und einen Testimport machen.</p>
@@ -188,6 +216,8 @@
 				{/each}
 			</div>
 		</section>
+		{/if}
+		{#if tab === 'daten'}
 		<section class="card p-5" aria-labelledby="h-privacy">
 			<h2 id="h-privacy" class="card-title mb-2 flex items-center gap-2"><ShieldCheck size={15} class="text-muted" /> Datenschutz</h2>
 			<ul class="flex flex-col gap-1.5 text-sm text-muted">
@@ -197,6 +227,7 @@
 				<li>Arbeitszeiten: Aufbewahrung mindestens 2 Jahre, Rechnungen 8 Jahre (Richtwerte, mit Steuerberater abgleichen).</li>
 			</ul>
 		</section>
+		{/if}
 	</div>
 </div>
 

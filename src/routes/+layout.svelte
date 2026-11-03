@@ -167,6 +167,8 @@
 	// Begrüßungs-Rundgang: beim ersten Mal von selbst, danach über „Rundgang“ in der Seitenleiste
 	$effect(() => { if (db.ready && db.session?.management) tour.init(db.session.id); });
 	async function logout() { await db.logout(); goto('/login'); await db.init(); }
+	/** Demo-Hinweis nur, solange erfundene Daten drin sind (Kennzeichen im Datenbestand, sonst am Platzhalter der Firmendaten erkannt) */
+	const isDemo = $derived(db.data.settings?.demo ?? db.data.company.email === 'info@example.com');
 	const savedLabel = $derived(
 		db.conflict
 			? 'Konflikt: bitte Seite neu laden'
@@ -265,18 +267,12 @@
 			{/each}
 		</nav>
 
-		<div class="flex flex-col gap-0.5 border-t border-side-line p-4">
-			<button class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-side-muted hover:bg-side-hover hover:text-side-fg" onclick={() => { menuOpen = false; tour.start(); }}><Compass size={17} /> Rundgang</button>
-			<a href="/einstellungen" aria-current={isActive('/einstellungen') ? 'page' : undefined} class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm {isActive('/einstellungen') ? 'bg-side-active' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"><Settings size={17} /> Einstellungen</a>
-			<a href="/designsystem" aria-current={isActive('/designsystem') ? 'page' : undefined} class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm {isActive('/designsystem') ? 'bg-side-active' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}">
-				<Palette size={17} /> Designsystem
-			</a>
-			<button class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-side-muted hover:bg-side-hover hover:text-side-fg" onclick={toggleTheme}>
-				{#if dark}<Sun size={17} /> Helles Design{:else}<Moon size={17} /> Dunkles Design{/if}
-			</button>
-			<button class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-side-muted hover:bg-side-hover hover:text-side-fg" onclick={logout}>
-				<LogOut size={17} /> Abmelden
-			</button>
+		<div class="flex items-center justify-between gap-1 border-t border-side-line px-3 py-3">
+			<a href="/einstellungen" aria-current={isActive('/einstellungen') ? 'page' : undefined} title="Einstellungen" aria-label="Einstellungen" class="grid size-10 place-items-center rounded-lg {isActive('/einstellungen') ? 'bg-side-active text-accent' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"><Settings size={18} /></a>
+			<button class="grid size-10 place-items-center rounded-lg text-side-muted hover:bg-side-hover hover:text-side-fg" title="Rundgang starten" aria-label="Rundgang starten" onclick={() => { menuOpen = false; tour.start(); }}><Compass size={18} /></button>
+			<a href="/designsystem" aria-current={isActive('/designsystem') ? 'page' : undefined} title="Designsystem" aria-label="Designsystem" class="grid size-10 place-items-center rounded-lg {isActive('/designsystem') ? 'bg-side-active text-accent' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"><Palette size={18} /></a>
+			<button class="grid size-10 place-items-center rounded-lg text-side-muted hover:bg-side-hover hover:text-side-fg" title={dark ? 'Helles Design' : 'Dunkles Design'} aria-label={dark ? 'Helles Design' : 'Dunkles Design'} onclick={toggleTheme}>{#if dark}<Sun size={18} />{:else}<Moon size={18} />{/if}</button>
+			<button class="grid size-10 place-items-center rounded-lg text-side-muted hover:bg-side-hover hover:text-side-fg" title="Abmelden" aria-label="Abmelden" onclick={logout}><LogOut size={18} /></button>
 		</div>
 	</aside>
 
@@ -288,7 +284,7 @@
 			</button>
 			<span class="ml-auto hidden text-xs md:inline {db.conflict || db.storageError ? 'font-semibold text-danger' : 'text-muted'}" role="status" aria-live="polite">{savedLabel}</span>
 			{#if !online}<span class="badge badge-warn" title="Ohne Netz arbeiten Sie weiter, alle Daten liegen im Browser. Kartenhintergrund und Downloads brauchen Netz.">Offline</span>{/if}
-			<span class="badge badge-warn hidden sm:inline-flex" title="Alle Daten in diesem Prototyp sind erfunden.">Prototyp · Demo</span>
+			{#if isDemo}<span class="badge badge-warn hidden sm:inline-flex" title="Diese Daten sind erfunden. Unter Einstellungen → Daten können Sie sie entfernen.">Demodaten</span>{/if}
 			<a href="/aufgaben" class="relative grid size-10 place-items-center rounded-xl text-muted hover:bg-subtle hover:text-fg" aria-label="Aufgaben und Warnungen"><Bell size={19} />{#if attention > 0}<span class="num absolute top-1 right-1 grid min-w-[1.1rem] place-items-center rounded-full bg-accent px-1 text-[0.65rem] font-bold text-white">{attention}</span>{/if}</a>
 		</header>
 		<main id="main" class="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 lg:px-8">
