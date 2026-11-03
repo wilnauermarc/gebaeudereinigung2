@@ -309,8 +309,17 @@ await buero.req('POST', '/api/password', { current: b.j.code, next: 'Buero-Passw
 await buero.req('POST', '/api/login', { login: 'buero.kraft', password: 'Buero-Passwort-123' });
 ok('Büro lädt Datenbestand', (await buero.req('GET', '/api/state')).s === 200);
 ok('Büro darf keine Verwaltungszugänge anlegen (403)', (await buero.req('POST', '/api/users', { action: 'create', role: 'buero', login: 'x1x', display: 'X1x' })).s === 403);
-const inh = await owner.req('POST', '/api/users', { action: 'create', role: 'inhaber', login: 'zweite.inhaberin', display: 'Zweite' });
-ok('Rolle Inhaberin lässt sich nicht über die API vergeben', inh.s === 400, String(inh.s));
+ok('Büro darf keinen Administrator anlegen (403)', (await buero.req('POST', '/api/users', { action: 'create', role: 'inhaber', login: 'hacker2', display: 'Hacker' })).s === 403);
+// Weiterer Administrator: nur durch einen Administrator, mit Einmal-Code und Passwortzwang
+const inh = await owner.req('POST', '/api/users', { action: 'create', role: 'inhaber', login: 'zweite.admin', display: 'Zweite Admin' });
+ok('Administrator legt weiteren Administrator an', inh.s === 200 && !!inh.j.code, JSON.stringify(inh.j));
+const adm = new Client();
+const al = await adm.req('POST', '/api/login', { login: 'zweite.admin', password: inh.j.code });
+ok('neuer Administrator muss zuerst ein Passwort wählen', al.s === 200 && al.j.user.mustChange === true && (await adm.req('GET', '/api/state')).s === 403);
+await adm.req('POST', '/api/password', { current: inh.j.code, next: 'Admin-Passwort-1234' });
+await adm.req('POST', '/api/login', { login: 'zweite.admin', password: 'Admin-Passwort-1234' });
+ok('neuer Administrator sieht Daten und Zugänge', (await adm.req('GET', '/api/state')).s === 200 && (await adm.req('GET', '/api/users')).s === 200);
+ok('neuer Administrator darf Büro-Zugänge anlegen', (await adm.req('POST', '/api/users', { action: 'create', role: 'buero', login: 'buero.zwei', display: 'Büro Zwei' })).s === 200);
 ok('Büro darf Inhaberin nicht sperren (403)', (await buero.req('POST', '/api/users', { action: 'disable', id: list.j.users.find((u) => u.login === 'anetta').id })).s === 403);
 
 // Optimistische Sperre

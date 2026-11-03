@@ -8,7 +8,7 @@
 	interface U { id: string; login: string; display: string; role: string; employee_id: string | null; must_change: number; disabled: number; locked_until: number }
 	let users = $state<U[]>([]);
 	let loadErr = $state('');
-	const roleLabel: Record<string, string> = { inhaber: 'Inhaberin', buero: 'Büro', objektleitung: 'Objektleitung', mitarbeiter: 'Mitarbeiter-Zugang' };
+	const roleLabel: Record<string, string> = { inhaber: 'Administrator', buero: 'Büro', objektleitung: 'Objektleitung', mitarbeiter: 'Mitarbeiter-Zugang' };
 	const isOwner = $derived(db.session?.role === 'inhaber');
 
 	async function api(body: unknown) {
@@ -83,11 +83,11 @@
 <Dialog bind:open title="Zugang anlegen" width={480}>
 	{#snippet children()}
 		<form id="acc-form" class="grid grid-cols-2 gap-3" onsubmit={create} novalidate>
-			<div class="col-span-2"><label class="label" for="a-r">Art</label><select id="a-r" class="input" bind:value={f.role}><option value="mitarbeiter">Mitarbeiter-Zugang (nur eigene Daten)</option>{#if isOwner}<option value="buero">Büro (Verwaltung)</option><option value="objektleitung">Objektleitung (Verwaltung)</option>{/if}</select></div>
+			<div class="col-span-2"><label class="label" for="a-r">Art</label><select id="a-r" class="input" bind:value={f.role}><option value="mitarbeiter">Mitarbeiter-Zugang (nur eigene Daten)</option>{#if isOwner}<option value="inhaber">Administrator (voller Zugriff, verwaltet auch Zugänge)</option><option value="buero">Büro (Verwaltung)</option><option value="objektleitung">Objektleitung (Verwaltung)</option>{/if}</select></div>
 			{#if f.role === 'mitarbeiter'}<div class="col-span-2"><label class="label" for="a-e">Person</label><select id="a-e" class="input" bind:value={f.employeeId} onchange={pickEmployee}><option value="">Bitte wählen</option>{#each withoutAccess as e}<option value={e.id}>{e.name}</option>{/each}</select></div>{/if}
 			<div><label class="label" for="a-n">Name</label><input id="a-n" class="input" bind:value={f.display} /></div>
 			<div><label class="label" for="a-l">Anmeldename</label><input id="a-l" class="input" autocapitalize="none" bind:value={f.login} /></div>
-			{#if f.role !== 'mitarbeiter'}<p class="col-span-2 text-xs text-warn">Verwaltungs-Zugänge sehen alle Geschäftsdaten (Preise, Rechnungen, Team). Nur an vertrauenswürdige Personen vergeben.</p>{/if}
+			{#if f.role !== 'mitarbeiter'}<p class="col-span-2 text-xs text-warn">{f.role === 'inhaber' ? 'Administratoren sehen alle Geschäftsdaten und können Zugänge anlegen, sperren und löschen, auch die der anderen. Nur an Menschen vergeben, denen Sie das Unternehmen anvertrauen.' : 'Verwaltungs-Zugänge sehen alle Geschäftsdaten (Preise, Rechnungen, Team). Nur an vertrauenswürdige Personen vergeben.'}</p>{/if}
 			{#if err}<p class="col-span-2 text-sm text-danger" role="alert">{err}</p>{/if}
 		</form>
 	{/snippet}

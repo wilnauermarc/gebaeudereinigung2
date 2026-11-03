@@ -13,8 +13,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const s = store();
 	// Aktionen: create (Zugang für Mitarbeitende), reset (neuer Einmal-Code), disable/enable, remove
 	if (b.action === 'create') {
-		const role: Role = b.role === 'buero' || b.role === 'objektleitung' ? b.role : 'mitarbeiter';
-		if ((role === 'buero' || role === 'objektleitung') && me.role !== 'inhaber') return json({ error: 'Nur die Inhaberin kann Verwaltungs-Zugänge anlegen.' }, { status: 403 });
+		const role: Role = b.role === 'inhaber' || b.role === 'buero' || b.role === 'objektleitung' ? b.role : 'mitarbeiter';
+		if (role !== 'mitarbeiter' && me.role !== 'inhaber') return json({ error: 'Nur Administratoren können Verwaltungs-Zugänge anlegen.' }, { status: 403 });
 		const login = String(b.login ?? '').trim(), display = String(b.display ?? '').trim();
 		if (!/^[\p{L}\p{N}._@-]{3,40}$/u.test(login) || display.length < 2) return json({ error: 'Anmeldename (3–40 Zeichen, ohne Leerzeichen) und Name angeben.' }, { status: 400 });
 		if (s.userByLogin(login)) return json({ error: 'Diesen Anmeldenamen gibt es schon.' }, { status: 409 });
@@ -31,7 +31,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 	const target = typeof b.id === 'string' ? s.userById(b.id) : undefined;
 	if (!target) return json({ error: 'Zugang nicht gefunden.' }, { status: 404 });
-	if (target.role !== 'mitarbeiter' && me.role !== 'inhaber') return json({ error: 'Verwaltungs-Zugänge ändert nur die Inhaberin.' }, { status: 403 });
+	if (target.role !== 'mitarbeiter' && me.role !== 'inhaber') return json({ error: 'Verwaltungs-Zugänge ändern nur Administratoren.' }, { status: 403 });
 	if (target.id === me.id && b.action !== 'reset') return json({ error: 'Den eigenen Zugang können Sie hier nicht ändern.' }, { status: 400 });
 	if (b.action === 'reset') {
 		const code = oneTimeCode();
@@ -40,6 +40,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		s.audit('user_reset', me.id, target.login);
 		return json({ code });
 	}
+	// Es muss immer mindestens ein aktiver Administrator übrig bleiben, sonst sperrt sich die Firma aus
+	const activeAdmins = () => s.listUsers().filter((u) => u.role === 'inhaber' && !u.disabled);
+	const lastAdmin = target.role === 'inhaber' && !target.disabled && activeAdmins().length <= 1;
+	if (lastAdmin && (b.action === 'disable' || b.action === 'remove')) return json({ error: 'Das ist der letzte aktive Administrator. Legen Sie zuerst einen weiteren an.' }, { status: 409 });
 	if (b.action === 'disable' || b.action === 'enable') {
 		s.setDisabled(target.id, b.action === 'disable');
 		if (b.action === 'disable') s.deleteUserSessions(target.id);
