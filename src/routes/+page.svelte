@@ -7,7 +7,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { ArrowUpRight, CalendarCheck, Check, FileText, Eye, PlayCircle, BellRing, TriangleAlert, Users, Plus, Clock, MessageSquareWarning, TrendingUp, Workflow, Sunrise, Hourglass, Gauge, PartyPopper, Wallet, Receipt, ListChecks } from '@lucide/svelte';
 	import { addDays, addMonths as addMonthsKey, mondayOf } from '#lib/calc.ts';
-	import WorkflowBand from '#lib/components/WorkflowBand.svelte';
+	import CaseFlow from '#lib/components/CaseFlow.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { findGaps, healthScores, gauges as gaugesOf } from '#lib/cockpit.ts';
 	import GaugeRing from '#lib/components/Gauge.svelte';
@@ -137,6 +137,8 @@
 		prevOpen = o;
 	});
 
+	/** Die fünf zuletzt angelegten Vorgänge, die noch laufen, als Ablauf-Zeilen */
+	const flowRows = $derived(db.data.cases.map((c) => ({ c, s: caseStatus(db.data, c), customer: db.customer(c.customerId) })).filter((r) => !r.s.closed).sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt)).slice(0, 5));
 	const gaugeData = $derived(gaugesOf(db.data, db.refMonth, today, mondayOf(today)));
 
 	// ── Diagramme aus den vorhandenen Daten ──
@@ -247,7 +249,10 @@
 	</div>
 </header>
 
-<WorkflowBand compact />
+<section class="mb-5" aria-labelledby="h-flow">
+	<div class="mb-2 flex items-baseline justify-between"><h2 id="h-flow" class="card-title">Vorgänge im Ablauf</h2><a href="/vorgaenge" class="text-sm font-semibold text-accent hover:underline">Alle Vorgänge →</a></div>
+	{#if flowRows.length}<CaseFlow rows={flowRows} compact />{:else}<p class="card px-5 py-4 text-sm text-muted">Gerade läuft kein Vorgang. Eine neue Kundenanfrage legen Sie unter „Vorgänge“ an.</p>{/if}
+</section>
 
 <section class="card mb-5 overflow-hidden" aria-label="Betriebs-Cockpit">
 	<div class="grid grid-cols-2 gap-1 p-2.5 md:grid-cols-5">

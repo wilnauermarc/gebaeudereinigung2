@@ -4,7 +4,7 @@
 	import { db } from '#lib/db.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { caseStatus, newCase, stepLabels, stepOrder, caseNet, type StepKey } from '#lib/cases.ts';
-	import WorkflowBand from '#lib/components/WorkflowBand.svelte';
+	import CaseFlow from '#lib/components/CaseFlow.svelte';
 	import { formatEur, relativeTime, dayDiff } from '#lib/format.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Badge from '#lib/components/Badge.svelte';
@@ -100,8 +100,6 @@
 	{/snippet}
 </PageHead>
 
-<WorkflowBand active={stepFilter} onpick={pickStep} />
-
 <div class="mb-3 flex flex-wrap items-center gap-2">
 	<div class="relative w-full sm:w-72"><Search size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint" /><input data-search class="input pl-8" placeholder="Vorgang oder Kunde …" aria-label="Vorgänge durchsuchen" bind:value={query} /></div>
 	<div class="flex flex-wrap gap-1" role="group" aria-label="Filtern">
@@ -111,27 +109,13 @@
 	</div>
 </div>
 
-<div class="card overflow-x-auto">
-	{#if rows.length === 0}
+{#if rows.length === 0}
+	<div class="card">
 		<EmptyState icon={Inbox} title="Keine Vorgänge in dieser Ansicht" text="Legen Sie für jede neue Anfrage einen Vorgang an. Die App führt Sie dann Schritt für Schritt bis zur Projektzeitliste."><button class="btn btn-primary" onclick={openNew}><Plus size={14} /> Neuer Vorgang</button></EmptyState>
-	{:else}
-		<table class="w-full min-w-[860px] border-collapse">
-			<thead class="border-b border-line bg-bg/60"><tr><th class="th">Vorgang</th><th class="th">Fortschritt</th><th class="th">Stand</th><th class="th text-right">Wert netto</th><th class="th">Zuständig</th><th class="th text-right">Erfasst</th></tr></thead>
-			<tbody class="divide-y divide-line">
-				{#each rows as { c, s, customer } (c.id)}
-					<tr class="cursor-pointer" onclick={() => goto(`/vorgaenge/${c.id}`)}>
-						<td class="td max-w-[340px]"><div class="flex items-center gap-3"><Avatar name={customer?.name ?? ''} size={30} /><div class="min-w-0"><a href="/vorgaenge/{c.id}" class="block truncate font-medium hover:text-accent" onclick={(e) => e.stopPropagation()}>{c.title}</a><span class="block truncate text-xs text-muted">{c.number} · {customer?.name}</span></div></div></td>
-						<td class="td"><div class="flex gap-0.5" role="img" aria-label="{Math.round(s.progress * 8)} von 8 Schritten erledigt">{#each s.steps as st}<span class="h-1.5 w-4 rounded-full {st.state === 'done' ? 'bg-accent' : st.state === 'skipped' ? 'bg-accent/35' : st.state === 'current' ? 'bg-side' : st.state === 'ended' ? 'bg-danger' : 'bg-line'}"></span>{/each}</div></td>
-						<td class="td">{#if s.closed}<Badge tone={s.closed === 'abgeschlossen' ? 'success' : 'danger'} label={closedLabel[s.closed]} />{:else}<Badge tone="info" label={stepLabels[s.current!]} />{/if}</td>
-						<td class="td num text-right">{caseNet(db.data, c) ? formatEur(caseNet(db.data, c)) : '–'}</td>
-						<td class="td text-muted">{c.assignee}</td>
-						<td class="td text-right text-xs whitespace-nowrap text-muted">{relativeTime(c.createdAt)}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	{/if}
-</div>
+	</div>
+{:else}
+	<CaseFlow {rows} active={stepFilter} onpick={pickStep} />
+{/if}
 
 <Dialog bind:open title="Neuer Vorgang" description="Eine Kundenanfrage, die Sie durch den Ablauf führen möchten." width={560}>
 	{#snippet children()}
