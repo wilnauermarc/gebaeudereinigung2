@@ -139,7 +139,7 @@ class Db {
 			this.needsSetup = !!j.needsSetup;
 			this.setupNeedsCode = !!j.setupNeedsCode;
 			this.session = j.user;
-			if (j.user?.management) await this.load();
+			if (j.user?.management && !j.user.mustChange) await this.load();
 		} catch {
 			this.storageError = true;
 		}

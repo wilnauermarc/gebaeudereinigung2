@@ -5,6 +5,7 @@
 	import { db } from '#lib/db.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { ui, roleLabels, applyPalette } from '#lib/ui.svelte.ts';
+	import PasswordChange from '#lib/components/PasswordChange.svelte';
 	import Tour from '#lib/components/Tour.svelte';
 	import { tour } from '#lib/tour.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
@@ -154,7 +155,7 @@
 	});
 	// Eingang der Mitarbeitenden (Stempelungen, Meldungen) regelmäßig übernehmen
 	$effect(() => {
-		if (!db.ready || !db.session?.management) return;
+		if (!db.ready || !db.session?.management || db.session.mustChange) return;
 		db.syncInbox();
 		const t = setInterval(() => db.syncInbox(), 30000);
 		const onFocus = () => db.syncInbox();
@@ -187,6 +188,9 @@
 
 {#if bare}
 	{@render children()}
+	<Toasts />
+{:else if db.ready && db.session?.mustChange && db.session.role !== 'mitarbeiter'}
+	<PasswordChange />
 	<Toasts />
 {:else if !db.ready || !db.session || db.session.role === 'mitarbeiter'}
 	<div class="grid min-h-dvh place-items-center text-sm text-muted" role="status">Wird geladen …</div>
