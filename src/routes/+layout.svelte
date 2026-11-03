@@ -15,7 +15,7 @@
 	import { caseStatus } from '#lib/cases.ts';
 	import {
 		LayoutDashboard, FileCode2, Users, FileText, Search, Menu, Moon, Sun, Palette, ClipboardList,
-		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge
+		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge, Handshake, Route, BadgeCheck, Wallet, Boxes, Star
 	} from '@lucide/svelte';
 
 	let { children } = $props();
@@ -42,50 +42,62 @@
 		applyPalette(ui.palette, ui.custom);
 	}
 
-	const groups = [
-		{ title: null, items: [
-			{ href: '/', label: 'Heute', icon: LayoutDashboard, key: 'h' },
-			{ href: '/cockpit', label: 'Cockpit', icon: Gauge, key: 'p' },
-			{ href: '/aufgaben', label: 'Aufgaben', icon: ListChecks, key: 'u' },
-			{ href: '/fristen', label: 'Fristen', icon: CalendarClock, key: 'f' }
-		] },
-		{ title: 'Vertrieb', items: [
-			{ href: '/vorgaenge', label: 'Vorgänge', icon: Workflow, key: 'w' },
+	/**
+	 * Menü nach Arbeitsablauf statt nach Technik: Oben das Tägliche (immer sichtbar), darunter fünf Bereiche als Ziehharmonika.
+	 * Es ist immer nur ein Bereich offen, nämlich der der aktuellen Seite. Eigene Favoriten stehen ganz oben.
+	 */
+	type NavItem = { href: string; label: string; icon: typeof Gauge; key: string };
+	const top: NavItem[] = [
+		{ href: '/', label: 'Heute', icon: LayoutDashboard, key: 'h' },
+		{ href: '/aufgaben', label: 'Aufgaben', icon: ListChecks, key: 'u' },
+		{ href: '/fristen', label: 'Fristen', icon: CalendarClock, key: 'f' },
+		{ href: '/cockpit', label: 'Cockpit', icon: Gauge, key: 'p' }
+	];
+	const sections: { id: string; title: string; icon: typeof Gauge; items: NavItem[] }[] = [
+		{ id: 'verkauf', title: 'Verkauf', icon: Handshake, items: [
 			{ href: '/kunden', label: 'Kunden', icon: Users, key: 'k' },
+			{ href: '/vorgaenge', label: 'Vorgänge', icon: Workflow, key: 'w' },
 			{ href: '/angebote', label: 'Angebote', icon: FileText, key: 'a' },
 			{ href: '/kalkulator', label: 'Kalkulator', icon: Calculator, key: 'c' },
 			{ href: '/vertraege', label: 'Verträge', icon: ScrollText, key: 'v' },
-			{ href: '/ausschreibung', label: 'Bieter-Mappe', icon: FolderOpen, key: 'i' },
-			{ href: '/projektzeitliste', label: 'Projektzeitliste', icon: ListTodo, key: 'j' },
-			{ href: '/rechnungen', label: 'Rechnungen', icon: Receipt, key: 'r' },
-			{ href: '/e-rechnung', label: 'E-Rechnung', icon: FileCode2, key: 'y' }
+			{ href: '/ausschreibung', label: 'Bieter-Mappe', icon: FolderOpen, key: 'i' }
 		] },
-		{ title: 'Betrieb', items: [
+		{ id: 'einsatz', title: 'Einsatz & Team', icon: Route, items: [
 			{ href: '/einsatzplan', label: 'Einsatzplan', icon: CalendarDays, key: 'e' },
-			{ href: '/karte', label: 'Karte', icon: Map, key: 'x' },
 			{ href: '/zeiten', label: 'Zeiten', icon: Clock, key: 'z' },
-			{ href: '/begehungen', label: 'Begehungen', icon: ClipboardCheck, key: 'b' },
-			{ href: '/maengel', label: 'Mängel', icon: MessageSquareWarning, key: 'm' }
+			{ href: '/karte', label: 'Karte', icon: Map, key: 'x' },
+			{ href: '/team', label: 'Team', icon: UsersRound, key: 't' }
 		] },
-		{ title: 'Verwaltung', items: [
-			{ href: '/team', label: 'Team', icon: UsersRound, key: 't' },
+		{ id: 'qualitaet', title: 'Qualität', icon: BadgeCheck, items: [
+			{ href: '/maengel', label: 'Mängel', icon: MessageSquareWarning, key: 'm' },
+			{ href: '/begehungen', label: 'Begehungen', icon: ClipboardCheck, key: 'b' },
+			{ href: '/nachweise', label: 'Nachweise', icon: FileCheck2, key: 'n' }
+		] },
+		{ id: 'geld', title: 'Geld', icon: Wallet, items: [
+			{ href: '/rechnungen', label: 'Rechnungen', icon: Receipt, key: 'r' },
+			{ href: '/e-rechnung', label: 'E-Rechnung', icon: FileCode2, key: 'y' },
+			{ href: '/controlling', label: 'Controlling', icon: LineChart, key: 'o' },
+			{ href: '/projektzeitliste', label: 'Projektzeitliste', icon: ListTodo, key: 'j' }
+		] },
+		{ id: 'ausstattung', title: 'Ausstattung', icon: Boxes, items: [
 			{ href: '/schluessel', label: 'Schlüssel', icon: KeyRound, key: 's' },
-			{ href: '/material', label: 'Material', icon: Package, key: 'l' },
-			{ href: '/nachweise', label: 'Nachweise', icon: FileCheck2, key: 'n' },
-			{ href: '/controlling', label: 'Controlling', icon: LineChart, key: 'o' }
+			{ href: '/material', label: 'Material', icon: Package, key: 'l' }
 		] }
 	];
-	// Gruppen einklappbar, Auswahl bleibt erhalten; „Verwaltung“ ist anfangs zu
-	let folded = $state<Record<string, boolean>>({ Verwaltung: true });
-	$effect(() => {
-		try { const s = localStorage.getItem('resch-nav-folded'); if (s) folded = JSON.parse(s); } catch { /* Standard */ }
-	});
-	function toggleGroup(t: string) {
-		folded[t] = !folded[t];
-		try { localStorage.setItem('resch-nav-folded', JSON.stringify(folded)); } catch { /* ignorieren */ }
+	let openSection = $state<string | null>(null);
+	let favs = $state<string[]>([]);
+	$effect(() => { try { const f = JSON.parse(localStorage.getItem('objektia-nav-favs') ?? '[]'); if (Array.isArray(f)) favs = f.filter((x) => typeof x === 'string'); } catch { /* keine Favoriten */ } });
+	function toggleFav(href: string) {
+		favs = favs.includes(href) ? favs.filter((x) => x !== href) : [...favs, href].slice(0, 6);
+		try { localStorage.setItem('objektia-nav-favs', JSON.stringify(favs)); } catch { /* ignorieren */ }
 	}
-	const visibleGroups = $derived(groups.map((g) => ({ ...g, items: g.items.filter((n) => ui.allows(n.href)) })).filter((g) => g.items.length));
-	const nav = $derived(visibleGroups.flatMap((g) => g.items));
+	const visibleTop = $derived(top.filter((n) => ui.allows(n.href)));
+	const visibleSections = $derived(sections.map((g) => ({ ...g, items: g.items.filter((n) => ui.allows(n.href)) })).filter((g) => g.items.length));
+	const nav = $derived([...visibleTop, ...visibleSections.flatMap((g) => g.items)]);
+	const favItems = $derived(favs.map((h) => nav.find((n) => n.href === h)).filter((n): n is NavItem => !!n));
+	/** Der Bereich der aktuellen Seite öffnet sich von selbst; per Klick lässt sich jeder öffnen, dabei schließt sich der andere */
+	$effect(() => { const hit = visibleSections.find((g) => g.items.some((n) => isActive(n.href))); if (hit) openSection = hit.id; });
+	const sectionBadge = (g: { items: NavItem[] }) => g.items.reduce((n, i) => n + badge(i.href), 0);
 	/** Zähler an Navigationspunkten: Dinge, die Aufmerksamkeit brauchen */
 	function badge(href: string): number {
 		const today = todayKey();
@@ -207,26 +219,44 @@
 		</div>
 
 		<nav class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-4 pb-3" aria-label="Bereiche">
-			{#each visibleGroups as g}
-				{@const hasActive = g.items.some((n) => isActive(n.href))}
-				{@const closed = !!g.title && !!folded[g.title] && !hasActive}
-				{#if g.title}
-					<button class="mt-4 mb-1 flex items-center justify-between rounded px-3 text-left text-[0.7rem] font-semibold tracking-wider text-side-muted uppercase hover:text-side-fg" aria-expanded={!closed} onclick={() => toggleGroup(g.title!)}>
-						{g.title}<ChevronDown size={13} class="transition-transform {closed ? '-rotate-90' : ''}" />
-					</button>
-				{/if}
-				{#if !closed}
-					{#each g.items as n}
-						<a
-							href={n.href}
-							aria-current={isActive(n.href) ? 'page' : undefined}
-							class="relative flex h-9 shrink-0 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {isActive(n.href) ? 'bg-side-active text-side-fg' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"
-						>
-							{#if isActive(n.href)}<span class="absolute top-2 bottom-2 -left-4 w-1 rounded-r bg-accent"></span>{/if}
-							<n.icon size={17} /> <span class="flex-1">{n.label}</span>
-							{#if badge(n.href)}<span class="num rounded-full px-1.5 text-[0.72rem] font-semibold text-white {n.href === '/vorgaenge' ? 'bg-white/25' : 'bg-danger'}">{badge(n.href)}</span>{/if}
-						</a>
-					{/each}
+			{#snippet row(n: NavItem, showStar = true)}
+				<div class="group relative shrink-0">
+					<a
+						href={n.href}
+						aria-current={isActive(n.href) ? 'page' : undefined}
+						class="relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {isActive(n.href) ? 'bg-side-active text-side-fg' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"
+					>
+						{#if isActive(n.href)}<span class="absolute top-2 bottom-2 -left-4 w-1 rounded-r bg-accent"></span>{/if}
+						<n.icon size={17} /> <span class="flex-1">{n.label}</span>
+						{#if badge(n.href)}<span class="num rounded-full px-1.5 text-[0.72rem] font-semibold text-white {n.href === '/vorgaenge' ? 'bg-white/25' : 'bg-danger'} {showStar ? 'group-hover:mr-6 group-focus-within:mr-6' : ''}">{badge(n.href)}</span>{/if}
+					</a>
+					{#if showStar}
+						<button class="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded text-side-muted opacity-0 transition hover:text-side-fg focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 {favs.includes(n.href) ? '!opacity-100 !text-accent' : ''}" aria-label={favs.includes(n.href) ? `${n.label} aus Favoriten entfernen` : `${n.label} zu Favoriten`} aria-pressed={favs.includes(n.href)} onclick={() => toggleFav(n.href)}><Star size={13} fill={favs.includes(n.href) ? 'currentColor' : 'none'} /></button>
+					{/if}
+				</div>
+			{/snippet}
+
+			{#if favItems.length}
+				<p class="mt-1 mb-1 px-3 text-[0.7rem] font-semibold tracking-wider text-side-muted uppercase">Favoriten</p>
+				{#each favItems as n (n.href)}{@render row(n, false)}{/each}
+				<div class="my-2 border-t border-side-line"></div>
+			{/if}
+
+			{#each visibleTop as n (n.href)}{@render row(n)}{/each}
+
+			<div class="my-2 border-t border-side-line"></div>
+			{#each visibleSections as g (g.id)}
+				{@const isOpen = openSection === g.id}
+				{@const count = sectionBadge(g)}
+				<button class="flex h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold transition-colors {isOpen ? 'text-side-fg' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}" aria-expanded={isOpen} onclick={() => (openSection = isOpen ? null : g.id)}>
+					<g.icon size={17} /> <span class="flex-1">{g.title}</span>
+					{#if count && !isOpen}<span class="num rounded-full bg-danger px-1.5 text-[0.72rem] font-semibold text-white">{count}</span>{/if}
+					<ChevronDown size={14} class="transition-transform {isOpen ? '' : '-rotate-90'}" />
+				</button>
+				{#if isOpen}
+					<div class="mb-1 ml-3 flex flex-col gap-0.5 border-l border-side-line pl-2">
+						{#each g.items as n (n.href)}{@render row(n)}{/each}
+					</div>
 				{/if}
 			{/each}
 		</nav>

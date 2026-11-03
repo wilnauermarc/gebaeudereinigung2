@@ -1,4 +1,4 @@
-# Resch Business Manager: Produktions-Image (Node-Server mit SQLite)
+# Objektia: Produktions-Image (Node-Server mit SQLite)
 # Bauen:   docker build -t reinigungsmanager .
 # Starten: siehe docker-compose.yml (mit https über Caddy)
 

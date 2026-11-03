@@ -1,4 +1,4 @@
-# Resch Business Manager 2.0 – Bestandsanalyse und Konzept (Phase A)
+# Objektia – Bestandsanalyse und Konzept (Phase A)
 
 Stand: 2026-11-02. Nur lesende Analyse, im Bestand wurde nichts verändert.
 
