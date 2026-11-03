@@ -11,9 +11,14 @@
 	/** rows: darzustellende Vorgänge; active/onpick: Schritt-Filter über die Spaltenköpfe; compact: ohne Wert- und Zuständig-Spalte */
 	let { rows, active = null, onpick, compact = false }: { rows: Row[]; active?: StepKey | null; onpick?: (k: StepKey | null) => void; compact?: boolean } = $props();
 
+	/**
+	 * Mit Filter-Funktion (Vorgangsseite) zählt der Kopf alle laufenden Vorgänge, damit man sieht, wohin ein Klick führt.
+	 * Ohne Filter (Startseite) zählt er genau die gezeigten Zeilen, damit die Zahlen zu den Kugeln darunter passen.
+	 */
 	const counts = $derived.by(() => {
 		const out = Object.fromEntries(stepOrder.map((k) => [k, 0])) as Record<StepKey, number>;
-		for (const c of db.data.cases) { const s = caseStatus(db.data, c); if (!s.closed && s.current) out[s.current]++; }
+		const cases = onpick ? db.data.cases.map((c) => caseStatus(db.data, c)) : rows.map((r) => r.s);
+		for (const s of cases) if (!s.closed && s.current) out[s.current]++;
 		return out;
 	});
 	const cols = $derived(`grid-template-columns: minmax(250px, 1.7fr) repeat(8, minmax(82px, 1fr))${compact ? '' : ' minmax(150px, 0.9fr)'}`);

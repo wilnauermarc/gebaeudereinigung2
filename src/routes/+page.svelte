@@ -116,7 +116,7 @@
 	});
 	const urgent = $derived(alerts.filter((a) => a.tone === 'danger').length);
 
-	const openTasks = $derived(db.data.tasks.filter((t) => !t.done).sort((a, b) => (a.dueOn ?? '9999').localeCompare(b.dueOn ?? '9999')).slice(0, 5));
+	const openTasks = $derived(db.data.tasks.filter((t) => !t.done).sort((a, b) => (a.dueOn ?? '9999').localeCompare(b.dueOn ?? '9999')).slice(0, 8));
 	function completeTask(id: string) {
 		const t = db.data.tasks.find((x) => x.id === id)!;
 		t.done = true;
@@ -137,8 +137,8 @@
 		prevOpen = o;
 	});
 
-	/** Die fünf zuletzt angelegten Vorgänge, die noch laufen, als Ablauf-Zeilen */
-	const flowRows = $derived(db.data.cases.map((c) => ({ c, s: caseStatus(db.data, c), customer: db.customer(c.customerId) })).filter((r) => !r.s.closed).sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt)).slice(0, 5));
+	/** Die bis zu acht zuletzt angelegten laufenden Vorgänge als Ablauf-Zeilen */
+	const flowRows = $derived(db.data.cases.map((c) => ({ c, s: caseStatus(db.data, c), customer: db.customer(c.customerId) })).filter((r) => !r.s.closed).sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt)).slice(0, 8));
 	const gaugeData = $derived(gaugesOf(db.data, db.refMonth, today, mondayOf(today)));
 
 	// ── Diagramme aus den vorhandenen Daten ──
