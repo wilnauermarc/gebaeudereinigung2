@@ -3,7 +3,7 @@
  * Lücken-Detektor, Vertretungs-Assistent und Lohn-Simulation. Alle Schwellen sind Annahmen und
  * mit den eigenen Zielwerten abzugleichen. Auswertungen sind je Objekt bzw. als Betriebssumme, nicht je Person bewertet.
  */
-import { addDays, addMonths, entryHours, fromMinutes, toMinutes, weekday } from './calc';
+import { addDays, addMonths, entryHours, fromMinutes, hourlyRate, toMinutes, weekday } from './calc';
 import { MINIJOB_LIMIT_CENTS } from './tariff';
 import { surchargeCents } from './surcharge';
 import type { Data, Employee, Quote, TimeEntry } from './types';
@@ -22,6 +22,8 @@ export function findSite(d: Data, siteId: string | null) {
 	}
 	return undefined;
 }
+/** Wird die Person an diesem Tag und Objekt durch eine Vertretung ersetzt (Schichttausch)? */
+export const isReplaced = (d: Data, siteId: string, date: string, empId: string) => d.covers.some((c) => c.siteId === siteId && c.date === date && c.replacesId === empId);
 export const isAbsent = (d: Data, empId: string, date: string) =>
 	d.absences.find((a) => a.status === 'genehmigt' && a.employeeId === empId && a.from <= date && date <= a.to);
 
@@ -73,7 +75,7 @@ export function forecast(d: Data, q: Quote, month: string, today: string) {
 		const last = `${month}-${String(daysInMonth(month)).padStart(2, '0')}`;
 		for (let day = today > `${month}-01` ? today : `${month}-01`; day <= last; day = addDays(day, 1)) {
 			if (day < today || !plan.days.includes(weekday(day))) continue;
-			const present = plan.staffIds.filter((id) => !isAbsent(d, id, day)).length;
+			const present = plan.staffIds.filter((id) => !isAbsent(d, id, day) && !isReplaced(d, q.siteId!, day, id)).length;
 			const covers = d.covers.filter((c) => c.siteId === q.siteId && c.date === day).length;
 			futureHours += plan.hours * (present + covers);
 		}
@@ -105,7 +107,7 @@ export function gauges(d: Data, month: string, today: string, mondayKey: string)
 		for (const c of d.customers) for (const s of c.sites) {
 			if (!s.plan?.days.includes(weekday(date))) continue;
 			planned++;
-			const present = s.plan.staffIds.filter((id) => !isAbsent(d, id, date)).length + d.covers.filter((x) => x.siteId === s.id && x.date === date).length;
+			const present = s.plan.staffIds.filter((id) => !isAbsent(d, id, date) && !isReplaced(d, s.id, date, id)).length + d.covers.filter((x) => x.siteId === s.id && x.date === date).length;
 			if (present > 0) staffed++;
 		}
 	}
@@ -181,7 +183,7 @@ export function findGaps(d: Data, today: string, backDays = 7): Gap[] {
 			const p = s.plan;
 			if (!p || !p.days.includes(weekday(date))) continue;
 			const expected = [
-				...p.staffIds.filter((id) => !isAbsent(d, id, date)),
+				...p.staffIds.filter((id) => !isAbsent(d, id, date) && !isReplaced(d, s.id, date, id)),
 				...d.covers.filter((x) => x.siteId === s.id && x.date === date).map((x) => x.employeeId)
 			];
 			for (const emp of expected) {
@@ -268,33 +270,47 @@ export function coverCandidates(d: Data, siteId: string, date: string): CoverCan
 
 // ───────── Preis-Wirtschaftlichkeit (Angebots-Assistent) ─────────
 export interface PriceCheck {
+	/** Selbstkosten (Vollkosten): Lohn mit Nebenkosten, unproduktive Zeit, Material, Maschinen und Gemeinkosten */
 	cost: number;
+	/** nur Lohn mit Lohnnebenkosten für die kalkulierten Stunden (ohne unproduktive Zeit, Material, Gemeinkosten) */
+	wageCost: number;
+	/** Marge auf den Preis, gerechnet gegen die Selbstkosten */
 	margin: number;
-	/** Preis, der die Zielmarge erreicht */
+	/** Zielmarge laut Kalkulations-Annahmen (Wagnis und Gewinn) */
+	targetMargin: number;
+	/** Preis, den der Kalkulator für diese Stunden ausweist (Selbstkosten plus Wagnis und Gewinn) */
 	targetPrice: number;
-	/** Preis, bei dem die Mindestmarge erreicht ist */
+	/** Preis, bei dem gerade die Selbstkosten gedeckt sind */
 	floorPrice: number;
 	perHourRevenue: number | null;
 	tone: 'success' | 'warn' | 'danger';
 }
-/** Monatspauschale: Kosten aus kalkulierten Stunden. Stundenpreis: Marge je Stunde. */
+/** Selbstkosten je kalkulierter Stunde (Cent): Verrechnungssatz des Kalkulators ohne Wagnis und Gewinn. */
+export const fullCostPerHour = (d: Data) => hourlyRate(d.calc) / (1 + d.calc.profitPct / 100);
+
+/**
+ * Wirtschaftlichkeit eines Angebots mit Vollkosten, damit sie zum Kalkulator passt.
+ * Monatspauschale: Kosten aus kalkulierten Stunden. Stundenpreis: Marge je Stunde.
+ */
 export function priceCheck(d: Data, q: Pick<Quote, 'kind' | 'monthlyCents' | 'hourlyCents' | 'calcHours'>): PriceCheck | null {
-	const cph = costPerHour(d);
-	let price: number | null, cost: number, hours: number | null;
+	const cph = fullCostPerHour(d);
+	const wph = costPerHour(d);
+	const targetMargin = d.calc.profitPct / 100 / (1 + d.calc.profitPct / 100);
+	let price: number | null, cost: number, wageCost: number, hours: number | null;
 	if (q.kind === 'unterhaltsreinigung') {
 		if (!q.monthlyCents || !q.calcHours) return null;
-		price = q.monthlyCents; hours = q.calcHours; cost = Math.round(hours * cph);
+		price = q.monthlyCents; hours = q.calcHours; cost = Math.round(hours * cph); wageCost = Math.round(hours * wph);
 	} else {
 		if (!q.hourlyCents) return null;
-		price = q.hourlyCents; hours = 1; cost = cph;
+		price = q.hourlyCents; hours = 1; cost = Math.round(cph); wageCost = wph;
 	}
 	const margin = (price - cost) / price;
 	return {
-		cost, margin,
-		targetPrice: Math.ceil(cost / (1 - TARGET_MARGIN) / 100) * 100,
-		floorPrice: Math.ceil(cost / (1 - MIN_MARGIN) / 100) * 100,
+		cost, wageCost, margin, targetMargin,
+		targetPrice: Math.ceil((cost * (1 + d.calc.profitPct / 100)) / 100) * 100,
+		floorPrice: Math.ceil(cost / 100) * 100,
 		perHourRevenue: q.kind === 'unterhaltsreinigung' ? Math.round(price / hours) : price,
-		tone: margin >= TARGET_MARGIN ? 'success' : margin >= MIN_MARGIN ? 'warn' : 'danger'
+		tone: margin >= targetMargin - 0.005 ? 'success' : margin >= 0 ? 'warn' : 'danger'
 	};
 }
 

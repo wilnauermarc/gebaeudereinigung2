@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { db, LEGACY_KEY } from '#lib/db.svelte.ts';
-	import { company } from '#lib/company.ts';
 	import { LogIn, ShieldCheck, Loader } from '@lucide/svelte';
 
 	let login = $state('');
@@ -10,7 +9,7 @@
 	let busy = $state(false);
 
 	// Einrichtung (nur beim allerersten Start)
-	let sf = $state({ display: '', login: '', password: '', password2: '', start: 'leer' as 'leer' | 'demo8' | 'demo12' | 'import' });
+	let sf = $state({ display: '', login: '', password: '', password2: '', code: '', start: 'leer' as 'leer' | 'demo8' | 'demo12' | 'import' });
 	const legacy = $derived.by(() => { try { return localStorage.getItem(LEGACY_KEY); } catch { return null; } });
 
 	async function post(url: string, body: unknown) {
@@ -24,7 +23,7 @@
 			if (db.needsSetup) {
 				if (sf.password !== sf.password2) return (err = 'Die beiden Passwörter sind nicht gleich.');
 				const state = sf.start === 'import' && legacy ? JSON.parse(legacy) : undefined;
-				const r = await post('/api/setup', { display: sf.display, login: sf.login, password: sf.password, start: sf.start === 'demo8' || sf.start === 'demo12' ? 'demo' : sf.start, team: sf.start === 'demo12' ? 12 : 8, state });
+				const r = await post('/api/setup', { display: sf.display, login: sf.login, password: sf.password, setupCode: sf.code, start: sf.start === 'demo8' || sf.start === 'demo12' ? 'demo' : sf.start, team: sf.start === 'demo12' ? 12 : 8, state });
 				if (!r.ok) return (err = r.body.error ?? 'Einrichtung nicht möglich.');
 			} else {
 				const r = await post('/api/login', { login, password });
@@ -39,16 +38,17 @@
 	}
 </script>
 
-<svelte:head><title>Anmelden · Resch</title><meta name="robots" content="noindex" /></svelte:head>
+<svelte:head><title>Anmelden · Objektia</title><meta name="robots" content="noindex" /></svelte:head>
 
 <div class="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-8">
 	<form class="card w-full p-6" onsubmit={submit} novalidate>
-		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">R</div><div><p class="text-lg font-semibold">{company.name}</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
+		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">O</div><div><p class="text-lg font-semibold">Objektia</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
 		{#if !db.ready}
 			<p class="flex items-center gap-2 text-sm text-muted"><Loader size={14} class="animate-spin" /> Wird geladen …</p>
 		{:else if db.needsSetup}
 			<p class="mb-4 text-sm text-muted">Legen Sie das Konto der Inhaberin an. Dieser Schritt ist nur beim ersten Start möglich.</p>
 			<div class="grid gap-3">
+				{#if db.setupNeedsCode}<div><label class="label" for="s-c">Einrichtungscode</label><input id="s-c" class="input" autocomplete="off" autocapitalize="none" placeholder="steht in der Datei .env auf dem Server" bind:value={sf.code} /></div>{/if}
 				<div><label class="label" for="s-d">Ihr Name</label><input id="s-d" class="input" autocomplete="name" bind:value={sf.display} /></div>
 				<div><label class="label" for="s-l">Anmeldename</label><input id="s-l" class="input" autocomplete="username" autocapitalize="none" bind:value={sf.login} /></div>
 				<div><label class="label" for="s-p">Passwort (mindestens 12 Zeichen)</label><input id="s-p" type="password" class="input" autocomplete="new-password" bind:value={sf.password} /></div>

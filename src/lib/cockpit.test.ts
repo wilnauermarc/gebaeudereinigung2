@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { gauges, avgPricePerM2, contractQuotes, coverCandidates, economics, findGaps, forecast, healthScores, priceCheck, TARGET_MARGIN } from './cockpit';
+import { hourlyRate } from './calc';
+import { gauges, avgPricePerM2, contractQuotes, coverCandidates, economics, findGaps, forecast, healthScores, priceCheck } from './cockpit';
 import { createDemoData } from './demo';
 import { todayKey } from './format';
 
@@ -84,10 +85,20 @@ describe('Vertretungs-Assistent', () => {
 describe('Angebots-Assistent', () => {
 	it('berechnet Marge und Preisempfehlung aus Stunden', () => {
 		const d = createDemoData();
-		const r = priceCheck(d, { kind: 'unterhaltsreinigung', monthlyCents: 200000, hourlyCents: null, calcHours: 80 })!;
-		expect(r.cost).toBe(80 * 1875);
-		expect(r.margin).toBeCloseTo(0.25, 2);
-		expect(r.targetPrice).toBeGreaterThanOrEqual(Math.round(r.cost / (1 - TARGET_MARGIN)));
+		const r = priceCheck(d, { kind: 'unterhaltsreinigung', monthlyCents: Math.ceil((80 * hourlyRate(d.calc)) / 100) * 100, hourlyCents: null, calcHours: 80 })!;
+		expect(r.wageCost).toBe(80 * 1875);
+		// Vollkosten passen zum Kalkulator: sein Preis für diese Stunden ist genau der Zielpreis
+		expect(r.cost).toBeGreaterThan(r.wageCost);
+		expect(r.targetPrice).toBe(Math.ceil((80 * hourlyRate(d.calc)) / 100) * 100);
+		expect(r.tone).toBe('success');
+	});
+	it('warnt, wenn der Preis nur den Lohn deckt (28 % nach Lohn, aber unter den Selbstkosten)', () => {
+		const d = createDemoData();
+		const r = priceCheck(d, { kind: 'unterhaltsreinigung', monthlyCents: 125000, hourlyCents: null, calcHours: 48 })!;
+		expect((125000 - r.wageCost) / 125000).toBeGreaterThan(0.25);
+		expect(r.margin).toBeLessThan(0);
+		expect(r.tone).toBe('danger');
+		expect(r.floorPrice).toBeGreaterThan(125000);
 	});
 	it('liefert ohne Stunden keine Bewertung', () => {
 		expect(priceCheck(createDemoData(), { kind: 'unterhaltsreinigung', monthlyCents: 100000, hourlyCents: null, calcHours: null })).toBeNull();

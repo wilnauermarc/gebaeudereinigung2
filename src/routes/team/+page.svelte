@@ -8,7 +8,7 @@
 	import Badge from '#lib/components/Badge.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import { Plus, CalendarOff, Trash2, TriangleAlert, ShieldCheck, KeyRound } from '@lucide/svelte';
+	import { Plus, CalendarOff, Trash2, TriangleAlert, ShieldCheck, KeyRound, ArrowLeftRight, ArrowRight, Check, X } from '@lucide/svelte';
 	import type { ContractType } from '#lib/types.ts';
 
 	const today = todayKey();
@@ -105,7 +105,7 @@
 	);
 </script>
 
-<svelte:head><title>Team · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Team · Objektia</title></svelte:head>
 
 <PageHead title="Team" subtitle={`${db.data.employees.length} Mitarbeitende, Stunden und Minijob-Grenze im Monat ${month.split('-').reverse().join('/')}`} {instruments} next={nextStep}>
 	{#snippet actions()}
@@ -113,6 +113,24 @@
 		<button class="btn btn-primary" onclick={() => { emp = { name: '', role: 'Reinigungskraft', contract: 'teilzeit', weeklyHours: 20, phone: '' }; empErr = ''; empOpen = true; }}><Plus size={15} /> Mitarbeiter</button>
 	{/snippet}
 </PageHead>
+
+{#if db.swaps.length}
+	<section class="card mb-5 border-accent/30" aria-labelledby="h-swap">
+		<div class="border-b border-line px-5 py-3.5"><h2 id="h-swap" class="card-title flex items-center gap-2"><ArrowLeftRight size={15} class="text-accent" /> Tauschwünsche <span class="num font-normal text-muted">{db.swaps.length}</span></h2><p class="text-xs text-muted">Zwei Mitarbeitende haben sich geeinigt. Mit „Genehmigen“ wechselt der Einsatz im Plan.</p></div>
+		<ul class="divide-y divide-line">
+			{#each db.swaps as w (w.id)}
+				{@const f = db.site(w.siteId)}
+				{@const from = db.employee(w.offeredBy)}
+				{@const to = db.employee(w.takenBy ?? '')}
+				<li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+					<div class="flex items-center gap-2">{#if from}<Avatar name={from.name} size={30} square={false} person />{/if}<ArrowRight size={14} class="text-faint" />{#if to}<Avatar name={to.name} size={30} square={false} person />{/if}</div>
+					<div class="min-w-[220px] flex-1"><p class="text-sm font-medium">{from?.name.split(' ')[0]} gibt ab, {to?.name.split(' ')[0]} übernimmt</p><p class="text-xs text-muted"><span class="num">{formatDate(w.date)}</span>{#if f} · {f.customer.name.slice(0, 40)}, {f.site.name}{#if f.site.plan} · {f.site.plan.start} Uhr{/if}{/if}</p></div>
+					<div class="flex gap-1.5"><button class="btn btn-sm btn-primary" onclick={async () => { const e = await db.decideSwap(w.id, 'approve'); toasts.push(e ?? 'Tausch genehmigt, der Plan ist angepasst.', { tone: e ? 'error' : 'success', ms: e ? 9000 : 4000 }); }}><Check size={13} /> Genehmigen</button><button class="btn btn-sm" onclick={async () => { const e = await db.decideSwap(w.id, 'reject'); toasts.push(e ?? 'Tausch abgelehnt.', { tone: e ? 'error' : 'success' }); }}><X size={13} /> Ablehnen</button></div>
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
 
 <div class="card mb-5 overflow-x-auto">
 	<table class="w-full min-w-[1080px] border-collapse">

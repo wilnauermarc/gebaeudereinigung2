@@ -17,7 +17,16 @@ describe('Mitarbeiter-Projektion', () => {
 		const json = JSON.stringify(v);
 		expect(json).not.toMatch(/netCents|monthlyCents|invoice|Rechnung|calc|wageCents|iban/i);
 		for (const other of d.employees.filter((e) => e.id !== 'm5')) expect(json).not.toContain(other.name);
-		expect(Object.keys(v).sort()).toEqual(['company', 'contract', 'hours', 'instructedOn', 'leave', 'minijob', 'month', 'name', 'officePhone', 'role', 'shifts', 'soll', 'weeklyHours'].sort());
+		expect(Object.keys(v).sort()).toEqual(['company', 'contract', 'hours', 'instructedOn', 'leave', 'minijob', 'month', 'name', 'officePhone', 'open', 'requests', 'requireQr', 'role', 'shifts', 'soll', 'times', 'weeklyHours'].sort());
+	});
+	it('zeigt eigene Stempelungen aus dem Eingang als „beim Büro eingegangen“', () => {
+		const iso = (h: number) => new Date(`${today}T${String(h).padStart(2, '0')}:00:00+01:00`).toISOString();
+		const view = staffView(d, 'm5', today, [{ id: 'p1', kind: 'punch', payload: { siteId: 'k1-s1', startAt: iso(8), endAt: iso(10), breakMin: 0 }, created_at: iso(10), status: 'neu', closed: true }])!;
+		expect(view.times.some((t) => t.pending && t.hours === 2)).toBe(true);
+	});
+	it('laufende Stempelung erscheint als offen, ohne Fremddaten', () => {
+		const view = staffView(d, 'm5', today, [{ id: 'p2', kind: 'punch', payload: { siteId: 'k1-s1', startAt: new Date().toISOString() }, created_at: new Date().toISOString(), status: 'neu', closed: false }])!;
+		expect(view.open?.id).toBe('p2');
 	});
 	it('unbekannte Person liefert nichts', () => {
 		expect(staffView(d, 'nope', today)).toBeNull();

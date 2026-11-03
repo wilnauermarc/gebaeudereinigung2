@@ -97,6 +97,7 @@
 		if (lowStock) out.push({ href: '/material', text: `${lowStock} Artikel unter Mindestbestand`, tone: 'warn' });
 		const checks = db.data.material.filter((m) => m.nextCheckOn && dayDiff(m.nextCheckOn) < 0).length;
 		if (checks) out.push({ href: '/material', text: `${checks} Geräteprüfung${checks === 1 ? '' : 'en'} überfällig (DGUV V3)`, tone: 'danger' });
+		if (db.swaps.length) out.push({ href: '/team', text: `${db.swaps.length} Tauschwunsch${db.swaps.length === 1 ? '' : 'e'} zur Entscheidung`, tone: 'warn' });
 		const requests = db.data.absences.filter((a) => a.status === 'beantragt').length;
 		if (requests) out.push({ href: '/team', text: `${requests} Urlaubsantr${requests === 1 ? 'ag' : 'äge'} zur Freigabe`, tone: 'warn' });
 		const untrained = db.data.employees.filter((e) => !e.instructedOn || dayDiff(addMonthsKey(e.instructedOn, 12)) < 0).length;
@@ -247,7 +248,7 @@
 
 <section class="card mb-5 overflow-hidden" aria-label="Betriebs-Cockpit">
 	<div class="grid grid-cols-2 gap-1 p-2.5 md:grid-cols-5">
-		<GaugeRing size={84} value={gaugeData.margin / 0.3} shown={gaugeData.margin} label="Marge" sub="Ziel 30 %" href="/cockpit" />
+		<GaugeRing size={84} value={gaugeData.margin / 0.3} shown={gaugeData.margin} label="Marge nach Lohn" sub="vor Material, Gemeinkosten" href="/cockpit" />
 		<GaugeRing size={84} value={gaugeData.staffing} label="Besetzung" sub="{gaugeData.staffedCount}/{gaugeData.plannedCount} Einsätze, Woche" good={0.95} warn={0.8} href="/einsatzplan" />
 		<GaugeRing size={84} value={gaugeData.payment} label="Zahlungsmoral" sub="pünktlich oder bezahlt" good={0.9} warn={0.75} href="/rechnungen" />
 		<GaugeRing size={84} value={gaugeData.plan} label="Plan-Treue" sub="Ist gegen Soll" good={0.9} warn={0.75} href="/zeiten" />

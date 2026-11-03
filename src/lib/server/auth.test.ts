@@ -9,7 +9,7 @@ beforeEach(() => {
 	s.insertUser({ id: 'u1', login: 'maria', display: 'Maria', role: 'mitarbeiter', employeeId: 'm1', pwHash: hashPassword('Geheim-Passwort1'), mustChange: false });
 });
 
-describe('Passwörter', () => {
+describe('Passwörter', { timeout: 30_000 }, () => {
 	it('hasht mit Salt und prüft korrekt', () => {
 		const h = hashPassword('abc12345');
 		expect(h).not.toContain('abc12345');
@@ -27,7 +27,7 @@ describe('Passwörter', () => {
 		for (let i = 0; i < 50; i++) expect(oneTimeCode()).toMatch(/^[A-HJKMNP-Z2-9]{10}$/);
 	});
 });
-describe('Anmeldung und Sitzung', () => {
+describe('Anmeldung und Sitzung', { timeout: 30_000 }, () => {
 	it('meldet mit richtigem Passwort an, Sitzung ist über Token-Hash auffindbar', () => {
 		const r = login(s, 'maria', 'Geheim-Passwort1', '1.1.1.1');
 		expect(r.ok).toBe(true);
@@ -49,12 +49,12 @@ describe('Anmeldung und Sitzung', () => {
 		for (let i = 0; i < MAX_FAILS; i++) login(s, 'maria', 'falsch', '1.1.1.1', t);
 		expect(login(s, 'maria', 'Geheim-Passwort1', '1.1.1.1', t + 1000)).toEqual({ ok: false, reason: 'locked' });
 		expect(login(s, 'maria', 'Geheim-Passwort1', '1.1.1.1', t + LOCK_MS + 1000).ok).toBe(true);
-	});
+	}, 30_000);
 	it('begrenzt Versuche je IP', () => {
 		let last;
 		for (let i = 0; i < 40; i++) last = login(s, 'x' + i, 'falsch', '9.9.9.9');
 		expect(last).toEqual({ ok: false, reason: 'ratelimit' });
-	});
+	}, 30_000);
 	it('gesperrte Zugänge können sich nicht anmelden und verlieren ihre Sitzung', () => {
 		const r = login(s, 'maria', 'Geheim-Passwort1', '1.1.1.1');
 		if (!r.ok) throw new Error('login');

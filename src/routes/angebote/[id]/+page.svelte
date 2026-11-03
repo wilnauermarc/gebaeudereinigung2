@@ -8,7 +8,7 @@
 	import { addMonths } from '#lib/calc.ts';
 	import { buildQuotePdf } from '#lib/pdf/quotePdf.ts';
 	import { company } from '#lib/company.ts';
-	import { priceCheck, avgPricePerM2, MIN_MARGIN, TARGET_MARGIN } from '#lib/cockpit.ts';
+	import { priceCheck, avgPricePerM2 } from '#lib/cockpit.ts';
 	import Badge from '#lib/components/Badge.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
 	import MoneyInput from '#lib/components/MoneyInput.svelte';
@@ -168,7 +168,7 @@
 </script>
 
 <svelte:window onkeydown={onKey} />
-<svelte:head><title>{quote?.number ?? 'Angebot'} · Resch Business Manager</title></svelte:head>
+<svelte:head><title>{quote?.number ?? 'Angebot'} · Objektia</title></svelte:head>
 
 {#if !quote || !customer}
 	<div class="card"><EmptyState icon={FileQuestion} title="Angebot nicht gefunden" text="Dieses Angebot existiert nicht (mehr).">
@@ -257,14 +257,14 @@
 					{/if}
 					{#if check}
 						<div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-line bg-line text-center">
-							<div class="bg-surface px-3 py-2.5"><p class="text-xs text-muted">Lohnkosten</p><p class="num text-sm font-semibold">{formatEur(check.cost)}</p></div>
+							<div class="bg-surface px-3 py-2.5"><p class="text-xs text-muted" title="Lohn mit Nebenkosten, unproduktive Zeit, Material, Maschinen und Gemeinkosten. Nur Lohn: {formatEur(check.wageCost)}">Selbstkosten</p><p class="num text-sm font-semibold">{formatEur(check.cost)}</p></div>
 							<div class="bg-surface px-3 py-2.5"><p class="text-xs text-muted">Marge</p><p class="num text-sm font-semibold {check.tone === 'danger' ? 'text-danger' : check.tone === 'warn' ? 'text-warn' : 'text-success'}">{pct(check.margin)}</p></div>
 							<div class="bg-surface px-3 py-2.5"><p class="text-xs text-muted">Erlös je Std.</p><p class="num text-sm font-semibold">{check.perHourRevenue ? formatEur(check.perHourRevenue) : '–'}</p></div>
 						</div>
 						{#if check.tone !== 'success'}
 							<p class="mt-3 rounded-md px-3 py-2 text-sm {check.tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-warn-soft text-warn'}">
-								{check.tone === 'danger' ? `Unter der Mindestmarge von ${pct(MIN_MARGIN)}.` : `Unter dem Ziel von ${pct(TARGET_MARGIN)}.`}
-								{#if quote.kind === 'unterhaltsreinigung'}Für {pct(TARGET_MARGIN)} Marge wären {formatEur(check.targetPrice)} nötig (mindestens {formatEur(check.floorPrice)}).{:else}Für {pct(TARGET_MARGIN)} Marge wären {formatEur(check.targetPrice)} je Stunde nötig.{/if}
+								{check.tone === 'danger' ? 'Der Preis deckt die Selbstkosten nicht.' : `Unter dem Ziel von ${pct(check.targetMargin)} Marge.`}
+								{#if quote.kind === 'unterhaltsreinigung'}Laut Kalkulator wären {formatEur(check.targetPrice)} nötig, kostendeckend ab {formatEur(check.floorPrice)}.{:else}Laut Kalkulator wären {formatEur(check.targetPrice)} je Stunde nötig, kostendeckend ab {formatEur(check.floorPrice)}.{/if}
 							</p>
 						{/if}
 						{#if ownM2 && avgM2}<p class="mt-2 text-xs text-muted">Preis je m² und Monat: <strong class="num text-fg">{formatEur(ownM2)}</strong>, Ihre laufenden Objekte liegen im Schnitt bei <span class="num">{formatEur(avgM2)}</span>.</p>{/if}
@@ -350,7 +350,7 @@
 
 	<Dialog bind:open={finalizeOpen} title="Als versendet vermerken?" description="Das Angebot wird als versendet vermerkt und danach schreibgeschützt. Es wird nichts per E-Mail verschickt, das PDF geben Sie selbst an den Kunden.">
 		{#snippet children()}
-			{#if check && check.tone !== 'success'}<p class="mb-3 rounded-md px-3 py-2 text-sm {check.tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-warn-soft text-warn'}">Achtung: Die Marge liegt bei {pct(check.margin)}{check.tone === 'danger' ? `, unter der Mindestmarge von ${pct(MIN_MARGIN)}` : `, unter dem Ziel von ${pct(TARGET_MARGIN)}`}.</p>{/if}
+			{#if check && check.tone !== 'success'}<p class="mb-3 rounded-md px-3 py-2 text-sm {check.tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-warn-soft text-warn'}">Achtung: Die Marge nach Selbstkosten liegt bei {pct(check.margin)}{check.tone === 'danger' ? ', der Preis deckt die Kosten nicht' : `, unter dem Ziel von ${pct(check.targetMargin)}`}.</p>{/if}
 			<div class="mb-1"><label class="label" for="fu-new">Wiedervorlage zum Nachfassen</label><input id="fu-new" type="date" class="input w-44" bind:value={followup} /></div>
 		{/snippet}
 		{#snippet footer()}

@@ -90,7 +90,7 @@
 	);
 </script>
 
-<svelte:head><title>Mängel · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Mängel · Objektia</title></svelte:head>
 
 <PageHead title="Mängel und Reklamationen" subtitle={`${openList.length} offen${overdue ? `, davon ${overdue} überfällig` : ''}`} {instruments} next={nextStep}>
 	{#snippet actions()}
@@ -117,7 +117,8 @@
 							<p class="text-sm font-medium">{d.title}</p>
 							{#if d.severity === 'hoch'}<Badge tone="warn" label="Hoch" />{/if}
 							{#if repeat(d)}<Badge tone="danger" label="Wiederholt" />{/if}
-							{#if d.source !== 'intern'}<Badge tone="info" label={d.source === 'kunde' ? 'Vom Kunden gemeldet' : 'Aus Begehung'} />{/if}
+							{#if d.source !== 'intern'}<Badge tone="info" label={d.source === 'kunde' ? 'Vom Kunden gemeldet' : d.source === 'mitarbeiter' ? 'Vom Team gemeldet' : 'Aus Begehung'} />{/if}
+							{#if d.photoId}<a href="/api/inbox/photo?id={d.photoId}" target="_blank" rel="noopener" class="ml-1 inline-block align-middle" title="Foto öffnen"><img src="/api/inbox/photo?id={d.photoId}" alt="Foto zur Meldung" class="size-9 rounded-md border border-line object-cover" loading="lazy" /></a>{/if}
 						</div>
 						<p class="mt-0.5 text-xs text-muted"><a class="hover:text-accent" href="/kunden/{d.customerId}">{db.customer(d.customerId)?.name}</a>{#if d.siteId} · {db.site(d.siteId)?.site.name}{/if}</p>
 						{#if d.description}<p class="mt-1 text-sm text-muted">{d.description}</p>{/if}

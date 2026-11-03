@@ -114,7 +114,7 @@
 	}
 </script>
 
-<svelte:head><title>{c?.number ?? 'Vorgang'} · Resch Business Manager</title></svelte:head>
+<svelte:head><title>{c?.number ?? 'Vorgang'} · Objektia</title></svelte:head>
 
 {#if !c || !customer || !st}
 	<div class="card"><EmptyState icon={Inbox} title="Vorgang nicht gefunden" text="Dieser Vorgang existiert nicht (mehr)."><a href="/vorgaenge" class="btn">Zu den Vorgängen</a></EmptyState></div>

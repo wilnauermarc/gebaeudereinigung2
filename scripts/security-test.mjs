@@ -23,8 +23,13 @@ ok('Fremder Ursprung beim Login = 403', (await anon.req('POST', '/api/login', { 
 ok('ohne Origin-Header = 403', (await fetch(B + '/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status === 403);
 
 const owner = new Client();
-ok('Setup mit schwachem Passwort abgelehnt', (await owner.req('POST', '/api/setup', { display: 'Anetta R.', login: 'anetta', password: 'kurz', start: 'demo' })).s === 400);
-const su = await owner.req('POST', '/api/setup', { display: 'Anetta R.', login: 'anetta', password: 'Ein-langes-Passwort-42', start: 'demo', team: 8 });
+if (process.env.SETUP_TOKEN) {
+	ok('Setup ohne Einrichtungscode abgelehnt (403)', (await owner.req('POST', '/api/setup', { display: 'Fremde', login: 'fremde', password: 'Ein-langes-Passwort-42', start: 'leer' })).s === 403);
+	ok('Setup mit falschem Einrichtungscode abgelehnt (403)', (await owner.req('POST', '/api/setup', { display: 'Fremde', login: 'fremde', password: 'Ein-langes-Passwort-42', start: 'leer', setupCode: 'falsch-falsch' })).s === 403);
+	ok('Session verrät, dass ein Code nötig ist', (await owner.req('GET', '/api/session')).j.setupNeedsCode === true);
+}
+ok('Setup mit schwachem Passwort abgelehnt', (await owner.req('POST', '/api/setup', { display: 'Anetta R.', login: 'anetta', password: 'kurz', start: 'demo', setupCode: process.env.SETUP_TOKEN })).s === 400);
+const su = await owner.req('POST', '/api/setup', { display: 'Anetta R.', login: 'anetta', password: 'Ein-langes-Passwort-42', start: 'demo', team: 8, setupCode: process.env.SETUP_TOKEN });
 ok('Setup mit gutem Passwort', su.s === 200, JSON.stringify(su.j));
 ok('Cookie ist httpOnly und SameSite=Strict', /HttpOnly/i.test(su.sc ?? '') && /SameSite=Strict/i.test(su.sc ?? ''), su.sc);
 ok('zweites Setup gesperrt (409)', (await anon.req('POST', '/api/setup', { display: 'Angreifer', login: 'evil', password: 'Ein-langes-Passwort-42' })).s === 409);
@@ -63,6 +68,169 @@ for (const [m, p, b] of [['GET', '/api/state'], ['PUT', '/api/state', { rev: 1, 
 }
 const before = (await owner.req('GET', '/api/state')).j.rev;
 ok('Datenbestand blieb unverändert', before === st.j.rev);
+
+// ── Mitarbeiter-App: Stempeln und Meldungen ──
+const st2 = new Client();
+const code2 = (await owner.req('POST', '/api/users', { action: 'reset', id: list.j.users.find((u) => u.login === 'tomasz.nowak').id })).j.code;
+await st2.req('POST', '/api/login', { login: 'tomasz.nowak', password: code2 });
+await st2.req('POST', '/api/password', { current: code2, next: 'Neues-Passwort-77' });
+await st2.req('POST', '/api/login', { login: 'tomasz.nowak', password: 'Neues-Passwort-77' });
+const view = (await st2.req('GET', '/api/me/view')).j;
+const todayShift = view.shifts.find((x) => x.date === new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' }));
+ok('Mitarbeiter hat heute einen Einsatz (Demo)', !!todayShift);
+ok('Einsatz enthält nur eigene Hinweise, keine Preise', !/netCents|monthlyCents/.test(JSON.stringify(view)));
+ok('Stempeln an fremdem Objekt abgelehnt (400)', (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: 'k1-s1' })).s === 400);
+ok('Ausstempeln ohne Einstempeln = 409', (await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0 })).s === 409);
+const cid = '11111111-1111-4111-8111-111111111111';
+const pin = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: cid, clientAt: new Date(Date.now() - 10 * 60000).toISOString() });
+ok('Einstempeln am eigenen Einsatz', pin.s === 200 && pin.j.ok, JSON.stringify(pin.j));
+ok('Doppeltes Einstempeln mit derselben ID ist idempotent', (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: cid })).j?.duplicate === true);
+ok('Zweites Einstempeln mit neuer ID = 409', (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: '22222222-2222-4222-8222-222222222222' })).s === 409);
+ok('laufende Stempelung erscheint in der Ansicht', (await st2.req('GET', '/api/me/view')).j.open?.siteId === todayShift.siteId);
+ok('Pause > 120 abgelehnt', (await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 500 })).s === 400);
+ok('Zukünftige Gerätezeit wird ignoriert (Serverzeit zählt)', (await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0, clientAt: '2099-01-01T00:00:00Z' })).s === 200);
+const pend = await owner.req('GET', '/api/inbox');
+ok('Verwaltung sieht die fertige Stempelung im Eingang', pend.s === 200 && pend.j.items.some((i) => i.kind === 'punch' && i.employeeId === 'm5'), JSON.stringify(pend.j).slice(0, 120));
+ok('Mitarbeiter darf den Eingang nicht lesen (403)', (await st2.req('GET', '/api/inbox')).s === 403);
+ok('Mitarbeiter darf nichts bestätigen (403)', (await st2.req('POST', '/api/inbox/ack', { ids: ['x'] })).s === 403);
+ok('Mitarbeiter darf keine Fotos abrufen (403)', (await st2.req('GET', '/api/inbox/photo?id=x')).s === 403);
+ok('Krank mit rückwirkend 20 Tagen abgelehnt', (await st2.req('POST', '/api/me/request', { kind: 'krank', from: '2020-01-01', to: '2020-01-02' })).s === 400);
+const dayStr = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+ok('Urlaub rückwirkend abgelehnt', (await st2.req('POST', '/api/me/request', { kind: 'urlaub', from: dayStr(-3), to: dayStr(-2) })).s === 400);
+ok('Urlaub mit Ende vor Beginn abgelehnt', (await st2.req('POST', '/api/me/request', { kind: 'urlaub', from: dayStr(10), to: dayStr(5) })).s === 400);
+ok('Urlaub beantragen', (await st2.req('POST', '/api/me/request', { kind: 'urlaub', from: dayStr(20), to: dayStr(22) })).s === 200);
+ok('gleicher Urlaubsantrag doppelt = 409', (await st2.req('POST', '/api/me/request', { kind: 'urlaub', from: dayStr(20), to: dayStr(22) })).s === 409);
+ok('Mangel ohne Text abgelehnt', (await st2.req('POST', '/api/me/defect', { siteId: todayShift.siteId, text: 'x' })).s === 400);
+ok('Mangel an fremdem Objekt abgelehnt', (await st2.req('POST', '/api/me/defect', { siteId: 'k1-s1', text: 'Fenster kaputt hier' })).s === 400);
+ok('Foto mit falschem Inhalt abgelehnt', (await st2.req('POST', '/api/me/defect', { siteId: todayShift.siteId, text: 'Boden nass hier', photo: 'data:image/jpeg;base64,' + Buffer.from('das ist kein bild').toString('base64') })).s === 400);
+ok('Skript als „Foto“ abgelehnt', (await st2.req('POST', '/api/me/defect', { siteId: todayShift.siteId, text: 'Boden nass hier', photo: 'data:text/html;base64,' + Buffer.from('<script>alert(1)</script>').toString('base64') })).s === 400);
+const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 1)]).toString('base64');
+const dres = await st2.req('POST', '/api/me/defect', { siteId: todayShift.siteId, text: 'Boden im Flur ist nass', photo: 'data:image/jpeg;base64,' + jpeg });
+ok('Mangel mit Foto melden', dres.s === 200, JSON.stringify(dres.j));
+const bigJpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(400_000, 1)]).toString('base64');
+ok('zu großes Foto abgelehnt', (await st2.req('POST', '/api/me/defect', { siteId: todayShift.siteId, text: 'Boden im Flur ist nass', photo: 'data:image/jpeg;base64,' + bigJpeg })).s === 400);
+const pend2 = (await owner.req('GET', '/api/inbox')).j.items;
+const dItem = pend2.find((i) => i.kind === 'defect' && i.hasPhoto);
+ok('Verwaltung sieht Mangelmeldung mit Foto', !!dItem?.hasPhoto);
+const ph = await fetch(B + '/api/inbox/photo?id=' + dItem.id, { headers: { cookie: owner.cookie } });
+ok('Verwaltung kann das Foto laden, Typ aus dem Dateikopf', ph.status === 200 && ph.headers.get('content-type') === 'image/jpeg' && ph.headers.get('x-content-type-options') === 'nosniff');
+ok('Foto ohne Anmeldung nicht abrufbar', (await fetch(B + '/api/inbox/photo?id=' + dItem.id)).status === 401);
+const ack = await owner.req('POST', '/api/inbox/ack', { ids: pend2.map((i) => i.id) });
+ok('Eingang bestätigen', ack.s === 200 && (await owner.req('GET', '/api/inbox')).j.items.length === 0);
+const after = (await st2.req('GET', '/api/me/view')).j;
+ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requests.length >= 2);
+
+// ── Stempel-QR: Schlüssel je Objekt ──
+{
+	const cur = (await owner.req('GET', '/api/state')).j;
+	const site = cur.data.customers.flatMap((c) => c.sites).find((x) => x.id === todayShift.siteId);
+	site.stampToken = 'GEHEIMER-TESTSCHLUESSEL-1';
+	cur.data.settings = { requireQr: true };
+	ok('Verwaltung setzt Stempel-Schlüssel und „nur per QR“', (await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data })).s === 200);
+	const v2 = (await st2.req('GET', '/api/me/view')).j;
+	ok('Mitarbeiter-Ansicht verrät den Schlüssel nicht', !JSON.stringify(v2).includes('GEHEIMER') && v2.requireQr === true);
+	const noTok = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: '33333333-3333-4333-8333-333333333333' });
+	ok('„Nur per QR“: Einstempeln ohne Schlüssel abgelehnt (400)', noTok.s === 400 && noTok.j.needsQr === true, JSON.stringify(noTok.j));
+	ok('falscher Schlüssel abgelehnt (400)', (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, token: 'GEHEIMER-TESTSCHLUESSEL-2', clientId: '44444444-4444-4444-8444-444444444444' })).s === 400);
+	ok('Schlüssel eines anderen Objekts abgelehnt', (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, token: 'x', clientId: '55555555-5555-4555-8555-555555555555' })).s === 400);
+	const good = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, token: 'GEHEIMER-TESTSCHLUESSEL-1', clientId: '66666666-6666-4666-8666-666666666666' });
+	ok('richtiger Schlüssel: Einstempeln klappt', good.s === 200, JSON.stringify(good.j));
+	await new Promise((r) => setTimeout(r, 1500));
+	const outr = await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0 });
+	ok('Ausstempeln ohne Scan möglich (Versehen-Regel: unter einer Minute wird verworfen)', outr.s === 200);
+	const cur2 = (await owner.req('GET', '/api/state')).j;
+	cur2.data.settings = { requireQr: false };
+	await owner.req('PUT', '/api/state', { rev: cur2.rev, data: cur2.data });
+	const free = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: '77777777-7777-4777-8777-777777777777' });
+	ok('ohne „nur per QR“: Einstempeln ohne Schlüssel erlaubt', free.s === 200);
+	const wrongOpt = await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0 });
+	ok('aufräumen', wrongOpt.s === 200);
+}
+
+// ── Schichttausch ──
+{
+	// Lukas (m7) bekommt einen Zugang und wird für den Test von allen Plänen genommen, damit er sicher frei ist
+	const lc = (await owner.req('POST', '/api/users', { action: 'create', role: 'mitarbeiter', employeeId: 'm7', login: 'lukas.brandt', display: 'Lukas Brandt' })).j.code;
+	const st3 = new Client();
+	await st3.req('POST', '/api/login', { login: 'lukas.brandt', password: lc });
+	await st3.req('POST', '/api/password', { current: lc, next: 'Lukas-Passwort-99' });
+	await st3.req('POST', '/api/login', { login: 'lukas.brandt', password: 'Lukas-Passwort-99' });
+	let cur = (await owner.req('GET', '/api/state')).j;
+	for (const c of cur.data.customers) for (const x of c.sites) if (x.plan) x.plan.staffIds = x.plan.staffIds.filter((i) => i !== 'm7');
+	cur.data.covers = [];
+	await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data });
+	const myView = (await st2.req('GET', '/api/me/view')).j;
+	const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+	const fut = myView.shifts.find((x) => x.date > today);
+	ok('Tomasz hat einen künftigen Einsatz', !!fut);
+	ok('fremden Einsatz anbieten abgelehnt (400)', (await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: 'k1-s1', date: fut.date })).s === 400);
+	ok('vergangenen Einsatz anbieten abgelehnt', (await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: fut.siteId, date: '2020-01-01' })).s === 400);
+	const off = await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: fut.siteId, date: fut.date });
+	ok('Einsatz zum Tausch anbieten', off.s === 200, JSON.stringify(off.j));
+	ok('gleiches Angebot doppelt = 409', (await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: fut.siteId, date: fut.date })).s === 409);
+	const lv = (await st3.req('GET', '/api/me/swaps')).j;
+	const seen = lv.offers.find((o) => o.id === off.j.id);
+	ok('Kollege sieht das Angebot (nur Vorname, Zeit, Objekt)', !!seen && seen.by === 'Tomasz' && !/Nowak|netCents/.test(JSON.stringify(lv)), JSON.stringify(lv).slice(0, 160));
+	ok('Eigenes Angebot erscheint nicht bei sich selbst als Angebot', !(await st2.req('GET', '/api/me/swaps')).j.offers.some((o) => o.id === off.j.id));
+	{
+		const n3 = (await st3.req('GET', '/api/me/notifications')).j;
+		ok('Kollege bekommt eine Mitteilung zum Angebot', n3.items.some((n) => n.kind === 'swap_offer' && n.ref === off.j.id && !n.read) && n3.unread >= 1, JSON.stringify(n3).slice(0, 200));
+		ok('Mitteilung enthält Vorname, aber keine Preise', !/Nowak|netCents/.test(JSON.stringify(n3)));
+		const n2 = (await st2.req('GET', '/api/me/notifications')).j;
+		ok('Anbieter bekommt keine Mitteilung zum eigenen Angebot', !n2.items.some((n) => n.kind === 'swap_offer'));
+	}
+	ok('eigenes Angebot übernehmen abgelehnt', (await st2.req('POST', '/api/me/swap', { action: 'take', id: off.j.id })).s === 400);
+	ok('Fremde dürfen das Angebot nicht zurückziehen (403)', (await st3.req('POST', '/api/me/swap', { action: 'withdraw', id: off.j.id })).s === 403);
+	ok('Mitarbeiter dürfen Tauschwünsche nicht lesen (403)', (await st3.req('GET', '/api/swaps')).s === 403);
+	ok('Mitarbeiter dürfen nicht entscheiden (403)', (await st3.req('POST', '/api/swaps/decide', { id: off.j.id, decision: 'approve' })).s === 403);
+	ok('Entscheidung vor Übernahme nicht möglich (404)', (await owner.req('POST', '/api/swaps/decide', { id: off.j.id, decision: 'approve' })).s === 404);
+	ok('Kollege übernimmt', (await st3.req('POST', '/api/me/swap', { action: 'take', id: off.j.id })).s === 200);
+	{
+		const n3 = (await st3.req('GET', '/api/me/notifications')).j;
+		ok('nach Vergabe verschwindet die Angebots-Mitteilung', !n3.items.some((n) => n.kind === 'swap_offer' && n.ref === off.j.id));
+		const n2 = (await st2.req('GET', '/api/me/notifications')).j;
+		ok('Anbieter erfährt, wer übernimmt', n2.items.some((n) => n.kind === 'swap_taken' && n.payload.other === 'Lukas'));
+	}
+	ok('zweites Übernehmen nicht mehr möglich', (await st3.req('POST', '/api/me/swap', { action: 'take', id: off.j.id })).s >= 400);
+	const wait = (await owner.req('GET', '/api/swaps')).j.swaps;
+	ok('Verwaltung sieht den Tauschwunsch zur Entscheidung', wait.some((w) => w.id === off.j.id && w.status === 'angenommen' && w.takenBy === 'm7'));
+	ok('Genehmigen', (await owner.req('POST', '/api/swaps/decide', { id: off.j.id, decision: 'approve' })).s === 200);
+	{
+		const a = (await st2.req('GET', '/api/me/notifications')).j, b = (await st3.req('GET', '/api/me/notifications')).j;
+		ok('beide erfahren von der Genehmigung', a.items.some((n) => n.kind === 'swap_approved') && b.items.some((n) => n.kind === 'swap_approved'));
+		await st2.req('POST', '/api/me/notifications', { all: true });
+		ok('„Alle gelesen“ wirkt nur bei der eigenen Person', (await st2.req('GET', '/api/me/notifications')).j.unread === 0 && (await st3.req('GET', '/api/me/notifications')).j.unread >= 1);
+		const foreign = (await st2.req('GET', '/api/me/notifications')).j.items[0];
+		await st3.req('POST', '/api/me/notifications', { ids: [foreign.id] });
+		ok('Fremde Mitteilungs-IDs lassen sich nicht als gelesen markieren', (await st2.req('GET', '/api/me/notifications')).j.items.find((n) => n.id === foreign.id).read === true && true);
+		ok('Verwaltung (ohne Person) bekommt keine Mitteilungen', (await owner.req('GET', '/api/me/notifications')).j.items.length === 0);
+	}
+	ok('Zweite Entscheidung nicht möglich', (await owner.req('POST', '/api/swaps/decide', { id: off.j.id, decision: 'reject' })).s === 404);
+	// Verwaltung übernimmt (wie der Browser): Vertretung mit „ersetzt“ im Plan anlegen
+	cur = (await owner.req('GET', '/api/state')).j;
+	cur.data.covers.push({ id: 'sw' + off.j.id, siteId: fut.siteId, date: fut.date, employeeId: 'm7', replacesId: 'm5', swapId: off.j.id });
+	await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data });
+	await owner.req('POST', '/api/swaps/applied', { ids: [off.j.id] });
+	ok('Tomasz hat den Einsatz nicht mehr', !(await st2.req('GET', '/api/me/view')).j.shifts.some((x) => x.siteId === fut.siteId && x.date === fut.date));
+	ok('Lukas hat den Einsatz jetzt', (await st3.req('GET', '/api/me/view')).j.shifts.some((x) => x.siteId === fut.siteId && x.date === fut.date));
+	ok('abgewickelter Tausch erscheint nicht mehr in der Entscheidungsliste', !(await owner.req('GET', '/api/swaps')).j.swaps.some((w) => w.id === off.j.id));
+	// Ablehnen
+	const fut2 = (await st2.req('GET', '/api/me/view')).j.shifts.find((x) => x.date > today && !(x.siteId === fut.siteId && x.date === fut.date));
+	if (fut2) {
+		const o2 = await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: fut2.siteId, date: fut2.date });
+		await st3.req('POST', '/api/me/swap', { action: 'take', id: o2.j.id });
+		ok('Ablehnen', (await owner.req('POST', '/api/swaps/decide', { id: o2.j.id, decision: 'reject' })).s === 200);
+		ok('Tomasz behält den abgelehnten Einsatz', (await st2.req('GET', '/api/me/view')).j.shifts.some((x) => x.siteId === fut2.siteId && x.date === fut2.date));
+		ok('abgelehnter Wunsch zeigt Status „abgelehnt“', (await st2.req('GET', '/api/me/swaps')).j.mine.some((m) => m.id === o2.j.id && m.status === 'abgelehnt'));
+	}
+	// Zurückziehen
+	const fut3 = (await st2.req('GET', '/api/me/view')).j.shifts.find((x) => x.date > today && !(fut2 && x.siteId === fut2.siteId && x.date === fut2.date));
+	if (fut3) {
+		const o3 = await st2.req('POST', '/api/me/swap', { action: 'offer', siteId: fut3.siteId, date: fut3.date });
+		ok('Anbieter kann zurückziehen', (await st2.req('POST', '/api/me/swap', { action: 'withdraw', id: o3.j.id })).s === 200);
+		ok('zurückgezogenes Angebot kann nicht übernommen werden', (await st3.req('POST', '/api/me/swap', { action: 'take', id: o3.j.id })).s >= 400);
+	}
+}
 
 // Sperre nach Fehlversuchen
 const brute = new Client();

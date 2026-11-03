@@ -13,7 +13,9 @@ FROM node:24-slim
 ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0 \
-    RESCH_DB=/data/resch.db
+    RESCH_DB=/data/resch.db \
+    BODY_SIZE_LIMIT=26214400 \
+    TZ=Europe/Berlin
 WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=build /app/node_modules ./node_modules

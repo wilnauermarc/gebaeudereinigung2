@@ -9,8 +9,10 @@ import type { ActivityEvent, Contact, Customer, Data, Employee, Quote, QuoteKind
 export const LEGACY_KEY = 'resch-demo-data-v11';
 export const CURRENT_USER = 'Anetta R.';
 
+export interface SwapWish { id: string; siteId: string; date: string; offeredBy: string; takenBy: string | null; status: string }
 export interface Session { id: string; display: string; role: 'inhaber' | 'buero' | 'objektleitung' | 'mitarbeiter'; employeeId: string | null; mustChange: boolean; management: boolean }
 
+const todayKeyPlus = (k: string, n: number) => new Date(Date.parse(k + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
 const uid = (p: string) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 class Db {
@@ -19,6 +21,8 @@ class Db {
 	ready = $state(false);
 	session = $state<Session | null>(null);
 	needsSetup = $state(false);
+	/** Auf dem Server ist ein Einrichtungscode gesetzt (SETUP_TOKEN) */
+	setupNeedsCode = $state(false);
 	/** Zeitpunkt der letzten Speicherung auf dem Server (für die Statusanzeige) */
 	savedAt = $state<Date | null>(null);
 	storageError = $state(false);
@@ -29,6 +33,91 @@ class Db {
 	/** Es gibt Änderungen, die noch nicht auf dem Server liegen */
 	dirty = $state(false);
 
+	/** Zuletzt aus dem Eingang übernommene Meldungen (für die Anzeige) */
+	inboxImported = $state(0);
+	#syncing = false;
+
+	/**
+	 * Eingang der Mitarbeitenden übernehmen: abgeschlossene Stempelungen werden Zeitbuchungen, Urlaubsanträge und Krankmeldungen
+	 * Abwesenheiten, Mängelmeldungen Mängel. Jede Übernahme ist über die Eingangs-ID doppelt-sicher (nichts wird zweimal angelegt).
+	 */
+	/** Tauschwünsche, die auf eine Entscheidung warten (Anzeige in Team und Heute) */
+	swaps = $state<SwapWish[]>([]);
+	/** Tauschwünsche holen; genehmigte werden als Vertretung („ersetzt“) in den Einsatzplan übernommen. */
+	async syncSwaps() {
+		try {
+			const r = await fetch('/api/swaps');
+			if (!r.ok) return;
+			const { swaps } = (await r.json()) as { swaps: SwapWish[] };
+			this.swaps = swaps.filter((s) => s.status === 'angenommen');
+			const done: string[] = [];
+			for (const s of swaps.filter((x) => x.status === 'bestaetigt')) {
+				const cid = 'sw' + s.id;
+				if (!this.data.covers.some((c) => c.id === cid) && s.takenBy) {
+					this.data.covers.push({ id: cid, siteId: s.siteId, date: s.date, employeeId: s.takenBy, replacesId: s.offeredBy, swapId: s.id });
+					const f = this.site(s.siteId);
+					if (f) this.addEvent(f.customer.id, 'notiz', `Schichttausch ${s.date.split('-').reverse().slice(0, 2).join('.')}.: ${this.employee(s.takenBy)?.name ?? '?'} übernimmt für ${this.employee(s.offeredBy)?.name ?? '?'}.`);
+					this.inboxImported += 1;
+				}
+				done.push(s.id);
+			}
+			if (done.length) await fetch('/api/swaps/applied', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: done }) });
+		} catch { /* nächster Versuch */ }
+	}
+	/** Genehmigen oder ablehnen. Gibt eine Fehlermeldung zurück, wenn der Server den Tausch nicht mehr zulässt. */
+	async decideSwap(id: string, decision: 'approve' | 'reject'): Promise<string | null> {
+		const r = await fetch('/api/swaps/decide', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, decision }) });
+		const j = await r.json().catch(() => ({}));
+		await this.syncSwaps();
+		return r.ok ? null : (j.error ?? 'Nicht möglich.');
+	}
+
+	async syncInbox() {
+		if (this.#syncing || !this.session?.management || !this.ready) return;
+		await this.syncSwaps();
+		this.#syncing = true;
+		try {
+			const r = await fetch('/api/inbox');
+			if (!r.ok) return;
+			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect'; payload: any; createdAt: string; hasPhoto: boolean }[] };
+			if (!items.length) return;
+			const today = todayKey();
+			const d = this.data;
+			const who = (id: string) => d.employees.find((e) => e.id === id)?.name ?? 'Mitarbeiter';
+			let n = 0;
+			for (const it of items) {
+				if (it.kind === 'punch') {
+					const tid = 't' + it.id;
+					if (d.timeEntries.some((t) => t.id === tid)) continue;
+					const p = it.payload;
+					const loc = (iso: string) => ({ date: new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' }), time: new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }) });
+					const a = loc(p.startAt), z = loc(p.endAt);
+					if (a.time === z.time && a.date === z.date) continue; // gleiche Minute: nichts zu buchen
+					const notes = [p.offline ? 'Offline erfasst, nachgereicht' : '', p.suspect ? 'Länger als 14 Std., bitte prüfen' : '', this.isLocked(a.date) ? 'Monat war schon abgeschlossen' : ''].filter(Boolean).join('; ');
+					d.timeEntries.push({ id: tid, employeeId: it.employeeId, siteId: p.siteId, date: a.date, start: a.time, end: z.time, breakMin: p.breakMin ?? 0, note: notes, createdAt: p.endAt, editedAt: null, source: 'app', voided: false, history: [] });
+					n++;
+				} else if (it.kind === 'absence') {
+					const aid = 'ab' + it.id;
+					if (d.absences.some((a) => a.id === aid)) continue;
+					const p = it.payload;
+					d.absences.push({ id: aid, employeeId: it.employeeId, kind: p.kind, from: p.from, to: p.to, status: p.kind === 'krank' ? 'genehmigt' : 'beantragt' });
+					if (p.kind === 'krank') d.tasks.push({ id: 'a' + it.id, title: `Krankmeldung ${who(it.employeeId)} (${p.from.split('-').reverse().slice(0, 2).join('.')}.): Vertretung klären`, dueOn: today, customerId: null, done: false });
+					n++;
+				} else if (it.kind === 'defect') {
+					const did = 'd' + it.id.slice(0, 12);
+					if (d.defects.some((x) => x.id === did)) continue;
+					const found = this.site(it.payload.siteId);
+					d.defects.push({ id: did, customerId: found?.customer.id ?? '', siteId: it.payload.siteId, title: String(it.payload.text).slice(0, 80), description: `${String(it.payload.text)}\n(Gemeldet von ${who(it.employeeId)} über die Mitarbeiter-Ansicht)`, status: 'offen', severity: 'normal', reportedOn: today, dueOn: todayKeyPlus(today, 3), closedOn: null, recheck: true, source: 'mitarbeiter', photoId: it.hasPhoto ? it.id : undefined });
+					d.tasks.push({ id: 'a' + it.id, title: `Meldung von ${who(it.employeeId)} prüfen: ${String(it.payload.text).slice(0, 50)}`, dueOn: today, customerId: found?.customer.id ?? null, done: false });
+					if (found) this.addEvent(found.customer.id, 'notiz', `Mängelmeldung von ${who(it.employeeId)}: ${String(it.payload.text).slice(0, 100)}`);
+					n++;
+				}
+			}
+			await fetch('/api/inbox/ack', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: items.map((i) => i.id) }) });
+			if (n) this.inboxImported += n;
+		} catch { /* nächster Versuch */ } finally { this.#syncing = false; }
+	}
+
 	/** Beim Start: Sitzung prüfen und, falls Verwaltung, den Datenbestand laden. Mitarbeitende laden hier nichts. */
 	/** Name der angemeldeten Person (für Verlauf, Termine, Protokolle) */
 	get me() { return this.session?.display ?? CURRENT_USER; }
@@ -38,6 +127,7 @@ class Db {
 			const r = await fetch('/api/session');
 			const j = await r.json();
 			this.needsSetup = !!j.needsSetup;
+			this.setupNeedsCode = !!j.setupNeedsCode;
 			this.session = j.user;
 			if (j.user?.management) await this.load();
 		} catch {
@@ -231,8 +321,9 @@ class Db {
 		const s = this.site(siteId)?.site;
 		if (!s?.plan || !s.plan.days.includes(weekday(date))) return null;
 		const regular = s.plan.staffIds.map((id) => this.employee(id)).filter((e): e is Employee => !!e);
-		const present = regular.filter((e) => !this.isAbsent(e.id, date));
-		const absent = regular.filter((e) => this.isAbsent(e.id, date));
+		const replaced = (id: string) => this.data.covers.some((c) => c.siteId === siteId && c.date === date && c.replacesId === id);
+		const present = regular.filter((e) => !this.isAbsent(e.id, date) && !replaced(e.id));
+		const absent = regular.filter((e) => this.isAbsent(e.id, date) && !replaced(e.id));
 		const covers = this.data.covers.filter((c) => c.siteId === siteId && c.date === date).map((c) => ({ cover: c, emp: this.employee(c.employeeId)! }));
 		return { present, absent, covers, understaffed: present.length + covers.length < regular.length, empty: present.length + covers.length === 0 };
 	}

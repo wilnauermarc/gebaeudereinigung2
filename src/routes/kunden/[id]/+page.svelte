@@ -15,7 +15,7 @@
 	import { downloadBytes } from '#lib/download.ts';
 	import { buildMonthlyReportPdf } from '#lib/pdf/documentsPdf.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown } from '@lucide/svelte';
+	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown, Clock, RotateCcw } from '@lucide/svelte';
 
 	const customer = $derived(db.customer(page.params.id!));
 	const quotes = $derived(customer ? db.quotesOf(customer.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : []);
@@ -112,7 +112,21 @@
 
 	let qrSite = $state<{ id: string; name: string } | null>(null);
 	let qrOpen = $state(false);
-	const qrUrl = $derived(qrSite && customer ? `${location.origin}/portal/${customer.id}?objekt=${qrSite.id}` : '');
+	/** melden = Aushang für Kunden (Mängelmeldung), stempel = Aushang für das Team (Ein-/Ausstempeln) */
+	let qrKind = $state<'melden' | 'stempel'>('melden');
+	const newToken = () => { const b = new Uint8Array(16); crypto.getRandomValues(b); return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+	function openQr(siteId: string, kind: 'melden' | 'stempel') {
+		const s = customer!.sites.find((x) => x.id === siteId)!;
+		if (kind === 'stempel' && !s.stampToken) s.stampToken = newToken();
+		qrSite = { id: s.id, name: s.name }; qrKind = kind; qrOpen = true;
+	}
+	function rotateToken() {
+		const s = customer?.sites.find((x) => x.id === qrSite?.id);
+		if (!s) return;
+		s.stampToken = newToken();
+		toasts.push('Neuer Stempel-Code erzeugt. Alte Aushänge sind ungültig, bitte neu ausdrucken.', { tone: 'success', ms: 8000 });
+	}
+	const qrUrl = $derived(qrSite && customer ? (qrKind === 'stempel' ? `${location.origin}/mitarbeiter?s=${qrSite.id}&t=${customer.sites.find((x) => x.id === qrSite!.id)?.stampToken ?? ''}` : `${location.origin}/portal/${customer.id}?objekt=${qrSite.id}`) : '');
 	const qrSvg = $derived(qrUrl ? renderSVG(qrUrl, { border: 1 }) : '');
 
 	let tab = $state<'uebersicht' | 'angebote' | 'verlauf'>('uebersicht');
@@ -151,7 +165,7 @@
 	}
 </script>
 
-<svelte:head><title>{customer?.name ?? 'Kunde'} · Resch Business Manager</title></svelte:head>
+<svelte:head><title>{customer?.name ?? 'Kunde'} · Objektia</title></svelte:head>
 
 {#if !customer}
 	<div class="card"><EmptyState icon={Inbox} title="Kunde nicht gefunden" text="Dieser Kunde existiert nicht (mehr). Eventuell wurde der Link verändert oder die Demo-Daten wurden zurückgesetzt.">
@@ -233,7 +247,7 @@
 								<li class="px-4 py-3">
 									<div class="flex items-start justify-between gap-3">
 										<div><p class="text-sm font-medium">{s.name}</p><p class="text-xs text-muted">{s.street}, {s.postal} {s.city}</p></div>
-										<div class="flex gap-1"><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => { qrSite = { id: s.id, name: s.name }; qrOpen = true; }}><QrCode size={13} /> QR-Code</button></div>
+										<div class="flex gap-1"><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
 									</div>
 									<p class="mt-1.5 text-xs {s.plan ? 'text-muted' : 'text-warn'}">{#if s.plan}Reinigungsplan: {s.plan.days.map((d) => weekdays[d]).join(', ')} ab {s.plan.start} Uhr, {s.plan.hours.toLocaleString('de-DE')} Std. · {s.plan.staffIds.length} {s.plan.staffIds.length === 1 ? 'Person' : 'Personen'}{:else}Noch kein Reinigungsplan, das Objekt erscheint nicht im Einsatzplan.{/if}</p>
 									{#if s.note}<p class="mt-1.5 rounded-md bg-subtle px-2.5 py-1.5 text-xs text-muted">{s.note}</p>{/if}
@@ -385,17 +399,17 @@
 			<span style="font-size:6.5mm;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);">{company.name}</span>
 			<span style="font-size:3.6mm;color:#62666d;">{customer?.name}</span>
 		</div>
-		<h1 style="margin:16mm 0 4mm;font-size:17mm;line-height:1.05;font-weight:800;letter-spacing:-.01em;">Etwas nicht<br />in Ordnung?</h1>
-		<p style="margin:0 0 11mm;font-size:6mm;color:#3d4147;">Sagen Sie es uns, wir kümmern uns darum.</p>
+		<h1 style="margin:16mm 0 4mm;font-size:17mm;line-height:1.05;font-weight:800;letter-spacing:-.01em;">{#if qrKind === 'stempel'}Hier<br />einstempeln{:else}Etwas nicht<br />in Ordnung?{/if}</h1>
+		<p style="margin:0 0 11mm;font-size:6mm;color:#3d4147;">{qrKind === 'stempel' ? 'Beim Kommen und Gehen scannen.' : 'Sagen Sie es uns, wir kümmern uns darum.'}</p>
 		<div style="width:104mm;height:104mm;padding:5mm;border:1.2mm solid #1a1c1f;border-radius:6mm;background:#fff;box-sizing:content-box;"><div style="width:100%;height:100%;" class="qr-svg">{@html qrSvg}</div></div>
 		<div style="margin-top:11mm;display:grid;grid-template-columns:repeat(3,1fr);gap:7mm;width:100%;">
-			{#each [['1', 'Handy-Kamera öffnen'], ['2', 'QR-Code scannen'], ['3', 'Problem kurz beschreiben']] as [n, t]}
+			{#each (qrKind === 'stempel' ? [['1', 'Handy-Kamera öffnen'], ['2', 'QR-Code scannen'], ['3', 'Ein- oder Ausstempeln']] : [['1', 'Handy-Kamera öffnen'], ['2', 'QR-Code scannen'], ['3', 'Problem kurz beschreiben']]) as [n, t]}
 				<div><div style="width:12mm;height:12mm;margin:0 auto 3mm;border-radius:50%;background:var(--accent);color:#fff;font-size:6.5mm;font-weight:800;display:grid;place-items:center;">{n}</div><div style="font-size:4.4mm;font-weight:600;">{t}</div></div>
 			{/each}
 		</div>
 		<div style="margin-top:auto;width:100%;border-top:.4mm solid #d3d3cf;padding-top:5mm;font-size:3.8mm;color:#3d4147;">
 			<div style="font-size:5mm;font-weight:700;color:#1a1c1f;">{qrSite?.name}</div>
-			<div>Keine Anmeldung nötig. Ihre Meldung geht direkt an {company.name}.</div>
+			<div>{qrKind === 'stempel' ? 'Nur für Mitarbeitende dieses Objekts. Bitte nicht fotografieren oder weitergeben.' : `Keine Anmeldung nötig. Ihre Meldung geht direkt an ${company.name}.`}</div>
 			<div style="margin-top:2mm;color:#62666d;">{company.phone} · {company.email}</div>
 		</div>
 	</div>
@@ -405,16 +419,16 @@
 	:global(.qr-svg svg) { width: 100%; height: 100%; display: block; }
 </style>
 
-<Dialog bind:open={qrOpen} title="QR-Code für Mängelmeldung" description="Aushang zum Ausdrucken (DIN A4 hochkant): Kunden und Besucher melden Probleme per Handy, ganz ohne Anmeldung." width={500}>
+<Dialog bind:open={qrOpen} title={qrKind === 'stempel' ? 'Stempel-QR für das Team' : 'QR-Code für Mängelmeldung'} description={qrKind === 'stempel' ? 'Aushang zum Ausdrucken (DIN A4 hochkant): Mitarbeitende scannen ihn beim Kommen und Gehen und stempeln in der App ein oder aus.' : 'Aushang zum Ausdrucken (DIN A4 hochkant): Kunden und Besucher melden Probleme per Handy, ganz ohne Anmeldung.'} width={500}>
 	{#snippet children()}
 		<div class="mx-auto overflow-hidden rounded-lg border border-line shadow-sm" style="width: calc(210mm * 0.4); height: calc(297mm * 0.4);" aria-label="Vorschau des Aushangs">
 			<div style="transform: scale(0.4); transform-origin: top left; width: 210mm; height: 297mm; pointer-events: none;">{@render poster()}</div>
 		</div>
 		<p class="mt-3 break-all text-xs text-muted">{qrUrl}</p>
-		<p class="mt-1 text-xs text-muted">Im Prototyp zeigt der Link auf die lokale Demo. Mit dem Backend wird daraus eine öffentliche, geschützte Meldeseite. Drucken Sie ohne Kopf- und Fußzeilen (im Druckdialog „Kopf- und Fußzeilen“ ausschalten).</p>
+		{#if qrKind === 'stempel'}<p class="mt-1 rounded-md bg-warn-soft px-3 py-2 text-xs text-warn">Der Code enthält einen geheimen Schlüssel. Hängen Sie ihn nur im Objekt aus. Bei Verdacht auf Missbrauch erzeugen Sie einen neuen Code, die alten Aushänge werden damit ungültig.</p>{:else}<p class="mt-1 text-xs text-muted">Im Prototyp zeigt der Link auf die lokale Demo. Mit dem Backend wird daraus eine öffentliche, geschützte Meldeseite. Drucken Sie ohne Kopf- und Fußzeilen (im Druckdialog „Kopf- und Fußzeilen“ ausschalten).</p>{/if}
 	{/snippet}
 	{#snippet footer()}
-		<a class="btn" href={qrUrl.replace(location.origin, '')} target="_blank" rel="noopener"><ExternalLink size={14} /> Seite ansehen</a>
+		{#if qrKind === 'stempel'}<button class="btn" onclick={rotateToken}><RotateCcw size={14} /> Neuen Code erzeugen</button>{:else}<a class="btn" href={qrUrl.replace(location.origin, '')} target="_blank" rel="noopener"><ExternalLink size={14} /> Seite ansehen</a>{/if}
 		<button class="btn btn-primary" onclick={() => window.print()}><Printer size={14} /> Drucken</button>
 	{/snippet}
 </Dialog>

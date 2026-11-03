@@ -5,6 +5,8 @@
 	import { db } from '#lib/db.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { ui, roleLabels, applyPalette } from '#lib/ui.svelte.ts';
+	import Tour from '#lib/components/Tour.svelte';
+	import { tour } from '#lib/tour.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import CommandPalette from '#lib/components/CommandPalette.svelte';
@@ -13,7 +15,7 @@
 	import { caseStatus } from '#lib/cases.ts';
 	import {
 		LayoutDashboard, FileCode2, Users, FileText, Search, Menu, Moon, Sun, Palette, ClipboardList,
-		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge
+		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge
 	} from '@lucide/svelte';
 
 	let { children } = $props();
@@ -138,6 +140,19 @@
 		if (u.role === 'mitarbeiter') { if (!path.startsWith('/mitarbeiter')) goto('/mitarbeiter'); return; }
 		if (path.startsWith('/login')) goto('/');
 	});
+	// Eingang der Mitarbeitenden (Stempelungen, Meldungen) regelmäßig übernehmen
+	$effect(() => {
+		if (!db.ready || !db.session?.management) return;
+		db.syncInbox();
+		const t = setInterval(() => db.syncInbox(), 30000);
+		const onFocus = () => db.syncInbox();
+		window.addEventListener('focus', onFocus);
+		return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
+	});
+	let lastImported = 0;
+	$effect(() => { const n = db.inboxImported; if (n > lastImported) toasts.push(`${n - lastImported} neue Meldung${n - lastImported === 1 ? '' : 'en'} von Mitarbeitenden übernommen.`, { tone: 'success' }); lastImported = n; });
+	// Begrüßungs-Rundgang: beim ersten Mal von selbst, danach über „Rundgang“ in der Seitenleiste
+	$effect(() => { if (db.ready && db.session?.management) tour.init(db.session.id); });
 	async function logout() { await db.logout(); goto('/login'); await db.init(); }
 	const savedLabel = $derived(
 		db.conflict
@@ -156,7 +171,7 @@
 </script>
 
 <svelte:window onkeydown={onKeydown} onbeforeunload={beforeUnload} />
-<svelte:head><title>Resch Business Manager</title></svelte:head>
+<svelte:head><title>Objektia</title></svelte:head>
 
 {#if bare}
 	{@render children()}
@@ -179,8 +194,8 @@
 		aria-label="Hauptnavigation"
 	>
 		<div class="flex h-16 items-center gap-3 bg-accent px-5 text-white">
-			<div class="grid size-9 place-items-center rounded-lg bg-white/95 text-base font-extrabold text-accent shadow-sm">R</div>
-			<p class="text-[1.05rem] font-extrabold tracking-[0.12em] uppercase">Resch</p>
+			<div class="grid size-9 place-items-center rounded-lg bg-white/95 text-base font-extrabold text-accent shadow-sm">O</div>
+			<p class="text-[1.05rem] font-extrabold tracking-[0.12em] uppercase">Objektia</p>
 		</div>
 
 		<div class="flex items-center gap-3 px-5 pt-5 pb-4">
@@ -217,6 +232,7 @@
 		</nav>
 
 		<div class="flex flex-col gap-0.5 border-t border-side-line p-4">
+			<button class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-side-muted hover:bg-side-hover hover:text-side-fg" onclick={() => { menuOpen = false; tour.start(); }}><Compass size={17} /> Rundgang</button>
 			<a href="/einstellungen" aria-current={isActive('/einstellungen') ? 'page' : undefined} class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm {isActive('/einstellungen') ? 'bg-side-active' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"><Settings size={17} /> Einstellungen</a>
 			<a href="/designsystem" aria-current={isActive('/designsystem') ? 'page' : undefined} class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm {isActive('/designsystem') ? 'bg-side-active' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}">
 				<Palette size={17} /> Designsystem
@@ -248,6 +264,7 @@
 </div>
 
 <CommandPalette bind:open={paletteOpen} />
+<Tour />
 <Toasts />
 
 <Dialog bind:open={resetOpen} title="Demo-Daten zurücksetzen?" description="Alle Änderungen im Prototyp (neue Kunden, Angebote, Notizen) gehen verloren und die ursprünglichen Demo-Daten werden neu geladen.">

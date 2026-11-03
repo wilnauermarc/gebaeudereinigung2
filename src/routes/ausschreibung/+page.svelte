@@ -56,7 +56,7 @@
 	}
 </script>
 
-<svelte:head><title>Bieter-Mappe · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Bieter-Mappe · Objektia</title></svelte:head>
 
 <PageHead title="Bieter-Mappe" subtitle="Unterlagen für Ausschreibungen auf Knopfdruck: Eignungsnachweise, Referenzliste, Kalkulationsblatt."
 	instruments={[{ kind: 'gauge', label: 'Nachweise bereit', value: ready / checks.length, sub: `${ready} von ${checks.length} gültig`, good: 0.99, warn: 0.5, href: '/nachweise' }, { kind: 'stat', label: 'Referenzen', value: String(refs.length), sub: 'aus laufenden Verträgen' }, { kind: 'stat', label: 'Stundenverrechnungssatz', value: (rate / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }), sub: 'netto, aus Ihren Annahmen' }]}

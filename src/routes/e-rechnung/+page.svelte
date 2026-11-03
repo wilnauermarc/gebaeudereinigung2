@@ -50,7 +50,7 @@
 	}
 </script>
 
-<svelte:head><title>E-Rechnung · Resch Business Manager</title></svelte:head>
+<svelte:head><title>E-Rechnung · Objektia</title></svelte:head>
 
 <PageHead title="E-Rechnung" subtitle="Rechnungen als XRechnung (XML) oder ZUGFeRD/Factur-X (PDF mit eingebettetem XML), mit Prüfung der Pflichtangaben." {instruments} {next} />
 

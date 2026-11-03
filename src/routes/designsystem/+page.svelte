@@ -13,7 +13,7 @@
 	];
 </script>
 
-<svelte:head><title>Designsystem · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Designsystem · Objektia</title></svelte:head>
 
 <h1 class="mb-1 text-xl font-semibold tracking-tight">Designsystem</h1>
 <p class="mb-6 text-sm text-muted">Alle Bausteine des Prototyps. Farben sind Tokens und wechseln mit dem Dunklen Design.</p>

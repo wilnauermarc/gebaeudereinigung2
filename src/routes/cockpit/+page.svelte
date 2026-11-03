@@ -63,8 +63,8 @@
 	const tabs = $derived<[Tab, string, number | null][]>([['uebersicht', 'Übersicht', null], ['objekte', 'Objekte', health.length], ['luecken', 'Lücken', gaps.length], ['tarif', 'Tarif-Simulator', null]]);
 	const avgScore = $derived(health.length ? health.reduce((a, h) => a + h.score, 0) / health.length : 0);
 	const instruments = $derived<Instrument[]>([
-		{ kind: 'gauge', label: 'Marge', value: Math.min(1, totalMargin / TARGET_MARGIN), shown: Math.max(0, totalMargin), sub: `Ziel ${pct(TARGET_MARGIN)} · ${formatEur(sum.revenue - sum.cost)}`, good: 0.9, warn: MIN_MARGIN / TARGET_MARGIN },
-		{ kind: 'gauge', label: 'Prognose', value: Math.min(1, fcMargin / TARGET_MARGIN), shown: Math.max(0, fcMargin), sub: `Monatsende ${label(nowMonth)}`, good: 0.9, warn: MIN_MARGIN / TARGET_MARGIN },
+		{ kind: 'gauge', label: 'Marge nach Lohn', value: Math.min(1, totalMargin / TARGET_MARGIN), shown: Math.max(0, totalMargin), sub: `Ziel ${pct(TARGET_MARGIN)} · ${formatEur(sum.revenue - sum.cost)}`, good: 0.9, warn: MIN_MARGIN / TARGET_MARGIN },
+		{ kind: 'gauge', label: 'Prognose nach Lohn', value: Math.min(1, fcMargin / TARGET_MARGIN), shown: Math.max(0, fcMargin), sub: `Monatsende ${label(nowMonth)}`, good: 0.9, warn: MIN_MARGIN / TARGET_MARGIN },
 		{ kind: 'gauge', label: 'Objekt-Gesundheit', value: avgScore / 100, sub: `Ø Score, ${critical} kritisch`, good: 0.75, warn: 0.5 },
 		{ kind: 'stat', label: 'Auffälligkeiten', value: String(gaps.length), sub: 'letzte 7 Tage', tone: gaps.length ? 'warn' : 'success' }
 	]);
@@ -75,7 +75,7 @@
 	);
 </script>
 
-<svelte:head><title>Cockpit · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Cockpit · Objektia</title></svelte:head>
 
 <PageHead title="Controlling-Cockpit" subtitle={`Wo steht der Betrieb, wo muss ich eingreifen? Basis Monat ${label(month)}.`} {instruments} next={nextStep} />
 

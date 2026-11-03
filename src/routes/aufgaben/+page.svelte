@@ -82,7 +82,7 @@
 	const instruments = $derived(_taskInstruments(db.data, _tkauf()));
 </script>
 
-<svelte:head><title>Aufgaben · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Aufgaben · Objektia</title></svelte:head>
 
 <PageHead {instruments} title="Aufgaben" subtitle={`${openCount} offen. Wiedervorlagen und To-dos, optional einem Kunden zugeordnet.`}>
 </PageHead>

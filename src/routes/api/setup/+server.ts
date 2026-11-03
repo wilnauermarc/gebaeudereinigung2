@@ -4,13 +4,22 @@ import { COOKIE, TTL_MS, hashPassword, hashToken, passwordIssue } from '#lib/ser
 import { store } from '#lib/server/store.ts';
 import { createDemoData, createEmptyData } from '#lib/demo.ts';
 import { randomBytes } from 'node:crypto';
+import { rateLimited } from '#lib/server/auth.ts';
+import { timingSafeEqual } from 'node:crypto';
 import type { RequestHandler } from './$types';
 
 /** Erste Einrichtung: legt das Inhaber-Konto an, solange es noch keine Zugänge gibt. Danach gesperrt. */
 export const POST: RequestHandler = async ({ request, cookies, url, getClientAddress }) => {
 	const s = store();
 	if (s.userCount() > 0) return json({ error: 'Die Einrichtung ist bereits abgeschlossen.' }, { status: 409 });
+	if (rateLimited('setup:' + getClientAddress())) return json({ error: 'Zu viele Versuche. Bitte später erneut versuchen.' }, { status: 429 });
 	const b = await request.json().catch(() => ({}));
+	// Auf einem öffentlichen Server schützt ein Einrichtungscode (Umgebungsvariable SETUP_TOKEN) davor, dass Fremde das Inhaber-Konto anlegen
+	const want = process.env.SETUP_TOKEN ?? '';
+	if (want) {
+		const got = typeof b.setupCode === 'string' ? b.setupCode : '';
+		if (got.length !== want.length || !timingSafeEqual(Buffer.from(got), Buffer.from(want))) return json({ error: 'Der Einrichtungscode stimmt nicht.' }, { status: 403 });
+	}
 	const display = String(b.display ?? '').trim(), login = String(b.login ?? '').trim(), password = String(b.password ?? '');
 	if (display.length < 2 || login.length < 3 || !/^[\p{L}\p{N}._@-]+$/u.test(login)) return json({ error: 'Name und Anmeldename (mindestens 3 Zeichen, ohne Leerzeichen) angeben.' }, { status: 400 });
 	const issue = passwordIssue(password, 'inhaber');

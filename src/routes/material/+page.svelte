@@ -36,7 +36,7 @@
 	const instruments = $derived(_materialInstruments(db.data, _tkmat()));
 </script>
 
-<svelte:head><title>Material · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Material · Objektia</title></svelte:head>
 
 <PageHead {instruments} title="Material und Geräte" subtitle={`${low.length ? low.length + ' Artikel unter Mindestbestand' : 'Bestände in Ordnung'}, ${devices.filter((d) => d.nextCheckOn && d.nextCheckOn < todayKey()).length} Geräteprüfungen überfällig.`}>
 	{#snippet actions()}

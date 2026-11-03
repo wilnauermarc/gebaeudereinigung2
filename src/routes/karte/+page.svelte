@@ -18,8 +18,9 @@
 	$effect(() => { if (!privacy.tours) who = 'alle'; });
 	let status = $state<'alle' | 'aktiv' | 'interessent' | 'inaktiv'>('alle');
 	let selected = $state<string | null>(null);
-	let tiles = $state(false);
-	$effect(() => { try { tiles = localStorage.getItem('resch-map-tiles') === '1'; } catch { /* aus */ } });
+	// Kartenhintergrund (OpenStreetMap) ist standardmäßig an; wer ihn ausschaltet, behält das für dieses Gerät
+	let tiles = $state(true);
+	$effect(() => { try { tiles = localStorage.getItem('resch-map-tiles') !== '0'; } catch { /* Standard: an */ } });
 	function setTiles(v: boolean) { tiles = v; try { localStorage.setItem('resch-map-tiles', v ? '1' : '0'); } catch { /* ignorieren */ } }
 
 	const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -84,7 +85,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Karte · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Karte · Objektia</title></svelte:head>
 
 <PageHead title="Karte" subtitle={`Wo sind unsere Kunden, und wo wird heute gereinigt? Die Positionen in der Demo sind erfunden.`}>
 	{#snippet actions()}

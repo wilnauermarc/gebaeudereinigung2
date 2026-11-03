@@ -71,7 +71,7 @@
 	$effect(() => {
 		if (!ready || !map || !leaflet) return;
 		if (tiles && !tileLayer) {
-			tileLayer = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap-Mitwirkende' }).addTo(map);
+			tileLayer = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap-Mitwirkende', referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
 		} else if (!tiles && tileLayer) {
 			tileLayer.remove();
 			tileLayer = undefined;

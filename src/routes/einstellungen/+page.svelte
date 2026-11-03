@@ -82,7 +82,7 @@
 	}
 </script>
 
-<svelte:head><title>Einstellungen · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Einstellungen · Objektia</title></svelte:head>
 
 <PageHead title="Einstellungen" subtitle="Betriebsdaten für Ihre Dokumente und Sicherung Ihrer Daten." />
 
@@ -131,6 +131,10 @@
 				{/each}
 			</div>
 		</section>
+		<section class="card p-5" aria-labelledby="h-qr">
+			<h2 id="h-qr" class="card-title mb-1">Stempeln</h2>
+			<label class="flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-1 size-[18px] accent-[var(--accent)]" checked={!!db.data.settings?.requireQr} onchange={(e) => { (db.data.settings ??= {}).requireQr = e.currentTarget.checked; }} /><span><strong>Einstempeln nur per QR-Code am Objekt</strong><span class="block text-xs text-muted">Mitarbeitende müssen den Aushang im Objekt scannen. Das belegt, dass sie vor Ort sind, ohne Standortdaten zu erheben. Den Aushang drucken Sie beim Kunden unter Objekte → „Stempel-QR“. Ausstempeln ist auch ohne Scan möglich.</span></span></label>
+		</section>
 		<AccessPanel />
 		<section class="card p-5" aria-labelledby="h-demo">
 			<h2 id="h-demo" class="card-title mb-1">Demodaten</h2>
@@ -144,11 +148,11 @@
 		<section class="card p-5" aria-labelledby="h-pal">
 			<h2 id="h-pal" class="card-title mb-1">Farbwelt</h2>
 			<p class="mb-3 text-xs text-muted">Ein Set bestimmt Akzentfarbe, Seitenleiste und Kopfbereich. Die Auswahl gilt für dieses Gerät und wirkt sofort. Statusfarben (grün, gelb, rot) bleiben unverändert.</p>
-			<div class="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Farbwelt">
+			<div class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr))" role="radiogroup" aria-label="Farbwelt">
 				{#each palettes as p (p.id)}
 					<button type="button" role="radio" aria-checked={ui.palette === p.id} class="flex items-center gap-3 rounded-lg border-2 p-2.5 text-left transition {ui.palette === p.id ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'}" onclick={() => ui.setPalette(p.id)}>
 						<span class="relative grid size-10 shrink-0 overflow-hidden rounded-md" style="background:{p.id === 'eigen' ? ui.custom : p.swatch[0]}"><span class="absolute inset-y-0 left-0 w-3" style="background:{p.swatch[1]}"></span></span>
-						<span class="min-w-0"><span class="block text-sm font-semibold">{p.label}</span><span class="block truncate text-xs text-muted">{p.hint}</span></span>
+						<span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold" title={p.label}>{p.label}</span><span class="block truncate text-xs text-muted" title={p.hint}>{p.hint}</span></span>
 					</button>
 				{/each}
 			</div>
@@ -183,7 +187,7 @@
 			<h2 id="h-privacy" class="card-title mb-2 flex items-center gap-2"><ShieldCheck size={15} class="text-muted" /> Datenschutz</h2>
 			<ul class="flex flex-col gap-1.5 text-sm text-muted">
 				<li>Daten verlassen den Browser nicht. Es gibt keine Tracker und keine externen Schriften.</li>
-				<li>Der Kartenhintergrund wird nur auf Ihren Wunsch von OpenStreetMap geladen.</li>
+				<li>Der Kartenhintergrund wird von OpenStreetMap geladen (dabei sieht OpenStreetMap die IP-Adresse und den gezeigten Kartenausschnitt). Sie können ihn auf der Karte jederzeit ausschalten.</li>
 				<li><label class="flex cursor-pointer items-start gap-2 text-fg"><input type="checkbox" class="mt-1" checked={privacy.tours} onchange={(e) => privacy.setTours(e.currentTarget.checked)} /><span><strong>Touren je Person auf der Karte anzeigen.</strong> <span class="text-muted">Aus = es sind nur Einsätze und Objekte sichtbar, keine Wege einzelner Mitarbeitender. Touren sind personenbezogen; vor dem Einschalten Betriebsrat/Datenschutz klären, falls vorhanden.</span></span></label></li>
 				<li>Arbeitszeiten: Aufbewahrung mindestens 2 Jahre, Rechnungen 8 Jahre (Richtwerte, mit Steuerberater abgleichen).</li>
 			</ul>

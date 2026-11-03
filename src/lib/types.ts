@@ -26,6 +26,8 @@ export interface Site {
 	note: string;
 	/** Objektdossier: eingesetzte Reinigungsmittel und Verfahren (Chemie), damit Vertretungen richtig arbeiten */
 	chemicals?: string;
+	/** Geheimer Schlüssel im Stempel-QR-Code des Objekts (nur Verwaltung sieht ihn, Mitarbeitende nur über den gedruckten Code) */
+	stampToken?: string;
 	plan: SitePlan | null;
 	/** Position für die Karte (WGS84). Ohne Backend von Hand oder per Klick auf der Karte gesetzt. */
 	lat?: number | null;
@@ -147,6 +149,10 @@ export interface Cover {
 	siteId: string;
 	date: string;
 	employeeId: string;
+	/** Bei einem Schichttausch: die Person aus der Stammbesetzung, die an diesem Tag ersetzt wird (sie ist dann nicht eingeplant) */
+	replacesId?: string;
+	/** Herkunft: ID des genehmigten Tauschs */
+	swapId?: string;
 }
 export interface TimeEntry {
 	id: string;
@@ -184,7 +190,9 @@ export interface Defect {
 	respondedOn?: string | null;
 	/** nach der Behebung automatisch eine Nachkontrolle als Aufgabe anlegen */
 	recheck: boolean;
-	source: 'intern' | 'begehung' | 'kunde';
+	source: 'intern' | 'begehung' | 'kunde' | 'mitarbeiter';
+	/** Foto aus der Mitarbeiter-Meldung (Eingang-ID, nur für die Verwaltung abrufbar) */
+	photoId?: string;
 }
 /** Annahmen der Kalkulation, alle in Prozent bzw. Cent; vom Betrieb anpassbar. */
 export interface CalcSettings {
@@ -291,6 +299,8 @@ export interface Case {
 	log: { at: string; text: string }[];
 }
 export interface Data {
+	/** Betriebsweite Einstellungen */
+	settings?: { /** Einstempeln nur per QR-Code am Objekt */ requireQr?: boolean };
 	/** Gewähltes Profilfoto je Person (Name → Foto-Kürzel, siehe photos.ts) */
 	avatars?: Record<string, string>;
 	/** Absenderdaten des Betriebs für alle Dokumente (PDF) */

@@ -176,7 +176,7 @@
 	);
 </script>
 
-<svelte:head><title>Zeiten · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Zeiten · Objektia</title></svelte:head>
 
 <PageHead title="Zeiten" subtitle={'Arbeitszeit-Nachweis mit Beginn, Ende und Dauer. Erfassung binnen 7 Tagen, Aufbewahrung 2 Jahre.'} {instruments} next={nextStep}>
 	{#snippet actions()}

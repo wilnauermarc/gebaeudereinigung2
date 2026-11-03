@@ -57,7 +57,7 @@
 	);
 </script>
 
-<svelte:head><title>Angebote · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Angebote · Objektia</title></svelte:head>
 
 <PageHead title="Angebote" subtitle={'Entwürfe, versendete und entschiedene Angebote auf einen Blick.'} {instruments} next={nextStep}>
 	{#snippet actions()}

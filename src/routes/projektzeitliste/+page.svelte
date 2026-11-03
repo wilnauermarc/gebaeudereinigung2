@@ -21,7 +21,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Projektzeitliste · Resch Business Manager</title></svelte:head>
+<svelte:head><title>Projektzeitliste · Objektia</title></svelte:head>
 
 <PageHead title="Projektzeitliste" subtitle={`Abgeschlossene Vorgänge mit Auftragswert, zur Übergabe an die Abrechnung. ${rows.length} Einträge, ${formatEur(total)} netto.`}>
 	{#snippet actions()}
