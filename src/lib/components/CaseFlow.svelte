@@ -16,12 +16,12 @@
 		for (const c of db.data.cases) { const s = caseStatus(db.data, c); if (!s.closed && s.current) out[s.current]++; }
 		return out;
 	});
-	const cols = $derived(`grid-template-columns: minmax(250px, 1.7fr) repeat(8, minmax(82px, 1fr))${compact ? '' : ' minmax(130px, 0.8fr)'}`);
+	const cols = $derived(`grid-template-columns: minmax(250px, 1.7fr) repeat(8, minmax(82px, 1fr))${compact ? '' : ' minmax(150px, 0.9fr)'}`);
 	const closedLabel = { abgesagt: 'Abgesagt', abgelehnt: 'Abgelehnt', abgeschlossen: 'Abgeschlossen' } as const;
 </script>
 
 <div class="card overflow-x-auto">
-	<div class="min-w-[1080px]">
+	<div class="min-w-[1100px]">
 		<!-- Kopf: die acht Schritte; ein Klick filtert die Liste auf Vorgänge an diesem Schritt -->
 		<div class="grid items-end gap-x-1 border-b border-line bg-subtle/50 px-4 py-2.5" style={cols}>
 			<span class="section-label">Vorgang</span>
@@ -72,7 +72,7 @@
 						{#if !compact}
 							<div class="pl-3 text-right">
 								<p class="num text-sm font-semibold">{caseNet(db.data, c) ? formatEur(caseNet(db.data, c)) : '–'}</p>
-								<p class="truncate text-xs text-muted">{c.assignee} · {relativeTime(c.createdAt)}</p>
+								<p class="text-xs leading-snug text-muted">{c.assignee}</p><p class="text-xs leading-snug text-faint">{relativeTime(c.createdAt)}</p>
 							</div>
 						{/if}
 					</a>
