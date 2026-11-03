@@ -1,0 +1,37 @@
+# Zwei Container: die App und Caddy davor (holt und erneuert das https-Zertifikat selbst).
+# Vor dem Start eine Datei .env anlegen (siehe .env.example) und DOMAIN eintragen.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Hinter dem Proxy: echte Client-Adresse (für die Begrenzung von Anmeldeversuchen) und https erkennen
+      ADDRESS_HEADER: x-forwarded-for
+      XFF_DEPTH: "1"
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: x-forwarded-host
+      RESCH_DB: /data/resch.db
+    volumes:
+      - resch-data:/data
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Bitte DOMAIN in der Datei .env setzen}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  resch-data:
+  caddy-data:
+  caddy-config:

@@ -2,6 +2,10 @@
 
 > **Stand: Frontend-Prototyp mit erstem Server-Teil.** Anmeldung, Rollen und Datenspeicherung laufen jetzt auf dem Server (SQLite, Datei `data/resch.db`). Die Daten in der Demo sind weiterhin erfunden.
 
+## Betrieb mit Docker
+
+`Dockerfile`, `docker-compose.yml` (mit Caddy für https) und `scripts/backup.mjs` liegen im Projekt. Anleitung, Anbieter-Empfehlung und Sicherung: [`docs/betrieb.md`](docs/betrieb.md). Das Image wurde gebaut und mit dem Sicherheitstest geprüft (43 Prüfungen, Neustart, Sicherung, Healthcheck). **Nicht getestet:** der Betrieb hinter Caddy mit echtem Zertifikat auf einem Server.
+
 ## Anmeldung und Zugriffsschutz
 
 - **Erster Start:** `/login` zeigt die Ersteinrichtung (Konto der Inhaberin, Passwort mindestens 12 Zeichen, Start leer, mit Demo oder mit den bisherigen Browserdaten). Danach ist die Einrichtung gesperrt.
