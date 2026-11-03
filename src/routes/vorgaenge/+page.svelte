@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { db } from '#lib/db.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
-	import { caseStatus, newCase, stepLabels, caseNet } from '#lib/cases.ts';
+	import { caseStatus, newCase, stepLabels, stepOrder, caseNet, type StepKey } from '#lib/cases.ts';
+	import WorkflowBand from '#lib/components/WorkflowBand.svelte';
 	import { formatEur, relativeTime, dayDiff } from '#lib/format.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Badge from '#lib/components/Badge.svelte';
@@ -13,11 +14,16 @@
 
 	let filter = $state<'aktiv' | 'abgeschlossen' | 'beendet' | 'alle'>('aktiv');
 	let query = $state('');
+	/** Schritt-Filter aus dem Ablaufband (auch per Link ?schritt=…) */
+	let stepFilter = $state<StepKey | null>(null);
+	$effect(() => { const k = page.url.searchParams.get('schritt'); if (k && (stepOrder as string[]).includes(k)) { stepFilter = k as StepKey; filter = 'aktiv'; } });
+	function pickStep(k: StepKey | null) { stepFilter = k; if (k) filter = 'aktiv'; }
 	const rows = $derived(
 		db.data.cases.map((c) => ({ c, s: caseStatus(db.data, c), customer: db.customer(c.customerId) }))
 			.filter((r) => {
 				const k = r.s.closed;
 				const ok = filter === 'alle' ? true : filter === 'aktiv' ? !k : filter === 'abgeschlossen' ? k === 'abgeschlossen' : k === 'abgesagt' || k === 'abgelehnt';
+				if (stepFilter && r.s.current !== stepFilter) return false;
 				const q = query.trim().toLowerCase();
 				return ok && (!q || r.c.title.toLowerCase().includes(q) || r.c.number.toLowerCase().includes(q) || (r.customer?.name ?? '').toLowerCase().includes(q));
 			})
@@ -93,6 +99,8 @@
 		<button class="btn btn-primary" onclick={openNew}><Plus size={15} /> Neuer Vorgang</button>
 	{/snippet}
 </PageHead>
+
+<WorkflowBand active={stepFilter} onpick={pickStep} />
 
 <div class="mb-3 flex flex-wrap items-center gap-2">
 	<div class="relative w-full sm:w-72"><Search size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint" /><input data-search class="input pl-8" placeholder="Vorgang oder Kunde …" aria-label="Vorgänge durchsuchen" bind:value={query} /></div>

@@ -7,6 +7,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { ArrowUpRight, CalendarCheck, Check, FileText, Eye, PlayCircle, BellRing, TriangleAlert, Users, Plus, Clock, MessageSquareWarning, TrendingUp, Workflow, Sunrise, Hourglass, Gauge, PartyPopper, Wallet, Receipt, ListChecks } from '@lucide/svelte';
 	import { addDays, addMonths as addMonthsKey, mondayOf } from '#lib/calc.ts';
+	import WorkflowBand from '#lib/components/WorkflowBand.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { findGaps, healthScores, gauges as gaugesOf } from '#lib/cockpit.ts';
 	import GaugeRing from '#lib/components/Gauge.svelte';
@@ -245,6 +246,8 @@
 		</div>
 	</div>
 </header>
+
+<WorkflowBand compact />
 
 <section class="card mb-5 overflow-hidden" aria-label="Betriebs-Cockpit">
 	<div class="grid grid-cols-2 gap-1 p-2.5 md:grid-cols-5">

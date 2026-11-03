@@ -50,6 +50,7 @@
 	type NavItem = { href: string; label: string; icon: typeof Gauge; key: string };
 	const top: NavItem[] = [
 		{ href: '/', label: 'Heute', icon: LayoutDashboard, key: 'h' },
+		{ href: '/vorgaenge', label: 'Vorgänge', icon: Workflow, key: 'w' },
 		{ href: '/aufgaben', label: 'Aufgaben', icon: ListChecks, key: 'u' },
 		{ href: '/fristen', label: 'Fristen', icon: CalendarClock, key: 'f' },
 		{ href: '/cockpit', label: 'Cockpit', icon: Gauge, key: 'p' }
@@ -57,7 +58,6 @@
 	const sections: { id: string; title: string; icon: typeof Gauge; items: NavItem[] }[] = [
 		{ id: 'verkauf', title: 'Verkauf', icon: Handshake, items: [
 			{ href: '/kunden', label: 'Kunden', icon: Users, key: 'k' },
-			{ href: '/vorgaenge', label: 'Vorgänge', icon: Workflow, key: 'w' },
 			{ href: '/angebote', label: 'Angebote', icon: FileText, key: 'a' },
 			{ href: '/kalkulator', label: 'Kalkulator', icon: Calculator, key: 'c' },
 			{ href: '/vertraege', label: 'Verträge', icon: ScrollText, key: 'v' },
