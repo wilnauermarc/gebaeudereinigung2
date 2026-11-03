@@ -17,33 +17,32 @@
 </script>
 
 <nav class="card mb-5 overflow-hidden" aria-label="Ablauf der Vorgänge">
-	<div class="flex items-baseline justify-between gap-3 border-b border-line px-4 py-2.5">
-		<h2 class="text-sm font-bold tracking-wide text-accent uppercase">Ablauf</h2>
-		<p class="text-xs text-muted">{total} {total === 1 ? 'Vorgang' : 'Vorgänge'} unterwegs · jeder Vorgang steht an genau einem Schritt{#if active} · <button class="underline" onclick={() => onpick?.(null)}>Filter aufheben</button>{/if}</p>
+	<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-5 pt-4">
+		<h2 class="card-title">Ablauf der Vorgänge</h2>
+		<p class="text-xs text-muted"><strong class="num text-fg">{total}</strong> {total === 1 ? 'Vorgang' : 'Vorgänge'} unterwegs{#if active} · <button class="font-semibold underline decoration-accent decoration-2 underline-offset-2" onclick={() => onpick?.(null)}>Filter aufheben</button>{/if}</p>
 	</div>
-	<ol class="flex overflow-x-auto">
+	<ol class="flex overflow-x-auto px-3 pt-3 pb-4">
 		{#each stepOrder as k, i (k)}
 			{@const n = counts[k]}
 			{@const on = active === k}
-			<li class="flex min-w-[104px] flex-1 items-stretch">
+			<li class="relative flex min-w-[96px] flex-1 flex-col items-center">
+				{#if i > 0}<span class="absolute top-[22px] right-1/2 left-[-50%] h-0.5 rounded-full {counts[stepOrder[i - 1]] || n ? 'bg-accent/60' : 'bg-line'}" aria-hidden="true"></span>{/if}
 				{#if onpick}
-					<button class="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left transition-colors hover:bg-subtle {on ? 'bg-accent-soft' : ''}" aria-pressed={on} onclick={() => onpick(on ? null : k)} title={hint[k] ?? ''}>
+					<button class="group relative flex w-full flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-center transition" aria-pressed={on} onclick={() => onpick(on ? null : k)} title={hint[k] ?? ''}>
 						{@render cell(k, i, n, on)}
 					</button>
 				{:else}
-					<a class="flex w-full flex-col items-start gap-0.5 px-4 py-3 transition-colors hover:bg-subtle" href="/vorgaenge?schritt={k}" title={hint[k] ?? ''}>
+					<a class="group relative flex w-full flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-center transition" href="/vorgaenge?schritt={k}" title={hint[k] ?? ''}>
 						{@render cell(k, i, n, on)}
 					</a>
 				{/if}
-				{#if i < stepOrder.length - 1}<span class="grid shrink-0 place-items-center text-faint" aria-hidden="true"><ChevronRight size={14} /></span>{/if}
 			</li>
 		{/each}
 	</ol>
 </nav>
 
 {#snippet cell(k: StepKey, i: number, n: number, on: boolean)}
-	<span class="text-[0.7rem] font-semibold text-faint">{i + 1}</span>
-	<span class="text-sm font-semibold {on ? 'text-accent-text' : ''}">{stepLabels[k]}</span>
-	<span class="num text-2xl leading-none font-bold {n === 0 ? 'text-faint' : k === 'anfrage' && n ? 'text-warn' : ''}">{n}</span>
-	{#if !compact}<span class="text-[0.7rem] leading-tight text-muted">{n ? (hint[k] ?? (n === 1 ? 'Vorgang' : 'Vorgänge')) : 'frei'}</span>{/if}
+	<span class="num relative z-10 grid size-11 place-items-center rounded-full border-2 text-lg font-bold transition group-hover:-translate-y-0.5 {n ? 'border-accent bg-accent shadow-[0_8px_18px_-8px_rgb(240_176_0/0.95)]' : 'border-line bg-surface text-faint'} {on ? 'ring-4 ring-accent/30' : ''}" style={n ? 'color: var(--accent-ink)' : ''}>{n}</span>
+	<span class="text-[0.8rem] leading-tight font-semibold {on ? 'text-accent-text' : n ? '' : 'text-muted'}">{stepLabels[k]}</span>
+	{#if !compact}<span class="text-[0.68rem] leading-tight text-muted">{n && hint[k] ? hint[k] : `Schritt ${i + 1}`}</span>{/if}
 {/snippet}

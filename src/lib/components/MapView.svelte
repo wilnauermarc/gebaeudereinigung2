@@ -105,7 +105,7 @@
 			byId.set(m.id, mk);
 		}
 		if (route && route.length > 1) {
-			leaflet.polyline(route, { color: '#d95a14', weight: 4, opacity: 0.85, dashArray: '8 8' }).addTo(routeLayer);
+			leaflet.polyline(route, { color: '#e6a100', weight: 5, opacity: 0.85, dashArray: '8 8' }).addTo(routeLayer);
 		}
 		// Ausschnitt nur anpassen, wenn sich die Menge der Punkte ändert (nicht bei jeder Auswahl)
 		const key = markers.map((m) => m.id).join(',');

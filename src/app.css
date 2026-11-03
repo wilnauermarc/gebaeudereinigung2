@@ -4,20 +4,20 @@
 /* ───────── Design-Tokens ─────────
    Eine Akzentfarbe (Petrol), neutrale Graustufen, Status nur semantisch. */
 :root {
-	--bg: #efefee;
+	--bg: #f6f5f0;
 	--surface: #ffffff;
-	--subtle: #f1f1ef;
-	--line: #e5e5e2;
-	--line-strong: #d3d3cf;
-	--fg: #1a1c1f;
-	--muted: #62666d;
-	--faint: #9a9da3;
-	--accent: #d95a14;
-	--accent-hover: #bb4a0b;
-	--accent-soft: #fdeee3;
-	--accent-ink: #ffffff;
-	--accent-text: var(--accent);
-	--hero-glow: 240 106 32;
+	--subtle: #f2f0ea;
+	--line: #ebe8df;
+	--line-strong: #d9d5c8;
+	--fg: #17181a;
+	--muted: #5f636a;
+	--faint: #9a9ca0;
+	--accent: #ffc41a;
+	--accent-hover: #f0b000;
+	--accent-soft: #fff5d1;
+	--accent-ink: #17181a;
+	--accent-text: #7a5800;
+	--hero-glow: 255 196 26;
 	--info: #2457c5;
 	--info-soft: #e8eefb;
 	--success: #19734a;
@@ -26,35 +26,37 @@
 	--warn-soft: #fbf0dc;
 	--danger: #b3261e;
 	--danger-soft: #fbe9e7;
-	--side-bg: #2a2d32;
+	--side-bg: #15171a;
 	--side-fg: #ffffff;
-	--side-muted: rgb(255 255 255 / 0.64);
-	--side-hover: rgb(255 255 255 / 0.08);
-	--side-active: rgb(240 106 32 / 0.2);
-	--side-line: rgb(255 255 255 / 0.12);
-	--hero-from: #34383e;
-	--hero-to: #1f2226;
-	--shadow-card: 0 1px 2px rgb(20 22 26 / 0.04), 0 1px 1px rgb(20 22 26 / 0.02);
-	--shadow-pop: 0 8px 28px rgb(20 22 26 / 0.12), 0 0 0 1px rgb(20 22 26 / 0.06);
+	--side-muted: rgb(255 255 255 / 0.62);
+	--side-hover: rgb(255 255 255 / 0.07);
+	--side-active: rgb(255 196 26 / 0.15);
+	--side-line: rgb(255 255 255 / 0.09);
+	--hero-from: #25282d;
+	--hero-to: #131518;
+	--radius-card: 1.125rem;
+	--shadow-card: 0 1px 2px rgb(40 32 8 / 0.04), 0 8px 24px -12px rgb(40 32 8 / 0.10);
+	--shadow-lift: 0 2px 4px rgb(40 32 8 / 0.05), 0 14px 32px -14px rgb(40 32 8 / 0.18);
+	--shadow-pop: 0 12px 36px rgb(20 18 8 / 0.16), 0 0 0 1px rgb(20 18 8 / 0.06);
 }
 :root[data-theme='dark'] {
-	--side-bg: #17191c;
+	--side-bg: #0e0f11;
 	--side-hover: rgb(255 255 255 / 0.06);
-	--side-active: rgb(255 138 76 / 0.2);
-	--hero-from: #30343a;
-	--hero-to: #1a1c20;
-	--bg: #121315;
-	--surface: #181b1e;
-	--subtle: #212529;
-	--line: #292d32;
-	--line-strong: #3a3f45;
-	--fg: #e8e9ea;
-	--muted: #9aa0a6;
-	--faint: #6b7076;
-	--accent: #ff8a4c;
-	--accent-hover: #ffa070;
-	--accent-soft: #3a2415;
-	--accent-ink: #2a1205;
+	--side-active: rgb(255 207 61 / 0.16);
+	--hero-from: #2a2d32;
+	--hero-to: #131518;
+	--bg: #0f1012;
+	--surface: #17191c;
+	--subtle: #202327;
+	--line: #26292e;
+	--line-strong: #383c42;
+	--fg: #ececea;
+	--muted: #9ca0a6;
+	--faint: #6c7076;
+	--accent: #ffcf3d;
+	--accent-hover: #ffdb70;
+	--accent-soft: #33290a;
+	--accent-ink: #1a1500;
 	--info: #7ea2f0;
 	--info-soft: #1b2640;
 	--success: #5fc592;
@@ -63,15 +65,16 @@
 	--warn-soft: #382a10;
 	--danger: #f0867e;
 	--danger-soft: #3a1b18;
-	--shadow-pop: 0 8px 28px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08);
+	--shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+	--shadow-pop: 0 12px 36px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.08);
 }
 
 /* ───────── Farbwelten (Sets) ─────────
    Jedes Set bündelt Akzent, Seitenleiste und Kopfbereich. Gewählt wird per data-palette am <html>,
    „eigen“ setzt die Akzentfarbe aus den Einstellungen per Inline-Variablen (siehe ui.svelte.ts). */
-:root[data-palette='gelb'] {
-	--accent: #f2b200; --accent-hover: #d99f00; --accent-soft: #fff4cc; --accent-ink: #1a1c1f; --accent-text: #8a6400; --hero-glow: 242 178 0;
-	--side-active: rgb(242 178 0 / 0.22); --side-bg: #2a2d32; --hero-from: #34383e; --hero-to: #1f2226;
+:root[data-palette='orange'] {
+	--accent: #d95a14; --accent-hover: #bb4a0b; --accent-soft: #fdeee3; --accent-ink: #ffffff; --accent-text: #d95a14; --hero-glow: 240 106 32;
+	--side-active: rgb(240 106 32 / 0.2); --side-bg: #2a2d32; --hero-from: #34383e; --hero-to: #1f2226;
 }
 :root[data-palette='blau'] {
 	--accent: #1f63d6; --accent-hover: #174fb0; --accent-soft: #e3edfd; --accent-ink: #ffffff; --hero-glow: 31 99 214;
@@ -81,8 +84,8 @@
 	--accent: #178a6a; --accent-hover: #11705a; --accent-soft: #dcf2ea; --accent-ink: #ffffff; --hero-glow: 23 138 106;
 	--side-active: rgb(40 180 140 / 0.26); --side-bg: #1f2a27; --hero-from: #2b3a36; --hero-to: #19231f;
 }
-:root[data-theme='dark'][data-palette='gelb'] {
-	--accent: #ffc933; --accent-hover: #ffd761; --accent-soft: #3a2f0b; --accent-ink: #1a1500; --side-active: rgb(255 201 51 / 0.2); --side-bg: #17191c;
+:root[data-theme='dark'][data-palette='orange'] {
+	--accent: #ff8a4c; --accent-hover: #ffa070; --accent-soft: #3a2415; --accent-ink: #2a1205; --side-active: rgb(255 138 76 / 0.2); --side-bg: #17191c;
 }
 :root[data-theme='dark'][data-palette='blau'] {
 	--accent: #6aa3ff; --accent-hover: #8ab8ff; --accent-soft: #15233f; --accent-ink: #06142e; --side-active: rgb(106 163 255 / 0.22); --side-bg: #141a22;
@@ -145,6 +148,8 @@ html {
 body {
 	font-size: 0.92rem;
 	line-height: 1.55;
+	background: radial-gradient(1100px 420px at 85% -120px, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), var(--bg);
+	background-attachment: fixed;
 }
 .num {
 	font-variant-numeric: tabular-nums;
@@ -171,7 +176,7 @@ body {
 		color: hsl(var(--h) 60% 80%);
 	}
 	.page-title {
-		@apply text-[1.65rem] leading-tight font-semibold tracking-tight;
+		@apply text-[1.8rem] leading-tight font-bold tracking-[-0.025em];
 	}
 	.hero {
 		background: linear-gradient(120deg, var(--hero-from), var(--hero-to));
@@ -195,12 +200,15 @@ body {
 		@apply grid size-10 place-items-center rounded-xl;
 	}
 	.btn {
-		@apply inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-[13px] font-medium whitespace-nowrap text-fg transition-colors select-none hover:bg-subtle disabled:pointer-events-none disabled:opacity-45;
+		@apply inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium whitespace-nowrap text-fg transition-colors select-none hover:bg-subtle disabled:pointer-events-none disabled:opacity-45;
 	}
 	.btn-primary {
-		@apply border-transparent bg-accent hover:bg-accent-hover;
+		@apply border-transparent bg-accent font-semibold hover:bg-accent-hover;
 		color: var(--accent-ink);
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 1px 2px rgb(120 80 0 / 0.28), 0 6px 14px -8px rgb(240 176 0 / 0.9);
 	}
+	.btn-primary:hover { transform: translateY(-1px); }
+	.btn-primary:active { transform: translateY(0); }
 	.btn-ghost {
 		@apply border-transparent bg-transparent hover:bg-subtle;
 	}
@@ -214,7 +222,7 @@ body {
 		@apply w-9 px-0;
 	}
 	.input {
-		@apply h-9 w-full rounded-md border border-line-strong bg-surface px-2.5 text-[13px] text-fg transition-colors placeholder:text-faint hover:border-faint focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted;
+		@apply h-9 w-full rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] text-fg transition-colors placeholder:text-faint hover:border-faint focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted;
 	}
 	.input:focus {
 		box-shadow: 0 0 0 3px var(--accent-soft);
@@ -233,7 +241,8 @@ body {
 		@apply mb-1.5 block text-[0.8rem] font-medium text-muted;
 	}
 	.card {
-		@apply rounded-xl border border-line bg-surface;
+		@apply border border-line bg-surface;
+		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-card);
 	}
 	.card-title {
@@ -268,13 +277,14 @@ body {
 		@apply animate-pulse rounded bg-subtle;
 	}
 	tbody tr:hover > td {
-		background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+		background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
 	}
 	.tab {
 		@apply -mb-px rounded-t-md px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-fg;
 	}
 	.tab[aria-selected='true'] {
-		@apply bg-accent text-white;
+		@apply bg-accent;
+		color: var(--accent-ink);
 	}
 	.section-label {
 		@apply text-[0.72rem] font-bold tracking-wider text-muted uppercase;

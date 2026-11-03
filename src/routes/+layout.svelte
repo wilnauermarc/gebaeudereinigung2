@@ -209,9 +209,9 @@
 		class="fixed inset-y-0 left-0 z-40 flex w-[256px] flex-col bg-side text-side-fg transition-transform lg:translate-x-0 {menuOpen ? '' : '-translate-x-full'}"
 		aria-label="Hauptnavigation"
 	>
-		<div class="flex h-16 items-center gap-3 bg-accent px-5 text-white">
-			<div class="grid size-9 place-items-center rounded-lg bg-white/95 text-base font-extrabold text-accent shadow-sm">O</div>
-			<p class="text-[1.05rem] font-extrabold tracking-[0.12em] uppercase">Objektia</p>
+		<div class="flex h-16 items-center gap-3 px-5">
+			<div class="grid size-9 place-items-center rounded-xl bg-accent text-base font-extrabold text-[#17181a] shadow-[0_6px_18px_-6px_rgb(255_196_26/0.8)]">O</div>
+			<p class="text-[1.02rem] font-extrabold tracking-[0.16em] uppercase">Objektia</p>
 		</div>
 
 		<div class="flex items-center gap-3 px-5 pt-5 pb-4">
@@ -231,7 +231,7 @@
 						class="relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {isActive(n.href) ? 'bg-side-active text-side-fg' : 'text-side-muted hover:bg-side-hover hover:text-side-fg'}"
 					>
 						{#if isActive(n.href)}<span class="absolute top-2 bottom-2 -left-4 w-1 rounded-r bg-accent"></span>{/if}
-						<n.icon size={17} /> <span class="flex-1">{n.label}</span>
+						<n.icon size={17} class={isActive(n.href) ? 'text-accent' : ''} /> <span class="flex-1">{n.label}</span>
 						{#if badge(n.href)}<span class="num rounded-full px-1.5 text-[0.72rem] font-semibold text-white {n.href === '/vorgaenge' ? 'bg-white/25' : 'bg-danger'} {showStar ? 'group-hover:mr-6 group-focus-within:mr-6' : ''}">{badge(n.href)}</span>{/if}
 					</a>
 					{#if showStar}
@@ -281,15 +281,15 @@
 	</aside>
 
 	<div class="flex min-w-0 flex-1 flex-col lg:pl-[256px]">
-		<header class="sticky top-0 z-20 flex h-16 items-center gap-3 bg-side px-4 text-side-fg shadow-sm lg:px-6">
-			<button class="grid size-9 place-items-center rounded-lg text-side-muted hover:bg-side-hover lg:hidden" aria-label="Menü öffnen" onclick={() => (menuOpen = true)}><Menu size={19} /></button>
-			<button class="flex h-10 w-full max-w-md items-center gap-2.5 rounded-lg bg-white px-3.5 text-sm text-faint shadow-inner transition hover:ring-2 hover:ring-accent/40" onclick={() => (paletteOpen = true)} aria-label="Suchen">
+		<header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-md lg:px-6">
+			<button class="grid size-9 place-items-center rounded-lg text-muted hover:bg-subtle lg:hidden" aria-label="Menü öffnen" onclick={() => (menuOpen = true)}><Menu size={19} /></button>
+			<button class="flex h-10 w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-subtle px-3.5 text-sm text-faint transition hover:border-accent hover:bg-surface hover:shadow-[0_0_0_4px_var(--accent-soft)]" onclick={() => (paletteOpen = true)} aria-label="Suchen">
 				<Search size={16} /> <span class="flex-1 truncate text-left"><span class="sm:hidden">Suchen …</span><span class="hidden sm:inline">Kunde, Angebot oder Seite suchen …</span></span> <span class="rounded border border-line px-1.5 text-[0.7rem]">⌘K</span>
 			</button>
-			<span class="ml-auto hidden text-xs md:inline {db.conflict || db.storageError ? 'font-semibold text-danger' : 'text-side-muted'}" role="status" aria-live="polite">{savedLabel}</span>
+			<span class="ml-auto hidden text-xs md:inline {db.conflict || db.storageError ? 'font-semibold text-danger' : 'text-muted'}" role="status" aria-live="polite">{savedLabel}</span>
 			{#if !online}<span class="badge badge-warn" title="Ohne Netz arbeiten Sie weiter, alle Daten liegen im Browser. Kartenhintergrund und Downloads brauchen Netz.">Offline</span>{/if}
 			<span class="badge badge-warn hidden sm:inline-flex" title="Alle Daten in diesem Prototyp sind erfunden.">Prototyp · Demo</span>
-			<a href="/aufgaben" class="relative grid size-10 place-items-center rounded-lg text-side-muted hover:bg-side-hover hover:text-side-fg" aria-label="Aufgaben und Warnungen"><Bell size={19} />{#if attention > 0}<span class="num absolute top-1 right-1 grid min-w-[1.1rem] place-items-center rounded-full bg-accent px-1 text-[0.65rem] font-bold text-white">{attention}</span>{/if}</a>
+			<a href="/aufgaben" class="relative grid size-10 place-items-center rounded-xl text-muted hover:bg-subtle hover:text-fg" aria-label="Aufgaben und Warnungen"><Bell size={19} />{#if attention > 0}<span class="num absolute top-1 right-1 grid min-w-[1.1rem] place-items-center rounded-full bg-accent px-1 text-[0.65rem] font-bold text-white">{attention}</span>{/if}</a>
 		</header>
 		<main id="main" class="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 lg:px-8">
 			{@render children()}

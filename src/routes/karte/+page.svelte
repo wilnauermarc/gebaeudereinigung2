@@ -68,7 +68,7 @@
 			.map((a) => ({ a, site: db.customer(a.customerId)?.sites.find((s) => s.lat != null) }))
 	);
 	const dayMarkers = $derived<MapMarker[]>([
-		...stops.filter((s) => s.lat != null).map((s) => ({ id: s.siteId, lat: s.lat!, lon: s.lon!, label: String(s.n), color: '#d95a14', alert: s.empty, title: `${s.start} ${s.customerName}`, popup: `<strong>${s.n}. ${esc(s.siteName)}</strong><br>${s.start} Uhr · ${esc(s.people.join(', ') || 'unbesetzt')}` })),
+		...stops.filter((s) => s.lat != null).map((s) => ({ id: s.siteId, lat: s.lat!, lon: s.lon!, label: String(s.n), color: '#e6a100', alert: s.empty, title: `${s.start} ${s.customerName}`, popup: `<strong>${s.n}. ${esc(s.siteName)}</strong><br>${s.start} Uhr · ${esc(s.people.join(', ') || 'unbesetzt')}` })),
 		...appts.filter((x) => x.site).map(({ a, site }) => ({ id: 'ap' + a.id, lat: site!.lat!, lon: site!.lon!, color: a.kind === 'besichtigung' ? '#2457c5' : '#19734a', shape: 'diamond' as const, title: a.title, popup: `<strong>${esc(a.title)}</strong><br>${formatTime(a.at)} Uhr · ${esc(a.who)}` }))
 	]);
 	const route = $derived(who !== 'alle' ? (stops.filter((s) => s.lat != null).map((s) => [s.lat!, s.lon!] as [number, number])) : null);

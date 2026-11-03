@@ -9,9 +9,9 @@
 	const statColor = { danger: 'text-danger', warn: 'text-warn', success: 'text-success', '': '' } as const;
 </script>
 
-<div class="mt-4 grid gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-[var(--shadow-card)]" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr))" role="list" aria-label="Kennzahlen dieser Seite">
+<div class="mt-4 grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr))" role="list" aria-label="Kennzahlen dieser Seite">
 	{#each items as it}
-		<svelte:element this={it.href ? 'a' : 'div'} href={it.href} role="listitem" class="flex items-center gap-3.5 bg-surface px-4 py-3 {it.href ? 'transition-colors hover:bg-subtle/60' : ''}">
+		<svelte:element this={it.href ? 'a' : 'div'} href={it.href} role="listitem" class="card flex items-center gap-3.5 px-4 py-3.5 {it.href ? 'transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]' : ''}">
 			{#if it.kind === 'gauge'}
 				{@const v = Math.max(0, Math.min(1, it.value))}
 				{@const mid = Math.max(0, Math.min(1, it.shown ?? it.value))}
