@@ -1,0 +1,351 @@
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+/* ───────── Design-Tokens ─────────
+   Eine Akzentfarbe (Petrol), neutrale Graustufen, Status nur semantisch. */
+:root {
+	--bg: #efefee;
+	--surface: #ffffff;
+	--subtle: #f1f1ef;
+	--line: #e5e5e2;
+	--line-strong: #d3d3cf;
+	--fg: #1a1c1f;
+	--muted: #62666d;
+	--faint: #9a9da3;
+	--accent: #d95a14;
+	--accent-hover: #bb4a0b;
+	--accent-soft: #fdeee3;
+	--accent-ink: #ffffff;
+	--accent-text: var(--accent);
+	--hero-glow: 240 106 32;
+	--info: #2457c5;
+	--info-soft: #e8eefb;
+	--success: #19734a;
+	--success-soft: #e3f3ea;
+	--warn: #9a5b06;
+	--warn-soft: #fbf0dc;
+	--danger: #b3261e;
+	--danger-soft: #fbe9e7;
+	--side-bg: #2a2d32;
+	--side-fg: #ffffff;
+	--side-muted: rgb(255 255 255 / 0.64);
+	--side-hover: rgb(255 255 255 / 0.08);
+	--side-active: rgb(240 106 32 / 0.2);
+	--side-line: rgb(255 255 255 / 0.12);
+	--hero-from: #34383e;
+	--hero-to: #1f2226;
+	--shadow-card: 0 1px 2px rgb(20 22 26 / 0.04), 0 1px 1px rgb(20 22 26 / 0.02);
+	--shadow-pop: 0 8px 28px rgb(20 22 26 / 0.12), 0 0 0 1px rgb(20 22 26 / 0.06);
+}
+:root[data-theme='dark'] {
+	--side-bg: #17191c;
+	--side-hover: rgb(255 255 255 / 0.06);
+	--side-active: rgb(255 138 76 / 0.2);
+	--hero-from: #30343a;
+	--hero-to: #1a1c20;
+	--bg: #121315;
+	--surface: #181b1e;
+	--subtle: #212529;
+	--line: #292d32;
+	--line-strong: #3a3f45;
+	--fg: #e8e9ea;
+	--muted: #9aa0a6;
+	--faint: #6b7076;
+	--accent: #ff8a4c;
+	--accent-hover: #ffa070;
+	--accent-soft: #3a2415;
+	--accent-ink: #2a1205;
+	--info: #7ea2f0;
+	--info-soft: #1b2640;
+	--success: #5fc592;
+	--success-soft: #15301f;
+	--warn: #e2a64b;
+	--warn-soft: #382a10;
+	--danger: #f0867e;
+	--danger-soft: #3a1b18;
+	--shadow-pop: 0 8px 28px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* ───────── Farbwelten (Sets) ─────────
+   Jedes Set bündelt Akzent, Seitenleiste und Kopfbereich. Gewählt wird per data-palette am <html>,
+   „eigen“ setzt die Akzentfarbe aus den Einstellungen per Inline-Variablen (siehe ui.svelte.ts). */
+:root[data-palette='gelb'] {
+	--accent: #f2b200; --accent-hover: #d99f00; --accent-soft: #fff4cc; --accent-ink: #1a1c1f; --accent-text: #8a6400; --hero-glow: 242 178 0;
+	--side-active: rgb(242 178 0 / 0.22); --side-bg: #2a2d32; --hero-from: #34383e; --hero-to: #1f2226;
+}
+:root[data-palette='blau'] {
+	--accent: #1f63d6; --accent-hover: #174fb0; --accent-soft: #e3edfd; --accent-ink: #ffffff; --hero-glow: 31 99 214;
+	--side-active: rgb(60 130 240 / 0.28); --side-bg: #1d2530; --hero-from: #2a3547; --hero-to: #18202c;
+}
+:root[data-palette='gruen'] {
+	--accent: #178a6a; --accent-hover: #11705a; --accent-soft: #dcf2ea; --accent-ink: #ffffff; --hero-glow: 23 138 106;
+	--side-active: rgb(40 180 140 / 0.26); --side-bg: #1f2a27; --hero-from: #2b3a36; --hero-to: #19231f;
+}
+:root[data-theme='dark'][data-palette='gelb'] {
+	--accent: #ffc933; --accent-hover: #ffd761; --accent-soft: #3a2f0b; --accent-ink: #1a1500; --side-active: rgb(255 201 51 / 0.2); --side-bg: #17191c;
+}
+:root[data-theme='dark'][data-palette='blau'] {
+	--accent: #6aa3ff; --accent-hover: #8ab8ff; --accent-soft: #15233f; --accent-ink: #06142e; --side-active: rgb(106 163 255 / 0.22); --side-bg: #141a22;
+}
+:root[data-theme='dark'][data-palette='gruen'] {
+	--accent: #4fc58a; --accent-hover: #74d6a4; --accent-soft: #12301f; --accent-ink: #04170e; --side-active: rgb(79 197 138 / 0.22); --side-bg: #151b19;
+}
+/* Akzent als Schriftfarbe: bei Gelb ein dunklerer Ton, damit Text auf hellem Grund lesbar bleibt */
+.text-accent,
+.hover\:text-accent:hover {
+	color: var(--accent-text);
+}
+:root[data-theme='dark'] { --accent-text: var(--accent); }
+/* Elemente mit Akzentfläche nehmen die passende Schriftfarbe (bei Gelb dunkel statt weiß) */
+.bg-accent {
+	color: var(--accent-ink);
+}
+
+@theme inline {
+	--font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+	--color-side: var(--side-bg);
+	--color-side-fg: var(--side-fg);
+	--color-side-muted: var(--side-muted);
+	--color-side-hover: var(--side-hover);
+	--color-side-active: var(--side-active);
+	--color-side-line: var(--side-line);
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-subtle: var(--subtle);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-fg: var(--fg);
+	--color-muted: var(--muted);
+	--color-faint: var(--faint);
+	--color-accent: var(--accent);
+	--color-accent-hover: var(--accent-hover);
+	--color-accent-soft: var(--accent-soft);
+	--color-info: var(--info);
+	--color-info-soft: var(--info-soft);
+	--color-success: var(--success);
+	--color-success-soft: var(--success-soft);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+	--color-danger: var(--danger);
+	--color-danger-soft: var(--danger-soft);
+}
+
+/* Grid-Kinder dürfen schrumpfen, sonst sprengen lange Namen und Tabellen die Seite auf schmalen Bildschirmen */
+.grid > *,
+.flex > .min-w-0 {
+	min-width: 0;
+}
+html {
+	font-size: 106.25%; /* 17 px Basis: alles in rem wird gut 6 % größer */
+	background: var(--bg);
+	color: var(--fg);
+	font-feature-settings: 'cv11', 'ss03';
+	-webkit-font-smoothing: antialiased;
+}
+body {
+	font-size: 0.92rem;
+	line-height: 1.55;
+}
+.num {
+	font-variant-numeric: tabular-nums;
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+/* Rahmenloses Feld: der Container zeigt den Fokus. Muss außerhalb von @layer stehen, sonst gewinnt die globale :focus-visible-Regel. */
+.input-bare:focus-visible {
+	outline: none;
+	border-radius: 0;
+}
+
+@layer components {
+	.avatar {
+		background: hsl(var(--h) 55% 93%);
+		color: hsl(var(--h) 50% 28%);
+	}
+	:root[data-theme='dark'] .avatar {
+		background: hsl(var(--h) 35% 22%);
+		color: hsl(var(--h) 60% 80%);
+	}
+	.page-title {
+		@apply text-[1.65rem] leading-tight font-semibold tracking-tight;
+	}
+	.hero {
+		background: linear-gradient(120deg, var(--hero-from), var(--hero-to));
+		@apply relative overflow-hidden rounded-2xl text-white;
+	}
+	.hero::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(circle at 92% -30%, rgb(var(--hero-glow) / 0.55), transparent 55%), radial-gradient(circle at 5% 130%, rgb(255 255 255 / 0.07), transparent 45%);
+		pointer-events: none;
+	}
+	.btn-hero {
+		@apply inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20;
+	}
+	.chip-blue { @apply bg-info-soft text-info; }
+	.chip-green { @apply bg-success-soft text-success; }
+	.chip-amber { @apply bg-warn-soft text-warn; }
+	.chip-red { @apply bg-danger-soft text-danger; }
+	.chip-icon {
+		@apply grid size-10 place-items-center rounded-xl;
+	}
+	.btn {
+		@apply inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-[13px] font-medium whitespace-nowrap text-fg transition-colors select-none hover:bg-subtle disabled:pointer-events-none disabled:opacity-45;
+	}
+	.btn-primary {
+		@apply border-transparent bg-accent hover:bg-accent-hover;
+		color: var(--accent-ink);
+	}
+	.btn-ghost {
+		@apply border-transparent bg-transparent hover:bg-subtle;
+	}
+	.btn-danger {
+		@apply border-transparent bg-danger text-white hover:opacity-90;
+	}
+	.btn-sm {
+		@apply h-8 px-2.5 text-[0.8rem];
+	}
+	.btn-icon {
+		@apply w-9 px-0;
+	}
+	.input {
+		@apply h-9 w-full rounded-md border border-line-strong bg-surface px-2.5 text-[13px] text-fg transition-colors placeholder:text-faint hover:border-faint focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted;
+	}
+	.input:focus {
+		box-shadow: 0 0 0 3px var(--accent-soft);
+	}
+	textarea.input {
+		@apply h-auto py-1.5 leading-relaxed;
+	}
+	/* Rahmenloses Feld in einem Container: der Container zeigt den Fokus, nicht das Feld */
+	.input-bare {
+		@apply w-full bg-transparent text-sm placeholder:text-faint;
+	}
+	.input[aria-invalid='true'] {
+		@apply border-danger;
+	}
+	.label {
+		@apply mb-1.5 block text-[0.8rem] font-medium text-muted;
+	}
+	.card {
+		@apply rounded-xl border border-line bg-surface;
+		box-shadow: var(--shadow-card);
+	}
+	.card-title {
+		@apply text-[0.95rem] font-semibold text-fg;
+	}
+	.badge {
+		@apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap;
+	}
+	.badge::before {
+		content: '';
+		@apply size-1.5 rounded-full bg-current;
+	}
+	.badge-neutral {
+		@apply bg-subtle text-muted;
+	}
+	.badge-info {
+		@apply bg-info-soft text-info;
+	}
+	.badge-success {
+		@apply bg-success-soft text-success;
+	}
+	.badge-warn {
+		@apply bg-warn-soft text-warn;
+	}
+	.badge-danger {
+		@apply bg-danger-soft text-danger;
+	}
+	.kbd {
+		@apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-line-strong bg-surface px-1 text-[11px] font-medium text-muted;
+	}
+	.skeleton {
+		@apply animate-pulse rounded bg-subtle;
+	}
+	tbody tr:hover > td {
+		background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+	}
+	.tab {
+		@apply -mb-px rounded-t-md px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-fg;
+	}
+	.tab[aria-selected='true'] {
+		@apply bg-accent text-white;
+	}
+	.section-label {
+		@apply text-[0.72rem] font-bold tracking-wider text-muted uppercase;
+	}
+	.th {
+		@apply h-10 px-3 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-muted uppercase;
+	}
+	.td {
+		@apply h-[3.4rem] px-3 align-middle text-sm;
+	}
+}
+
+dialog.dlg {
+	margin: auto; /* Tailwind-Preflight setzt margin: 0 und würde den Dialog nach oben links schieben */
+	border: 0;
+	padding: 0;
+	background: var(--surface);
+	color: var(--fg);
+	border-radius: 12px;
+	box-shadow: var(--shadow-pop);
+	max-width: calc(100vw - 32px);
+}
+dialog.dlg::backdrop {
+	background: rgb(15 17 20 / 0.45);
+}
+
+/* Druckausgabe: nur das Aushang-Element (.print-poster) wird gedruckt, als A4 hochkant ohne Browser-Ränder */
+.print-poster {
+	display: none;
+}
+@media print {
+	@page {
+		size: A4 portrait;
+		margin: 0;
+	}
+	html,
+	body {
+		background: #fff !important;
+		margin: 0 !important;
+	}
+	body > *:not(.print-poster) {
+		display: none !important;
+	}
+	.print-poster {
+		display: block !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+}
+
+/* kleine Konfetti-Animation beim Erreichen des Tagesziels */
+.confetti {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.confetti i {
+	position: absolute;
+	left: 50%;
+	top: 40%;
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	background: var(--c);
+	opacity: 0;
+	animation: burst 1.3s ease-out var(--d) forwards;
+}
+@keyframes burst {
+	0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+	100% { opacity: 0; transform: rotate(var(--a)) translateY(-90px) scale(0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.confetti { display: none; }
+}

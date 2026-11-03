@@ -1,0 +1,102 @@
+# Kalkulation, Controlling und Abrechnung in der deutschen Gebäudereinigung (Stand 02.11.2026)
+
+Hinweis zur Quellenlage: Recherche per Websuche; viele Quellen sind Ratgeber/Vendor-Blogs, nicht amtlich. Belastbar sind Tarif/Mindestlohn (Verordnung, DHZ), Basiszins (Bundesbank). Leistungswerte und Branchenbenchmarks sind schwach belegt. Eigene Rechnungen sind als "Eigenrechnung" gekennzeichnet. Quellen ohne URL-Beleg stehen unter "Gaps".
+
+## 1. Kalkulation (Stundenverrechnungssatz, Leistungswerte, Monatspauschale)
+
+### Takeaway
+Der Verrechnungssatz folgt der Kette: Tariflohn (LG 1: 15,00 €/h ab 01.01.2026) x (1 + Lohnnebenkosten ca. 25-30 %) / produktiver Anteil (ca. 70-80 %) x (1 + Material + Maschinen + Gemeinkosten) x (1 + Wagnis/Gewinn). Typisch ergeben sich für 2026 rund 33-37 € netto/h. Leistungswerte sind nur als weite Spannen belegt (Büro ca. 400-550 m²/h in einer Excel-Kalkulationsvorlage; Sanitär 120-180 m²/h) und müssen im Prototyp als frei editierbare Parameter geführt werden.
+
+### Cited Findings
+- Mindestlohn/Tarif Gebäudereinigung: LG 1 = 13,50 € (2024), 14,25 € (ab 01.01.2025), 15,00 € (ab 01.01.2026); LG 6 (Glas/Fassade) = 16,70 € / 17,65 € / 18,40 €; Laufzeit 24 Monate; kein 13. Monatseinkommen im Tarifvertrag — [DHZ, 05.01.2026](https://www.deutsche-handwerks-zeitung.de/tariflohn-gebaeudereinigung-2025-2026-337962/)
+- Verordnung (GebäudereinigungsArbV/Mindestlohnverordnung): LG 1 14,25 € (01.01.2025) und 15,00 € (01.01.2026); Verordnung tritt mit Ablauf 31.12.2026 außer Kraft, für 2027 ist eine neue Regelung nötig; LG 1 umfasst v. a. Innen- und Unterhaltsreinigung — [buzer.de Anlage GebäudeArbV](https://www.buzer.de/Anlage_GebaeudeArbbV.htm); [gesetze-im-internet.de](https://www.gesetze-im-internet.de/tvmindestlohngeb_ude_2024/__2.html)
+- Tarifrunde 2027: IG BAU fordert laut Bericht 17 € für LG 1, Arbeitgeber lehnen ab (Ergebnis offen; Originalseite war per Fetch nicht abrufbar, nur Suchsnippet) — [ms-aktuell](https://ms-aktuell.de/welt/ig-bau-mindestlohn-04-09-2026/)
+- Allgemeiner gesetzlicher Mindestlohn 2026: 13,90 € (Branchenlohn liegt darüber) — [finanz.de](https://www.finanz.de/news/artikel-10588/)
+- Zuschläge Rahmentarifvertrag (Fassung 2019): Nachtarbeit 30 %, Sonn-/Feiertag 80 %, 1. Mai/Neujahr/Weihnachtsfeiertage 200 %; bei Zusammentreffen nur der höchste Zuschlag — [RTV-Fassung auf evergabe.de (Suchsnippet)](https://evergabe.de/unterlagen/914364/download/2018014?id=3133417); Hintergrund [BAG 10 AZR 72/14](https://www.bundesarbeitsgericht.de/wp-content/uploads/2021/01/10-AZR-72-14.pdf). Hinweis: aktuelle Fassung nicht verifiziert (Vorgängerfassung 2011 hatte 25 %/100 %).
+- Urlaub: Quelle nennt 30 Tage für Vollzeitkräfte im Gebäudereiniger-Handwerk (nur Zwischenüberschrift, nicht am Original verifiziert) — [Handwerksblatt](https://www.handwerksblatt.de/betriebsfuehrung/gebaudereiniger-hohere-lohn-zuschlage-und-mehr-urlaub)
+- Kalkulationsformel (Excel-Vorlage WHK): S = (L x (1+n) / H) x (1 + m + g) x (1 + p); Auftragspreis A = (F / R) x S (F Fläche, R Leistungswert m²/h) — [WHK Controlling](https://www.whk-controlling.de/wissen/kalkulation-reinigung-excel)
+- Parameter dort (normal / konservativ / offensiv): Lohnnebenkosten n = 25 % (Quelle nennt 25-30 %); Material m = 6 % / 8 % / 5 %; Maschinen 3 %; Gemeinkosten g = 18 % / 20 % / 15 %; Wagnis & Gewinn p = 12 % / 15 % / 8 %; produktiver Anteil an bezahlten Stunden 75 % (typisch 70-80 %); Beispiel: 2.400 € Monatslohn, 173,33 bezahlte h, 130 produktive h, Personalwert 23,08 €/h, Selbstkosten 29,31 €/h, Netto-Satz 32,82 €/h (brutto 39,06), konservativ 37,66, offensiv 28,47 — [WHK Controlling](https://www.whk-controlling.de/wissen/kalkulation-reinigung-excel)
+- Leistungswerte dort (Page-Wert, Spanne): Büro standard 450-500 (400-550) m²/h; Sanitär/Nassräume 150 (120-180); Teeküchen/Pausenräume 200 (180-250); Flure/Foyers 450 (400-600); Treppenhäuser 320 (250-350); Praxen/Labore 250 (200-280); Hinweis der Quelle: ca. 500 m²/h nur für offene Flächen, komplexe Büros/Sanitär 150-250 m²/h — [WHK Controlling](https://www.whk-controlling.de/wissen/kalkulation-reinigung-excel)
+- Leistung hängt von Reinigungshäufigkeit ab (Fachbeitrag): tägliche Büroreinigung 150 m²/h, alle 2 Tage 110 m²/h — Suchsnippet, Quelle/Kontext unklar; nicht mit WHK-Werten konsistent (Faktor 3). Österreich ÖNORM D2050: Büro-Teilreinigung 250 m²/h — [WKO Fallstudie](https://wko.at/wien/gewerbe-handwerk/denkmal-fassaden-gebauedereiniger/fallstudie-maschinelle-reinigung.pdf). Praxisbeispiel 1.680 m² in 8 h = 210 m²/h (Suchsnippet). Selbstangabe eines Dienstleisters: 160-230 m²/h (schwache Quelle).
+- Ausfallzeiten-Methodik (Österreich WKO, übertragbar): produktive Jahresstunden = vertragliche Brutto-Jahresarbeitszeit minus alle Nichtanwesenheitszeiten, mit langjährigen Durchschnittswerten; Wagnis/Gewinn-Zuschlag beispielhaft 10 % auf Selbstkosten — Suchergebnis zu [WKO Kalkulationstool](https://www.wko.at/oe/gewerbe-handwerk/fahrzeugtechnik/kalkulationstool-anleitung.pdf) (Fetch nicht erfolgt).
+- Marktpreise pro m² (Ratgeber, grob): Unterhaltsreinigung Büro 2-5 €/m²; Glas 3-6 €/m²; Grundreinigung 5-15 €/m²; Baureinigung 4-10 €/m²; Stundensatz 25-40 € netto (Quelle unklar, ob netto/brutto); Mengenrabatt 10-20 % ab 500 m², bis 30 % ab 2.000 m²; Produktionshallen 2-3x Büro; regional +/-20 % — [clean-invoice.com](https://www.clean-invoice.com/gebaeudereinigung/kosten-und-kalkulation-gebaeudereinigung)
+
+### Inferences (Eigenrechnung, keine Quellenangabe nötig, Annahmen offen)
+- Beispiel 2026 (LG 1, Struktur WHK): 15,00 €/h Brutto x 1,25 = 18,75 € je bezahlter Stunde; / 0,75 produktiv = 25,00 €/h Personalkosten je produktiver Stunde; x 1,27 (Material 6 % + Maschinen 3 % + Gemeinkosten 18 %) = 31,75 €; x 1,12 (Wagnis/Gewinn) = 35,56 € netto/h; +19 % USt = 42,32 € brutto (ohne Maschinen-Aufschlag 34,72 € netto). Mit konservativen Parametern (n 30 %, produktiv 70 %, m 8 %, g 20 %, p 15 %): 15 x 1,30 / 0,70 = 27,86; x 1,31 (inkl. 3 % Maschinen) = 36,50; x 1,15 = ca. 41,98 € netto/h. Spanne 2026 also ca. 33-42 € netto/h für LG 1, höher für Glas (LG 6: 18,40 €).
+- Wochenfaktor = 52/12 = 4,333; Besuche/Monat = Einsätze/Woche x 4,333 (5x/Woche = 21,67; 3x = 13; 2x = 8,67; 1x = 4,33; 14-tägig = 2,17). WHK nutzt 21,7 Besuche bei 5x/Woche (konsistent). Feiertage reduzieren tatsächliche Einsatztage (ca. 9-13 je Bundesland); Pauschal-Monatspreis wird üblicherweise über das Jahr geglättet (Jahresstunden / 12).
+- Monatspauschale = (Fläche / Leistungswert) x Einsätze pro Monat x Satz (+ Rüst-/Fahrzeit je Einsatz). Beispiel: 1.800 m² / 450 m²/h = 4 h; x 21,67 = 86,7 h/Monat; x 35,56 = ca. 3.082 € netto/Monat (WHK-Seite rechnet 3.611 € mit 5,08 h inkl. Rüst-/Fahrzeit bei 32,82 €/h).
+- Zuschläge (Nacht 30 %, Sonn-/Feiertag 80 %, Hochfeiertag 200 %) wirken nur auf Lohnanteil, nicht auf Gemeinkosten/Gewinn; im Rechner als Lohnanteil-Aufschlag mit "höchster Zuschlag gilt" abbilden.
+- Fahrtzeit: kein belastbarer Branchenwert gefunden; als Parameter "Rüst-/Fahrzeit je Einsatz (min)" und optional "Wegekosten €/Einsatz" modellieren.
+- Parameter der Software: Lohn nach Lohngruppe mit Gültig-ab-Datum (Tarifwechsel 01.01.2027 erwartet), damit alte Kalkulationen nachvollziehbar bleiben.
+
+### Gaps
+- Keine verlässliche deutsche Quelle (BIV/RAL/REFA) für Leistungswerte pro Raumtyp und Rhythmus gefunden; die RAL-/REFA-Tabellen sind nicht frei zugänglich. Streuung in Quellen bis Faktor 3 (Büro 150 vs. 450-500 m²/h) — im Prototyp als Annahme mit Probereinigung/Messung kennzeichnen.
+- Gesetzliche Lohnnebenkosten-Sätze 2026 (SV-Beiträge Arbeitgeberanteil, Umlagen U1/U2/U3, BG-Beitrag, Minijob-Pauschalen), Krankheitsquote und exakte Urlaubstage laut aktuellem RTV nicht mit Primärquelle belegt; üblicher Ansatz 25-30 % stammt nur aus einem Ratgeber.
+- Aktuelle Zuschlagssätze (RTV nach 2019) und Verbindlichkeit nicht geprüft.
+- Wagnis/Gewinn und Gemeinkosten-Richtwerte stammen aus einer einzigen Vorlage (WHK) und aus WKO (Österreich, 10 %), nicht aus Verbandsstatistik.
+
+## 2. Controlling-Kennzahlen für kleine Betriebe
+
+### Takeaway
+Branchenspezifische Benchmarks (Umsatzrendite, Personalkostenquote, Krankenquote GebäudeR) konnten nicht belegt werden; nur allgemeine Definitionen und wenige Referenzwerte (Krankenquote Deutschland gesamt ca. 5,83 %, Ausfallkosten 250-400 €/Tag). Kennzahlen sollten daher als berechnete Betriebsgrößen mit selbst gesetzten Zielwerten implementiert werden.
+
+### Cited Findings
+- Krankenquote = krankheitsbedingte Fehltage / Sollarbeitstage; Wert für Deutschland insgesamt ca. 5,83 % (ohne Branchenvergleich); Fluktuation = Abgänge / durchschnittlicher Personalbestand x 100 (BDA-Formel); Ausfallkosten je Mitarbeiter 250-400 €/Tag je Position — [betriebsrat.de](https://www.betriebsrat.de/fachartikel/wirtschaft/personalkennzahlen-wichtig-fuer-die-personalplanung-und-fuer-den-betriebsrat-3150107); ähnlich [WHK HR-KPIs](https://www.whk-controlling.de/wissen/personalkennzahlen-hr-kpis-guide)
+- Branchenstruktur: knapp 700.000 Beschäftigte, größte Handwerksbranche; BIV vertritt ca. 2.500 Betriebe (ca. 85 % Marktanteil); BIV-Konjunkturumfrage 2020: Krankenstand durch Corona nahezu verdoppelt, teils hoch zweistellig — [presseportal (BIV)](https://www.presseportal.de/pm/54358/4594589)
+- HWK-Ertragsziffer: Ist-Ertrag je Stunde / kalkulierter Stundenverrechnungssatz; 1,0 = kalkulierter Satz erreicht, >1 Gewinn — [HWK Reutlingen Auftragskalkulation](https://hwk-reutlingen.de/fileadmin/hwk/betriebsberatung_dokumente/auftragskalkulation06.doc) (aus Suchsnippet)
+- Deckungsbeitrag je Stunde als Beispielrechnung (Gartenbau/Dienstleistung, übertragbar) — [Dataflor PDF](https://www.dataflor.de/fileadmin/user_upload/PDFs/Downloads_Lead-Management/Beispielrechnung_Deckungsbeitrag_je_Stunde.pdf) (nicht geöffnet)
+- Mahnung/Verzug siehe Abschnitt 3 (DSO-Bezug: gesetzlicher Verzug nach 30 Tagen).
+
+### Inferences (Eigenformeln für die Software)
+- Deckungsbeitrag Objekt (DB I) = Erlös netto - direkte Lohnkosten (Ist-Stunden x Lohn x (1+LNK)/produktiv) - Material - Maschinen - Fahrkosten. DB-Marge = DB / Erlös. Objektergebnis nach Gemeinkostenumlage = DB - Gemeinkosten-Satz x Stunden.
+- Soll-/Ist-Stunden-Abweichung = (Ist - Soll)/Soll; Ampel z. B. >5 % gelb, >10 % rot (Schwellen frei gesetzt, kein Quellen-Benchmark). Effektiver Erlös je Ist-Stunde = Monatserlös / Ist-Stunden vs. kalkulierter Satz (Ertragsziffer).
+- Umsatz je Mitarbeiter (VZÄ) = Jahresumsatz / Vollzeitäquivalente; Stundenleistung realisiert = Fläche gereinigt / Ist-Stunden (m²/h) vs. kalkulierter Leistungswert.
+- DSO = offene Forderungen / Umsatz (brutto) x Tage; Forderungsreichweite analog. Konzentrationsrisiko = Anteil Top-1/Top-3/Top-5-Kunden am Umsatz (Warnschwelle z. B. >20-25 % für einen Kunden: Annahme, nicht belegt) und Herfindahl-Index optional.
+- Krankenquote und Fluktuation monatlich/rollierend 12 Monate; Überstunden- und Zuschlagsquote als Frühindikatoren.
+
+### Gaps
+- Keine Branchenbenchmarks für Umsatzrendite, Personalkostenquote (Annahme aus Fachwissen: Personal oft 70-80 % des Umsatzes, aber ohne Beleg hier nicht belegt), Fluktuation, Krankenquote Gebäudereinigung, DSO gefunden. Quelle empfohlen: BIV-Konjunkturumfrage/Branchenbericht (die-gebaeudedienstleister.de), DATEV-Branchenbericht, Betriebsvergleiche der Handwerkskammern.
+
+## 3. Abrechnung (Pauschale, Stundennachweis, Umsatzsteuer/§13b, E-Rechnung, GoBD, Mahnwesen)
+
+### Takeaway
+Seit 01.01.2025 muss jeder inländische Unternehmer E-Rechnungen empfangen können; Versandpflicht B2B ab 01.01.2027 für Unternehmen mit Vorjahresumsatz über 800.000 €, ab 01.01.2028 für alle (Übergangsrecht § 27 Abs. 38 UStG). Bei Leistungen an Unternehmer, die selbst nachhaltig Gebäudereinigung erbringen (>=10 % des Umsatzes), schuldet der Empfänger die USt (§ 13b Abs. 2 Nr. 8 UStG); Nachweis über Bescheinigung USt 1 TG.
+
+### Cited Findings
+- E-Rechnung Fristen: Empfangspflicht seit 01.01.2025 ohne Umsatzgrenze; 2025-2026 Papier und einfache PDF noch zulässig (PDF mit Zustimmung des Empfängers); 2027: Pflicht zum Ausstellen von E-Rechnungen bei Gesamtumsatz des Vorjahres (2026) über 800.000 € (Betrag einschließlich 800.000 € noch begünstigt); ab 01.01.2028 Pflicht für alle; EDI-Altverfahren bis Ende 2027 mit Zustimmung — [kostenlose-erechnung.de](https://kostenlose-erechnung.de/ratgeber/e-rechnungspflicht-2026-uebergangsfristen/) (Ratgeber, zitiert § 27 Abs. 38 UStG und BMF-FAQ Stand März 2026); ebenso [TrueCommerce](https://www.truecommerce.com/de/blog/e-invoicing-germany-timeline-deadlines/), [IHK Ostbrandenburg](https://www.ihk.de/ostbrandenburg/zielgruppeneinstieg-gruender/steuern-und-finanzen/erechnung-6213234)
+- Ausnahmen dauerhaft: Kleinbetragsrechnungen bis 250 € brutto (§ 33 UStDV), Kleinunternehmer, B2C, bestimmte steuerfreie Umsätze § 4 Nr. 8-29 UStG, Fahrausweise — [kostenlose-erechnung.de](https://kostenlose-erechnung.de/ratgeber/e-rechnungspflicht-2026-uebergangsfristen/)
+- Formate: XRechnung (reines XML) und ZUGFeRD (PDF mit eingebettetem XML) erfüllen EN 16931 und sind gleichwertig; Hybrid-PDF zählt nur mit strukturiertem Anteil; BMF-Anwendungsschreiben vom 15.10.2024 (Ecovis, PwC); ein Ratgeber erwähnt zusätzlich ein Schreiben/FAQ 2025/2026 — Datum/Inhalt nicht eindeutig; Originaldokument auf bundesfinanzministerium.de prüfen — [Ecovis](https://ecovis-kso.com/blog/e-rechnungen-ab-2025-bmf-entscheidung/); [PwC](https://newsletter.pwc.de/umsatzsteuer/nl0029-2024-10-29/bmf-e-rechnung). Versionsangaben (XRechnung 3.0.2, ZUGFeRD 2.4, Mai 2026) nur aus Verbraucherseite — [mehrwertsteuerrechner.de](https://www.mehrwertsteuerrechner.de/e-rechnung-pflicht/)
+- Aufbewahrung: Buchungsbelege/Rechnungen seit 01.01.2025 8 Jahre (§ 147 Abs. 3 AO, BEG IV; Übergangsfall für Belege, deren 10-Jahres-Frist am 27.10.2024 noch lief), Bücher/Jahresabschlüsse 10 Jahre, Geschäftsbriefe 6 Jahre; E-Rechnung im Originalformat (XML) archivieren, Ausdruck genügt nicht — [kostenlose-erechnung.de Archivierung](https://kostenlose-erechnung.de/ratgeber/e-rechnung-archivierung-pflicht/); [steuerberater-tabak.de](https://steuerberater-tabak.com/e-rechnungen-archivieren-gobd/) (Ratgeber, nicht amtlich; ein Treffer ordnet die Änderung fälschlich dem Wachstumschancengesetz zu)
+- §13b Abs. 2 Nr. 8 UStG Gebäudereinigung: Leistungen zur Reinigung von Gebäuden/Gebäudeteilen (innen und außen, Fassade, Fenster, Dachrinnen, Bauendreinigung u. a.; Details UStAE 13b.5); ausgeschlossen u. a. Teppich-/Möbelreinigung, Schornsteinfeger, Schädlingsbekämpfung, Winterdienst allein, Container/mobile Einheiten; Empfänger muss Unternehmer sein, der selbst nachhaltig Gebäudereinigung erbringt (Grenze 10 % des Vorjahres-/Weltumsatzes); Rechnung ohne USt-Ausweis mit Hinweis auf Steuerschuldnerschaft des Leistungsempfängers — [CPM Steuerberater (23.09.2025)](https://www.cpm-steuerberater.de/news/entry/2025/09/23/9374-§-13b-ustg-umfassende-darstellung-des-anwendungsbereichs-mit-schwerpunkt-reinigungsleistungen); [IHK Frankfurt](https://www.frankfurt-main.ihk.de/recht/uebersicht-alle-rechtsthemen/steuerrecht/umsatzsteuer-national/reverse-charge-5195694)
+- Bescheinigung USt 1 TG: vom Finanzamt, formloser Antrag, bis 3 Jahre gültig; schützt den Leistenden (§ 13b Abs. 5 Satz 2 UStG); nicht zu verwechseln mit Freistellungsbescheinigung § 48b EStG. Die 10-%-Grenze wurde nach BFH-Rechtsprechung durch das Kroatienanpassungsgesetz gesetzlich wieder eingeführt; Bezug auf BMF-Schreiben "10.04.2026" nur in einem Suchsnippet, nicht verifiziert — [IHK Frankfurt](https://www.frankfurt-main.ihk.de/recht/uebersicht-alle-rechtsthemen/steuerrecht/umsatzsteuer-national/reverse-charge-5195694); [kostenlose-erechnung §13b](https://kostenlose-erechnung.de/ratgeber/paragraf-13b-ustg-bauleistung-handwerker/); [Streit-Software](https://www.streit-software.de/wissen/13b-ustg-bescheinigung)
+- Verzug B2B: Basiszinssatz seit 01.07.2026 1,52 % (zuvor 1,27 %); Verzugszins B2B = Basiszins + 9 Prozentpunkte = 10,52 % p. a.; Verbraucher +5 Punkte; Verzugspauschale 40 € (§ 288 Abs. 5 BGB); nächste Basiszins-Anpassung 01.01.2027 — [Bundesbank](https://www.bundesbank.de/de/presse/pressemitteilungen/bekanntgabe-des-basiszinssatzes-zum-1-juli-2026-anpassung-auf-1-52--941386); [kostenlose-erechnung.de Verzugszinsen](https://kostenlose-erechnung.de/ratgeber/verzugszinsen-b2b-40-euro-pauschale/)
+
+### Inferences
+- Abrechnungsarten für die Software: (a) Monatspauschale = fester Betrag aus Kalkulation, jeden Monat gleich (Rechnung zum Monatsanfang oder -ende, im Vertrag festlegen); (b) Stundennachweis = Ist-Stunden x vereinbarter Satz, Nachweis pro Objekt/Tag (Leistungsnachweis als Anlage); (c) Sonderleistungen (Grund-/Anfangsreinigung, Glas, Bauendreinigung, Teppichreinigung) als Einzelpositionen oder Festpreis; (d) Zuschläge für Nacht/Sonn-/Feiertag als Aufschlag auf den Lohnanteil bzw. prozentual im Stundensatz.
+- §13b-Logik für Rechnungserstellung: Kundenfeld "Leistungsempfänger erbringt selbst Gebäudereinigung (>=10 %)" + Gültigkeitsdatum der Bescheinigung USt 1 TG; wenn ja, Rechnung netto mit Pflichthinweis, kein USt-Ausweis; wenn nein, 19 % USt. Privatkunden und Nicht-Reinigungsunternehmen (z. B. Verwalter, Büros, Praxen, Industrie) bekommen regulär 19 %. Warnung bei abgelaufener Bescheinigung.
+- E-Rechnungs-Hinweise im Prototyp: Hinweis, dass Empfang bereits Pflicht ist; Ampel nach Vorjahresumsatz (<=800.000 €: Pflicht erst ab 2028; >800.000 €: ab 01.01.2027); Export XRechnung/ZUGFeRD als Folgeprojekt (z. B. EN-16931-Bibliothek); Archivierung Originaldatei 8 Jahre; Prototyp sollte nicht den Anspruch der GoBD-Konformität erheben, sondern Unveränderbarkeit/Nummernkreise/Storno statt Löschen als Basisfunktionen vorsehen.
+- Mahnwesen: Zahlungsziel üblich 14 oder 30 Tage; Verzug automatisch 30 Tage nach Zugang/Fälligkeit (§ 286 Abs. 3 BGB, aus Fachwissen, in den Suchergebnissen nicht belegt) oder mit Mahnung; Stufen: Zahlungserinnerung, 1. Mahnung, 2. Mahnung mit Frist; Verzugszins 10,52 % p. a. (aktuell) + 40 € Pauschale; Zinsformel Zins = Forderung x Satz x Tage / 365.
+
+### Gaps
+- Primärquellen (BMF-Schreiben E-Rechnung 15.10.2024 und Folgeschreiben, BMF-Schreiben zu §13b/USt 1 TG 2026, § 27 Abs. 38 UStG-Wortlaut, GoBD-Schreiben) nicht direkt abgerufen; alles über Ratgeber. Vor Release prüfen.
+- Genaue Pflichtangaben E-Rechnung (Leitweg-ID bei öffentlichen Auftraggebern, XRechnung-Pflicht für Bund) nicht recherchiert.
+- Branchenübliche Zahlungsziele und Abrechnungsgepflogenheiten (Vorauszahlung Monatspauschale, Stundennachweis-Anforderungen) nicht belegt.
+- Umsatzsteuer bei Leistungen an Wohnungsverwalter/WEG: Nichtanwendung §13b nach Empfängerstatus nicht geprüft.
+
+## 4. Realistischer Funktionsumfang eines Verwaltungs-Prototyps
+
+### Takeaway
+Realistisch und fachlich tragfähig: Kalkulator (Fläche, Leistungswert, Rhythmus, Stunden, Preis), Objekt-Deckungsbeitrag mit Ist-/Soll-Stunden, Kennzahlen-Dashboard auf eigenen Daten und Rechnungs-/E-Rechnungs-Hinweise. Nicht im Prototyp: rechtssichere XRechnung-Erzeugung, GoBD-Zertifizierung, Lohnabrechnung.
+
+### Cited Findings
+- Die Rechenkette des Kalkulators (S = ..., A = F/R x S) ist als Formel belegt — [WHK Controlling](https://www.whk-controlling.de/wissen/kalkulation-reinigung-excel).
+- Rechtliche Mindestanforderungen aus Abschnitt 3 (E-Rechnung ab 2027/2028, §13b-Hinweis, 8 Jahre Aufbewahrung) — Quellen siehe dort.
+
+### Inferences (Vorschlag)
+- Kalkulator-Eingaben: Raumbuch (Raum, Raumart, m², Bodenart), Leistungswert (Default je Raumart, überschreibbar; Spannen oben), Rhythmus (Einsätze/Woche; Wochenfaktor 4,333), Rüst-/Fahrzeit/Einsatz, Lohngruppe + Lohn, LNK %, produktiver Anteil %, Material-/Maschinen-/Gemeinkosten-/Gewinn-%, Zuschlagsstunden (Nacht/Sonntag/Feiertag). Ausgabe: Stunden/Einsatz, Stunden/Monat, Selbstkosten, Netto-Monatspauschale, USt/Brutto bzw. §13b, effektiver Preis/m², Preis je Stunde, Marge, Sensitivität (Lohn +1 €).
+- Objektsicht: Soll aus Kalkulation, Ist-Stunden aus Zeiterfassung, DB I/II, Ertragsziffer, Ampel.
+- Dashboard: Umsatz, DB, Marge, Stunden Soll/Ist, Umsatz je VZÄ, Krankenquote, Fluktuation, DSO, Top-Kunden-Anteil, offene Posten nach Alter, Warnung auslaufender Bescheinigungen USt 1 TG.
+- Konfigurierbare Parameterseite mit Datum-gültig-ab (Tarif 2027 ungewiss) und deutlicher Kennzeichnung "Annahme, keine Branchenvorgabe" bei Leistungswerten.
+
+### Gaps
+- Keine vergleichende Marktübersicht bestehender Branchensoftware recherchiert.

@@ -1,0 +1,10 @@
+{
+	"name": "Resch Business Manager",
+	"short_name": "Resch",
+	"lang": "de",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#efefee",
+	"theme_color": "#d95a14",
+	"icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
