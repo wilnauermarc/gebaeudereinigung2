@@ -24,12 +24,12 @@
 		} catch { error = 'Keine Verbindung. Bitte später erneut versuchen.'; } finally { loading = false; }
 	}
 	$effect(() => { if (siteId && token !== undefined) load(); });
-	$effect(() => { try { by = localStorage.getItem('objektia-abnahme-name') ?? ''; } catch { /* leer */ } });
+	$effect(() => { try { by = localStorage.getItem('putzbetrieb-abnahme-name') ?? ''; } catch { /* leer */ } });
 
 	async function decide(date: string, acceptance: 'abgenommen' | 'beanstandet') {
 		busy = date + acceptance; formErr[date] = '';
 		try {
-			try { localStorage.setItem('objektia-abnahme-name', by.trim()); } catch { /* ignorieren */ }
+			try { localStorage.setItem('putzbetrieb-abnahme-name', by.trim()); } catch { /* ignorieren */ }
 			const r = await fetch('/api/abnahme', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ s: siteId, t: token, date, acceptance, by, note: note[date] ?? '' }) });
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) { formErr[date] = j.error ?? 'Nicht möglich.'; return; }

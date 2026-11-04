@@ -113,7 +113,7 @@
 	}
 </script>
 
-<svelte:head><title>Einstellungen · Objektia</title></svelte:head>
+<svelte:head><title>Einstellungen · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Einstellungen" subtitle="Betrieb, Zugänge, Aussehen und Daten, jeweils in einem eigenen Bereich." />
 

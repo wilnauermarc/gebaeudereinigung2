@@ -69,7 +69,7 @@
 		document.addEventListener('visibilitychange', onVis);
 		return () => { clearInterval(t2); document.removeEventListener('visibilitychange', onVis); };
 	});
-	$effect(() => { document.title = unread ? `(${unread}) Meine Einsätze · Objektia` : 'Meine Einsätze · Objektia'; });
+	$effect(() => { document.title = unread ? `(${unread}) Meine Einsätze · Putzbetrieb` : 'Meine Einsätze · Putzbetrieb'; });
 
 	// ── Schichttausch ──
 	type SwapOffer = { id: string; by: string; siteId: string; date: string; start: string; end: string; customer: string; site: string };
@@ -239,7 +239,7 @@
 	const kindLabel = (k: string) => (k === 'krank' ? L.sick : L.vacation);
 </script>
 
-<svelte:head><title>Meine Einsätze · Objektia</title><meta name="robots" content="noindex" /></svelte:head>
+<svelte:head><title>Meine Einsätze · Putzbetrieb</title><meta name="robots" content="noindex" /></svelte:head>
 
 <div class="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 px-4 py-5">
 	{#if phase === 'laden'}

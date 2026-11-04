@@ -90,7 +90,7 @@
 	const badgeCls: Record<ExtraStatus, string> = { angefragt: 'badge-warn', beauftragt: 'badge-info', ausgefuehrt: 'badge-warn', abgerechnet: 'badge-success', abgelehnt: 'badge-neutral' };
 </script>
 
-<svelte:head><title>Zusatzleistungen · Objektia</title></svelte:head>
+<svelte:head><title>Zusatzleistungen · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Zusatzleistungen" subtitle="Vom Wunsch des Kunden bis zur Rechnung: Angefragt → Beauftragt → Ausgeführt → Abgerechnet." {instruments} {next}>
 	{#snippet actions()}

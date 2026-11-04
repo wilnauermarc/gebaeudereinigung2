@@ -115,7 +115,7 @@
 	}
 </script>
 
-<svelte:head><title>Leistungsnachweis · Objektia</title></svelte:head>
+<svelte:head><title>Leistungsnachweis · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Leistungsnachweis" subtitle="Je Einsatz drei getrennte Antworten: War jemand da? Wurde geleistet, was vereinbart ist? Hat der Kunde abgenommen?" {instruments} {next}>
 	{#snippet actions()}

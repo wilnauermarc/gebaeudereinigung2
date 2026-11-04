@@ -105,7 +105,7 @@
 	);
 </script>
 
-<svelte:head><title>Team · Objektia</title></svelte:head>
+<svelte:head><title>Team · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Team" subtitle={`${db.data.employees.length} Mitarbeitende, Stunden und Minijob-Grenze im Monat ${month.split('-').reverse().join('/')}`} {instruments} next={nextStep}>
 	{#snippet actions()}

@@ -183,7 +183,7 @@
 	}
 </script>
 
-<svelte:head><title>{customer?.name ?? 'Kunde'} · Objektia</title></svelte:head>
+<svelte:head><title>{customer?.name ?? 'Kunde'} · Putzbetrieb</title></svelte:head>
 
 {#if !customer}
 	<div class="card"><EmptyState icon={Inbox} title="Kunde nicht gefunden" text="Dieser Kunde existiert nicht (mehr). Eventuell wurde der Link verändert oder die Demo-Daten wurden zurückgesetzt.">

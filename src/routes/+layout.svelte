@@ -93,10 +93,10 @@
 	];
 	let openSection = $state<string | null>(null);
 	let favs = $state<string[]>([]);
-	$effect(() => { try { const f = JSON.parse(localStorage.getItem('objektia-nav-favs') ?? '[]'); if (Array.isArray(f)) favs = f.filter((x) => typeof x === 'string'); } catch { /* keine Favoriten */ } });
+	$effect(() => { try { const f = JSON.parse(localStorage.getItem('putzbetrieb-nav-favs') ?? localStorage.getItem('objektia-nav-favs') ?? '[]'); if (Array.isArray(f)) favs = f.filter((x) => typeof x === 'string'); } catch { /* keine Favoriten */ } });
 	function toggleFav(href: string) {
 		favs = favs.includes(href) ? favs.filter((x) => x !== href) : [...favs, href].slice(0, 6);
-		try { localStorage.setItem('objektia-nav-favs', JSON.stringify(favs)); } catch { /* ignorieren */ }
+		try { localStorage.setItem('putzbetrieb-nav-favs', JSON.stringify(favs)); } catch { /* ignorieren */ }
 	}
 	const visibleTop = $derived(top.filter((n) => ui.allows(n.href)));
 	const visibleSections = $derived(sections.map((g) => ({ ...g, items: g.items.filter((n) => ui.allows(n.href)) })).filter((g) => g.items.length));
@@ -199,7 +199,7 @@
 </script>
 
 <svelte:window onkeydown={onKeydown} onbeforeunload={beforeUnload} />
-<svelte:head><title>Objektia</title></svelte:head>
+<svelte:head><title>Putzbetrieb</title></svelte:head>
 
 {#if bare}
 	{@render children()}
@@ -225,8 +225,8 @@
 		aria-label="Hauptnavigation"
 	>
 		<div class="flex h-16 items-center gap-3 px-5">
-			<div class="grid size-9 place-items-center rounded-xl bg-accent text-base font-extrabold text-[#17181a] shadow-[0_6px_18px_-6px_rgb(255_196_26/0.8)]">O</div>
-			<p class="text-[1.02rem] font-extrabold tracking-[0.16em] uppercase">Objektia</p>
+			<div class="grid size-9 place-items-center rounded-xl bg-accent text-base font-extrabold text-[#17181a] shadow-[0_6px_18px_-6px_rgb(255_196_26/0.8)]">P</div>
+			<p class="text-[1.02rem] font-extrabold tracking-[0.16em] uppercase">Putzbetrieb</p>
 		</div>
 
 		<div class="flex items-center gap-3 px-5 pt-5 pb-4">

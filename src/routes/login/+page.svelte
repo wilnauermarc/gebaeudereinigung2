@@ -38,11 +38,11 @@
 	}
 </script>
 
-<svelte:head><title>Anmelden · Objektia</title><meta name="robots" content="noindex" /></svelte:head>
+<svelte:head><title>Anmelden · Putzbetrieb</title><meta name="robots" content="noindex" /></svelte:head>
 
 <div class="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-8">
 	<form class="card w-full p-6" onsubmit={submit} novalidate>
-		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">O</div><div><p class="text-lg font-semibold">Objektia</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
+		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">P</div><div><p class="text-lg font-semibold">Putzbetrieb</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
 		{#if !db.ready}
 			<p class="flex items-center gap-2 text-sm text-muted"><Loader size={14} class="animate-spin" /> Wird geladen …</p>
 		{:else if db.needsSetup}

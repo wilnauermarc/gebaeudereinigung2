@@ -23,7 +23,7 @@ export async function buildShiftSheetPdf(sheets: ShiftSheet[]): Promise<Uint8Arr
 	const font = await pdf.embedFont(StandardFonts.Helvetica);
 	const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 	pdf.setTitle('Einsatzzettel');
-	pdf.setCreator('Objektia');
+	pdf.setCreator('Putzbetrieb');
 	pdf.setLanguage('de-DE');
 	for (const s of sheets) {
 		let page = pdf.addPage([595.28, 841.89]);

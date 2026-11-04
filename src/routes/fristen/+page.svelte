@@ -23,7 +23,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Fristen · Objektia</title></svelte:head>
+<svelte:head><title>Fristen · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Fristenkalender" subtitle={`Alle Termine der nächsten 12 Monate an einem Ort: Verträge, Nachweise, Unterweisungen, Prüfungen, Zahlungen und gesetzliche Stichtage.`}>
 </PageHead>

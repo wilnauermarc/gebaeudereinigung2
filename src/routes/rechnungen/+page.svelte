@@ -135,7 +135,7 @@
 	);
 </script>
 
-<svelte:head><title>Rechnungen · Objektia</title></svelte:head>
+<svelte:head><title>Rechnungen · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Rechnungen" subtitle={`Offene Posten ${formatEur(sumGross(open))} brutto, davon überfällig ${formatEur(sumGross(overdue))}`} {instruments} next={nextStep}>
 	{#snippet actions()}

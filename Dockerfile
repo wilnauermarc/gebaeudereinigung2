@@ -1,4 +1,4 @@
-# Objektia: Produktions-Image (Node-Server mit SQLite)
+# Putzbetrieb: Produktions-Image (Node-Server mit SQLite)
 # Bauen:   docker build -t reinigungsmanager .
 # Starten: siehe docker-compose.yml (mit https über Caddy)
 

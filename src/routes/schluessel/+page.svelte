@@ -54,7 +54,7 @@
 	const instruments = $derived(_keyInstruments(db.data));
 </script>
 
-<svelte:head><title>Schlüssel · Objektia</title></svelte:head>
+<svelte:head><title>Schlüssel · Putzbetrieb</title></svelte:head>
 
 <PageHead {instruments} title="Schlüsselregister" subtitle={`Wer hat welchen Schlüssel oder Transponder? Jede Ausgabe wird protokolliert.`}>
 	{#snippet actions()}

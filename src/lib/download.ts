@@ -16,6 +16,6 @@ export function downloadIcs(o: { title: string; startIso: string; minutes?: numb
 	const start = new Date(o.startIso);
 	const end = new Date(start.getTime() + (o.minutes ?? 60) * 60000);
 	const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/[,;]/g, (m) => '\\' + m).replace(/\n/g, '\\n');
-	const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Objektia//DE', 'BEGIN:VEVENT', `UID:${crypto.randomUUID()}@objektia`, `DTSTAMP:${fmt(new Date())}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`, `SUMMARY:${esc(o.title)}`, ...(o.description ? [`DESCRIPTION:${esc(o.description)}`] : []), 'END:VEVENT', 'END:VCALENDAR'];
+	const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Putzbetrieb//DE', 'BEGIN:VEVENT', `UID:${crypto.randomUUID()}@putzbetrieb`, `DTSTAMP:${fmt(new Date())}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`, `SUMMARY:${esc(o.title)}`, ...(o.description ? [`DESCRIPTION:${esc(o.description)}`] : []), 'END:VEVENT', 'END:VCALENDAR'];
 	downloadBytes(lines.join('\r\n'), o.filename, 'text/calendar;charset=utf-8');
 }

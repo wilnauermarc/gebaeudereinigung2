@@ -90,7 +90,7 @@ export function extfBookings(rows: BookingRow[], cfg: ExportConfig, o: { now: Da
 	const p2 = (n: number) => String(n).padStart(2, '0');
 	const stamp = `${o.now.getFullYear()}${p2(o.now.getMonth() + 1)}${p2(o.now.getDate())}${p2(o.now.getHours())}${p2(o.now.getMinutes())}${p2(o.now.getSeconds())}000`;
 	const ymd = (iso: string) => iso.replace(/-/g, '');
-	const header = ['"EXTF"', '700', '21', q('Buchungsstapel'), '12', stamp, '', q('RE'), q('Objektia'), '""', cfg.beraterNr || '', cfg.mandantNr || '', `${o.from.slice(0, 4)}0101`, '4', ymd(o.from), ymd(o.to), q(o.name ?? 'Ausgangsrechnungen'), '""', '1', '0', '0', q('EUR'), '', '', '', '', q(cfg.kontenrahmen === 'SKR04' ? '04' : '03'), '', '', '', ''];
+	const header = ['"EXTF"', '700', '21', q('Buchungsstapel'), '12', stamp, '', q('RE'), q('Putzbetrieb'), '""', cfg.beraterNr || '', cfg.mandantNr || '', `${o.from.slice(0, 4)}0101`, '4', ymd(o.from), ymd(o.to), q(o.name ?? 'Ausgangsrechnungen'), '""', '1', '0', '0', q('EUR'), '', '', '', '', q(cfg.kontenrahmen === 'SKR04' ? '04' : '03'), '', '', '', ''];
 	const cols = ['Umsatz (ohne Soll/Haben-Kz)', 'Soll/Haben-Kennzeichen', 'WKZ Umsatz', 'Kurs', 'Basis-Umsatz', 'WKZ Basis-Umsatz', 'Konto', 'Gegenkonto (ohne BU-Schlüssel)', 'BU-Schlüssel', 'Belegdatum', 'Belegfeld 1', 'Belegfeld 2', 'Skonto', 'Buchungstext'];
 	const lines = [header.join(';'), cols.join(';')];
 	for (const r of rows) lines.push([r.umsatz, q(r.sh), q('EUR'), '', '', '', r.konto, r.gegenkonto, r.bu, r.belegdatum, q(r.belegfeld1.slice(0, 36)), '', '', q(r.text.slice(0, 60))].join(';'));

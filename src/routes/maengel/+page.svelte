@@ -90,7 +90,7 @@
 	);
 </script>
 
-<svelte:head><title>Mängel · Objektia</title></svelte:head>
+<svelte:head><title>Mängel · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Mängel und Reklamationen" subtitle={`${openList.length} offen${overdue ? `, davon ${overdue} überfällig` : ''}`} {instruments} next={nextStep}>
 	{#snippet actions()}

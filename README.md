@@ -1,4 +1,4 @@
-# Objektia
+# Putzbetrieb
 
 > **Stand: Frontend-Prototyp mit erstem Server-Teil.** Anmeldung, Rollen und Datenspeicherung laufen jetzt auf dem Server (SQLite, Datei `data/resch.db`). Die Daten in der Demo sind weiterhin erfunden.
 
@@ -59,7 +59,7 @@
 
 ---
 
-# Objektia (Prototyp)
+# Putzbetrieb (Prototyp)
 
 Interaktiver Frontend-Prototyp. **Alle Daten sind erfundene Demo-Daten**, sie liegen nur im Browser (localStorage). Es gibt noch kein Backend, keine Datenbank und keine Anmeldung. Das kommt in Phase C.
 

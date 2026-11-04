@@ -65,7 +65,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Verträge · Objektia</title></svelte:head>
+<svelte:head><title>Verträge · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Verträge" subtitle={`Laufende Unterhaltsreinigungen mit Laufzeit, Kündigungsfrist und Preisanpassung. ${formatEur(total)} monatlich netto.`}>
 </PageHead>

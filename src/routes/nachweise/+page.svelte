@@ -47,7 +47,7 @@
 	const instruments = $derived(_docInstruments(db.data, _tknac()));
 </script>
 
-<svelte:head><title>Nachweise · Objektia</title></svelte:head>
+<svelte:head><title>Nachweise · Putzbetrieb</title></svelte:head>
 
 <PageHead {instruments} title="Nachweise und Subunternehmer" subtitle={`${problems ? problems + (problems === 1 ? ' Nachweis' : ' Nachweise') + ' abgelaufen oder bald fällig' : 'Alle Nachweise gültig'}. Fristen im Blick, bevor sie zum Problem werden.`}>
 	{#snippet actions()}

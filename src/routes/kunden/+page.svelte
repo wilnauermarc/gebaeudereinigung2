@@ -163,7 +163,7 @@
 	);
 </script>
 
-<svelte:head><title>Kunden · Objektia</title></svelte:head>
+<svelte:head><title>Kunden · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Kunden" subtitle={`${counts.alle} Kunden, ${formatEur(db.monthlyRecurring())} monatlich wiederkehrend`} {instruments} next={nextStep}>
 	{#snippet actions()}

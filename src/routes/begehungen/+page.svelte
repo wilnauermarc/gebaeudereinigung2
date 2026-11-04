@@ -51,7 +51,7 @@
 	const instruments = $derived(_inspectionInstruments(db.data, _tkbeg()));
 </script>
 
-<svelte:head><title>Begehungen · Objektia</title></svelte:head>
+<svelte:head><title>Begehungen · Putzbetrieb</title></svelte:head>
 
 <PageHead {instruments} title="Begehungen" subtitle={`Qualitätskontrolle je Objekt mit Checkliste. Festgestellte Mängel wandern direkt in die Mängelliste.`}>
 	{#snippet actions()}

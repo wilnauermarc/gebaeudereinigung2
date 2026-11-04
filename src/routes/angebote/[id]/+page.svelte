@@ -168,7 +168,7 @@
 </script>
 
 <svelte:window onkeydown={onKey} />
-<svelte:head><title>{quote?.number ?? 'Angebot'} · Objektia</title></svelte:head>
+<svelte:head><title>{quote?.number ?? 'Angebot'} · Putzbetrieb</title></svelte:head>
 
 {#if !quote || !customer}
 	<div class="card"><EmptyState icon={FileQuestion} title="Angebot nicht gefunden" text="Dieses Angebot existiert nicht (mehr).">

@@ -91,7 +91,7 @@
 	const tel = (p: string) => p.replace(/\s/g, '');
 </script>
 
-<svelte:head><title>Leitstand · Objektia</title></svelte:head>
+<svelte:head><title>Leitstand · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Leitstand" subtitle="Der Tag auf einer Zeitleiste: wo es läuft, wo es hakt und was das Büro jetzt tun muss." {instruments} next={next}>
 	{#snippet actions()}

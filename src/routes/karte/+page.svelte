@@ -129,7 +129,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Karte · Objektia</title></svelte:head>
+<svelte:head><title>Karte · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Karte" subtitle={`Wo sind unsere Kunden, und wo wird heute gereinigt? Die Positionen in der Demo sind erfunden.`}>
 	{#snippet actions()}

@@ -1,4 +1,4 @@
-# Objektia – Bestandsanalyse und Konzept (Phase A)
+# Putzbetrieb – Bestandsanalyse und Konzept (Phase A)
 
 Stand: 2026-11-02. Nur lesende Analyse, im Bestand wurde nichts verändert.
 

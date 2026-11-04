@@ -92,7 +92,7 @@
 	);
 </script>
 
-<svelte:head><title>Vorgänge · Objektia</title></svelte:head>
+<svelte:head><title>Vorgänge · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Vorgänge" subtitle={`Jede Kundenanfrage als geführter Ablauf bis zur Projektzeitliste.`} {instruments} next={nextStep}>
 	{#snippet actions()}

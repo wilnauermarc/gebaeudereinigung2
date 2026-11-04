@@ -95,7 +95,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Kalkulator · Objektia</title></svelte:head>
+<svelte:head><title>Kalkulator · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Kalkulator" subtitle={`Von der Fläche zur Monatspauschale: Fläche ÷ Leistungswert × Häufigkeit × Stundensatz.`}>
 </PageHead>

@@ -89,7 +89,7 @@ export async function buildLetter(input: LetterInput): Promise<Uint8Array> {
 	const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 	pdf.setTitle(input.title);
 	pdf.setAuthor(company.name);
-	pdf.setCreator('Objektia');
+	pdf.setCreator('Putzbetrieb');
 	pdf.setLanguage('de-DE');
 
 	const pages: PDFPage[] = [];

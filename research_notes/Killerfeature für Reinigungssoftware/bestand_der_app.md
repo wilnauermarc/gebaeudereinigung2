@@ -1,4 +1,4 @@
-# Bestand der App „Objektia“ (Stand 2026-11-04, Code- und Dokumentenanalyse)
+# Bestand der App „Putzbetrieb“ (Stand 2026-11-04, Code- und Dokumentenanalyse)
 
 Quellen (alle lokal, Pfad relativ zu `/Users/marc/AI-Projekte/Resch-Gebäude 3/`): `README.md` (vollständig gelesen, 149 Zeilen), `docs/betrieb.md`, `docs/01-bestandsanalyse-und-konzept.md` (historisch, Phase A, beschreibt V1/V2 und NICHT den heutigen Stand), `src/lib/types.ts`, `src/routes/*`, `src/routes/api/*`, Navigation in `src/routes/+layout.svelte`, Testdateien. Selbst ausgeführt: `npx vitest run` -> 22 Dateien, 134 Tests bestanden. `npm run test:security` habe ich NICHT ausgeführt (braucht laufenden Server); die Zahl der Prüfungen stammt aus README (110+ bzw. 138) und Zählung im Skript (ca. 160 `ok(`-Aufrufe in `scripts/security-test.mjs`). Reifegrad-Angaben beruhen auf den Selbstauskünften im README, außer wo "im Code bestätigt" steht.
 
@@ -66,7 +66,7 @@ Breiter, durchgängig verknüpfter Funktionsumfang (Anfrage bis Rechnung, Einsat
 ### Gaps
 - Kein Playwright-Test, keine Responsive-/Tastaturprüfung (README Z. 140).
 - Ob Material-Verbrauch/Bestandsabbuchung automatisch erfolgt: unklar (nicht im Code verfolgt).
-- Ob Vorgangs-Typen Bewerbung/Beschwerde (V1) in Objektia existieren: laut `types.ts` nur Kundenanfrage-Vorgang (`Case`), also nicht.
+- Ob Vorgangs-Typen Bewerbung/Beschwerde (V1) in Putzbetrieb existieren: laut `types.ts` nur Kundenanfrage-Vorgang (`Case`), also nicht.
 - Kein Fahrzeug-/Fuhrpark-, Lager-, Inventur- oder Subunternehmer-Einsatzmodul im Code gefunden (nur Subunternehmer-Nachweise als Metadaten). Gesucht nur per Stichwort/Typen, nicht Seite für Seite.
 
 ---

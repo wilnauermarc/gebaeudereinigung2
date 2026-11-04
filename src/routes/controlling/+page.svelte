@@ -35,7 +35,7 @@
 	import PageHead from '#lib/components/PageHead.svelte';
 </script>
 
-<svelte:head><title>Controlling · Objektia</title></svelte:head>
+<svelte:head><title>Controlling · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Controlling" subtitle={`Ergebnis je Objekt im Monat ${monthLabel}: Monatserlös laut Vertrag gegen tatsächlich geleistete Stunden.`}>
 </PageHead>

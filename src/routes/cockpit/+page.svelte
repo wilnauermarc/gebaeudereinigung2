@@ -75,7 +75,7 @@
 	);
 </script>
 
-<svelte:head><title>Cockpit · Objektia</title></svelte:head>
+<svelte:head><title>Cockpit · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Controlling-Cockpit" subtitle={`Wo steht der Betrieb, wo muss ich eingreifen? Basis Monat ${label(month)}.`} {instruments} next={nextStep} />
 

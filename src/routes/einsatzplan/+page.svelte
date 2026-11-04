@@ -164,7 +164,7 @@
 	);
 </script>
 
-<svelte:head><title>Einsatzplan · Objektia</title></svelte:head>
+<svelte:head><title>Einsatzplan · Putzbetrieb</title></svelte:head>
 
 <PageHead title="Einsatzplan" subtitle={'Wochenplan aus den Reinigungsplänen, Abwesenheiten sind eingerechnet.'} {instruments} next={nextStep}>
 	{#snippet actions()}
