@@ -86,3 +86,12 @@ export function summarize(d: Data, visits: Visit[]): NachweisSummary {
 	}
 	return s;
 }
+
+/** Aus der Checkliste der Mitarbeitenden: Was war heute fällig, was wurde abgehakt? */
+export function executionFromChecklist(dueIds: string[], doneIds: string[]): { execution: ServiceRecord['execution']; missed: string[] } {
+	const done = new Set(doneIds);
+	const missed = dueIds.filter((id) => !done.has(id));
+	if (!dueIds.length) return { execution: doneIds.length ? 'vollstaendig' : 'offen', missed: [] };
+	if (!missed.length) return { execution: 'vollstaendig', missed: [] };
+	return { execution: dueIds.some((id) => done.has(id)) ? 'teilweise' : 'nicht', missed };
+}

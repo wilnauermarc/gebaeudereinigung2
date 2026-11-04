@@ -18,7 +18,7 @@
 	import { downloadBytes } from '#lib/download.ts';
 	import { buildMonthlyReportPdf } from '#lib/pdf/documentsPdf.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, ListChecks, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown, Clock, RotateCcw } from '@lucide/svelte';
+	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, ListChecks, UserCheck, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown, Clock, RotateCcw } from '@lucide/svelte';
 
 	const customer = $derived(db.customer(page.params.id!));
 	const quotes = $derived(customer ? db.quotesOf(customer.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : []);
@@ -113,6 +113,14 @@
 		toasts.push('Termin angelegt. Er steht auf „Heute“ unter Termine.', { tone: 'success' });
 	}
 
+	// ── Abnahme-Link für den Kunden ──
+	let acOpen = $state(false);
+	let acSite = $state<SiteT | null>(null);
+	function openAccept(site: SiteT) { if (!site.acceptToken) site.acceptToken = newToken(); acSite = site; acOpen = true; }
+	function renewAccept() { if (acSite && confirm('Neuen Link erzeugen? Der bisherige Link funktioniert danach nicht mehr.')) acSite.acceptToken = newToken(); }
+	const acUrl = $derived(acSite?.acceptToken ? `${location.origin}/abnahme/${acSite.id}?t=${acSite.acceptToken}` : '');
+	const acSvg = $derived(acUrl ? renderSVG(acUrl, { border: 1 }) : '');
+	async function copyAccept() { try { await navigator.clipboard.writeText(acUrl); toasts.push('Link kopiert.', { tone: 'success' }); } catch { toasts.push('Kopieren nicht möglich, bitte markieren und kopieren.'); } }
 	let lvOpen = $state(false);
 	let lvSite = $state<SiteT | null>(null);
 	let qrSite = $state<{ id: string; name: string } | null>(null);
@@ -252,7 +260,7 @@
 								<li class="px-4 py-3">
 									<div class="flex items-start justify-between gap-3">
 										<div><p class="text-sm font-medium">{s.name}</p><p class="text-xs text-muted">{s.street}, {s.postal} {s.city}</p></div>
-										<div class="flex gap-1"><button class="btn btn-sm" onclick={() => { lvSite = s; lvOpen = true; }} title="Leistungsverzeichnis: was wird wo und wie oft gereinigt"><ListChecks size={13} /> Leistungen{#if lvAt(s, todayKey())} <span class="num text-muted">{lvAt(s, todayKey())?.items.length}</span>{/if}</button><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
+										<div class="flex flex-wrap gap-1"><button class="btn btn-sm" onclick={() => openAccept(s)} title="Link, mit dem Ihr Kunde Leistungen online abnimmt"><UserCheck size={13} /> Abnahme-Link</button><button class="btn btn-sm" onclick={() => { lvSite = s; lvOpen = true; }} title="Leistungsverzeichnis: was wird wo und wie oft gereinigt"><ListChecks size={13} /> Leistungen{#if lvAt(s, todayKey())} <span class="num text-muted">{lvAt(s, todayKey())?.items.length}</span>{/if}</button><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
 									</div>
 									<p class="mt-1.5 text-xs {s.plan ? 'text-muted' : 'text-warn'}">{#if s.plan}Reinigungsplan: {s.plan.days.map((d) => weekdays[d]).join(', ')} ab {s.plan.start} Uhr, {s.plan.hours.toLocaleString('de-DE')} Std. · {s.plan.staffIds.length} {s.plan.staffIds.length === 1 ? 'Person' : 'Personen'}{:else}Noch kein Reinigungsplan, das Objekt erscheint nicht im Einsatzplan.{/if}</p>
 									{#if s.note}<p class="mt-1.5 rounded-md bg-subtle px-2.5 py-1.5 text-xs text-muted">{s.note}</p>{/if}
@@ -334,6 +342,19 @@
 {/if}
 
 <LvEditor bind:open={lvOpen} site={lvSite} />
+
+<Dialog bind:open={acOpen} title="Abnahme-Link{acSite ? ' · ' + acSite.name : ''}" description="Ihr Kunde sieht damit die gemeldeten Einsätze dieses Objekts und kann sie abnehmen oder beanstanden, ohne Anmeldung." width={520}>
+	{#snippet children()}
+		{#if acSite}
+			<div class="grid gap-3">
+				<div><label class="label" for="ac-u">Link</label><input id="ac-u" class="input num" readonly value={acUrl} onfocus={(e) => e.currentTarget.select()} /></div>
+				<div class="mx-auto w-40 rounded-lg bg-white p-2">{@html acSvg}</div>
+				<p class="text-xs text-muted">Der Link enthält einen geheimen Schlüssel. Wer ihn hat, kann dieses Objekt abnehmen. Schicken Sie ihn nur an Ihre Ansprechperson (per E-Mail oder als QR-Code auf dem Leistungsnachweis). Mit „Neuer Link“ wird der alte ungültig. Der Kunde sieht nur Tage, an denen Sie die Ausführung festgehalten haben, und keine Namen Ihrer Mitarbeitenden.</p>
+			</div>
+		{/if}
+	{/snippet}
+	{#snippet footer()}<button class="btn" onclick={renewAccept}>Neuer Link</button><button class="btn" onclick={copyAccept}>Link kopieren</button><button class="btn btn-primary" onclick={() => (acOpen = false)}>Fertig</button>{/snippet}
+</Dialog>
 
 <Dialog bind:open={editOpen} title="Kunde bearbeiten" width={520}>
 	{#snippet children()}

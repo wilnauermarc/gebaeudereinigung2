@@ -9,7 +9,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { COOKIE, hashToken, isManagement } from '#lib/server/auth.ts';
 import { store } from '#lib/server/store.ts';
 
-const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup']);
+const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme']);
 const ANY_USER = (p: string) => p.startsWith('/api/me/') || p === '/api/logout' || p === '/api/password';
 
 export const handle: Handle = async ({ event, resolve }) => {

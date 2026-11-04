@@ -204,6 +204,59 @@ ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requ
 	await owner.req('PUT', '/api/state', { rev: cur4.rev, data: cur4.data });
 }
 
+// ── Checkliste (Mitarbeiter) und Abnahme-Link (Kunde) ──
+{
+	const dayKey = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+	const yesterday = dayKey(-1);
+	const cur = (await owner.req('GET', '/api/state')).j;
+	const site = cur.data.customers.flatMap((c) => c.sites).find((x) => x.id === todayShift.siteId);
+	site.lv = [{ id: 'vt', validFrom: '2026-01-01', note: '', createdAt: new Date().toISOString(), createdBy: 'T', items: [
+		{ id: 'it1', room: 'Flur', task: 'Boden wischen', interval: 'taeglich', areaM2: null, note: '' },
+		{ id: 'it2', room: 'WC', task: 'Sanitär reinigen', interval: 'taeglich', areaM2: null, note: '' },
+		{ id: 'it3', room: 'Fenster', task: 'Fenster putzen', interval: 'quartal', areaM2: null, note: '' }] }];
+	site.acceptToken = 'ABNAHME-TESTSCHLUESSEL-0123456789';
+	cur.data.serviceRecords = [{ id: 'sr1', siteId: site.id, date: yesterday, execution: 'teilweise', missedItemIds: ['it2'], executionNote: 'INTERN-NOTIZ-GEHEIM', lvVersionId: 'vt', acceptance: 'offen', acceptedBy: '', acceptedOn: null, acceptNote: '', history: [], reportedBy: 'Tomasz Nowak' }];
+	ok('Verwaltung legt Leistungsverzeichnis und Abnahme-Schlüssel an', (await owner.req('PUT', '/api/state', { rev: cur.rev, data: cur.data })).s === 200);
+
+	const view = (await st2.req('GET', '/api/me/view')).j;
+	const sh = view.shifts.find((x) => x.siteId === todayShift.siteId && x.lv);
+	ok('Mitarbeiter-Ansicht enthält heute die Leistungen des Objekts (ohne Schlüssel)', !!sh && sh.lv.length === 3 && !JSON.stringify(view).includes('ABNAHME-TESTSCHLUESSEL'));
+	ok('Checkliste mit unbekannter Leistung abgelehnt (400)', (await st2.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: ['nope'] })).s === 400);
+	ok('Checkliste für fremdes Objekt abgelehnt (400)', (await st2.req('POST', '/api/me/checklist', { siteId: 'k1-s1-fremd', doneIds: ['it1'] })).s === 400);
+	const cid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+	const c1 = await st2.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: ['it1', 'it3'], note: 'Alles bis auf WC', clientId: cid });
+	ok('Checkliste wird angenommen', c1.s === 200, JSON.stringify(c1.j));
+	ok('gleiche Checkliste erneut gesendet ist idempotent', (await st2.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: ['it1', 'it3'], clientId: cid })).j?.duplicate === true);
+	ok('Checkliste ohne Anmeldung nicht möglich (401)', (await anon.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: [] })).s === 401);
+	const ib = (await owner.req('GET', '/api/inbox')).j.items.find((i) => i.kind === 'checklist');
+	ok('Verwaltung sieht die Checkliste mit fälligen und abgehakten Leistungen', ib && ib.payload.dueIds.length === 2 && ib.payload.doneIds.includes('it1') && !ib.payload.doneIds.includes('it2'), JSON.stringify(ib?.payload));
+
+	// öffentliche Abnahme-Seite
+	const pub = new Client();
+	const q = (t) => `/api/abnahme?s=${site.id}&t=${t}`;
+	ok('Abnahme ohne Schlüssel: 404', (await pub.req('GET', `/api/abnahme?s=${site.id}`)).s === 404);
+	ok('Abnahme mit falschem Schlüssel: 404', (await pub.req('GET', q('FALSCHER-SCHLUESSEL-0123456789'))).s === 404);
+	const g = await pub.req('GET', q('ABNAHME-TESTSCHLUESSEL-0123456789'));
+	const gtxt = JSON.stringify(g.j);
+	ok('Abnahme mit Schlüssel liefert die gemeldeten Tage', g.s === 200 && g.j.days.length === 1 && g.j.days[0].missed[0] === 'WC: Sanitär reinigen', gtxt.slice(0, 200));
+	ok('Abnahme-Seite verrät keine internen Notizen, Namen oder Schlüssel', !gtxt.includes('INTERN-NOTIZ') && !gtxt.includes('Tomasz') && !gtxt.includes('TESTSCHLUESSEL'));
+	const post = (b) => pub.req('POST', '/api/abnahme', { s: site.id, t: 'ABNAHME-TESTSCHLUESSEL-0123456789', ...b });
+	ok('Abnahme ohne Namen abgelehnt (400)', (await post({ date: yesterday, acceptance: 'abgenommen', by: '' })).s === 400);
+	ok('Beanstandung ohne Text abgelehnt (400)', (await post({ date: yesterday, acceptance: 'beanstandet', by: 'Frau Muster' })).s === 400);
+	ok('Tag ohne Meldung abgelehnt (409)', (await post({ date: dayKey(-3), acceptance: 'abgenommen', by: 'Frau Muster' })).s === 409);
+	ok('Zu alter oder künftiger Tag abgelehnt (400)', (await post({ date: dayKey(-200), acceptance: 'abgenommen', by: 'Frau Muster' })).s === 400 && (await post({ date: dayKey(5), acceptance: 'abgenommen', by: 'Frau Muster' })).s === 400);
+	ok('Falscher Schlüssel beim Abnehmen: 404', (await pub.req('POST', '/api/abnahme', { s: site.id, t: 'FALSCHER-SCHLUESSEL-0123456789', date: yesterday, acceptance: 'abgenommen', by: 'X Y' })).s === 404);
+	ok('Fremder Ursprung beim Abnehmen: 403', (await pub.req('POST', '/api/abnahme', { s: site.id, t: 'ABNAHME-TESTSCHLUESSEL-0123456789', date: yesterday, acceptance: 'abgenommen', by: 'X Y' }, { origin: 'http://evil.example' })).s === 403);
+	ok('Abnahme wird angenommen', (await post({ date: yesterday, acceptance: 'abgenommen', by: 'Frau Muster' })).s === 200);
+	ok('zweite Entscheidung für denselben Tag: 409', (await post({ date: yesterday, acceptance: 'beanstandet', by: 'Frau Muster', note: 'doch nicht' })).s === 409);
+	const g2 = await pub.req('GET', q('ABNAHME-TESTSCHLUESSEL-0123456789'));
+	ok('Seite zeigt „Meldung eingegangen“, bis die Verwaltung übernimmt', g2.j.days[0].received === true);
+	const acc = (await owner.req('GET', '/api/inbox')).j.items.find((i) => i.kind === 'acceptance');
+	ok('Verwaltung sieht die Abnahme des Kunden im Eingang', acc?.payload.acceptance === 'abgenommen' && acc.payload.by === 'Frau Muster');
+	ok('Mitarbeiter können die öffentliche Abnahme nicht über /api/me nutzen und sehen keine Kundenmeldungen', !JSON.stringify((await st2.req('GET', '/api/me/view')).j).includes('Frau Muster'));
+	ok('Verwaltungs-API bleibt ohne Anmeldung gesperrt (401)', (await pub.req('GET', '/api/inbox')).s === 401);
+}
+
 // ── Schichttausch ──
 {
 	// Lukas (m7) bekommt einen Zugang und wird für den Test von allen Plänen genommen, damit er sicher frei ist

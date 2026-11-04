@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoData } from './demo.ts';
-import { plannedVisits, presence, recordOf, setAcceptance, setExecution, summarize } from './nachweis.ts';
+import { executionFromChecklist, plannedVisits, presence, recordOf, setAcceptance, setExecution, summarize } from './nachweis.ts';
 import { addVersion } from './lv.ts';
 import type { Data, Site } from './types.ts';
 
@@ -60,5 +60,13 @@ describe('Leistungsnachweis', () => {
 		const s = summarize(d, [{ siteId: site.id, customerId: customer.id, date }, { siteId: site.id, customerId: customer.id, date: '2026-10-14' }]);
 		expect(s).toMatchObject({ visits: 2, executed: 1, accepted: 1, disputed: 0 });
 		expect(presence(d, site.id, '2099-01-01').names).toEqual([]);
+	});
+	it('Checkliste der Mitarbeitenden ergibt die Ausführung', () => {
+		expect(executionFromChecklist(['a', 'b'], ['a', 'b', 'x'])).toEqual({ execution: 'vollstaendig', missed: [] });
+		expect(executionFromChecklist(['a', 'b'], ['a'])).toEqual({ execution: 'teilweise', missed: ['b'] });
+		expect(executionFromChecklist(['a', 'b'], [])).toEqual({ execution: 'nicht', missed: ['a', 'b'] });
+		expect(executionFromChecklist(['a', 'b'], ['x'])).toEqual({ execution: 'nicht', missed: ['a', 'b'] });
+		expect(executionFromChecklist([], ['x'])).toEqual({ execution: 'vollstaendig', missed: [] });
+		expect(executionFromChecklist([], [])).toEqual({ execution: 'offen', missed: [] });
 	});
 });

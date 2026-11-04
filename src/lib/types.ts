@@ -48,6 +48,8 @@ export interface Site {
 	/** Geheimer Schlüssel im Stempel-QR-Code des Objekts (nur Verwaltung sieht ihn, Mitarbeitende nur über den gedruckten Code) */
 	stampToken?: string;
 	plan: SitePlan | null;
+	/** Geheimer Schlüssel im Abnahme-Link für den Kunden (nur Verwaltung sieht ihn; „Neuer Link“ macht alte Links ungültig) */
+	acceptToken?: string;
 	/** Leistungsverzeichnis in Versionen mit Gültigkeitsdatum (neueste zuletzt) */
 	lv?: LvVersion[];
 	/** Position für die Karte (WGS84). Ohne Backend von Hand oder per Klick auf der Karte gesetzt. */
@@ -235,6 +237,14 @@ export interface ServiceRecord {
 	acceptNote: string;
 	/** aus einer Beanstandung entstandener Mangel */
 	defectId?: string;
+	/** Ausführung wurde von Mitarbeitenden über die App gemeldet (Name) */
+	reportedBy?: string;
+	/** Fotos aus der Meldung (Eingang-IDs, nur für die Verwaltung abrufbar) */
+	photoIds?: string[];
+	/** an diesem Tag erledigte Leistungen (Schlüssel aus Raum und Leistung), vor allem für periodische Leistungen */
+	doneKeys?: string[];
+	/** bereits übernommene Eingänge (verhindert doppelten Import) */
+	sourceIds?: string[];
 	history: string[];
 }
 /** Zusatzleistung außerhalb der Pauschale: vom Wunsch bis zur Rechnung nachverfolgt, damit nichts unbezahlt bleibt. */

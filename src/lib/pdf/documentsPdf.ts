@@ -224,3 +224,36 @@ export function buildCalcSheetPdf(o: CalcSheet) {
 		}
 	});
 }
+
+export interface ServiceProofRow { date: string; presence: string; execution: string; missed: string[]; note: string; acceptance: string }
+/** Monatlicher Leistungsnachweis je Objekt für den Kunden: Verzeichnis, Einsätze mit Anwesenheit, Ausführung und Abnahme, Unterschriftsfeld. */
+export function buildServiceProofPdf(o: { company: Company; customer: Cust; siteName: string; siteAddress: string; month: string; rows: ServiceProofRow[]; lv: { room: string; task: string; interval: string }[]; lvFrom: string | null; today: string }) {
+	const { company, customer } = o;
+	const monthLabel = monthLong(o.month);
+	return buildLetter({
+		company, recipient: recipient(customer), subject: `Leistungsnachweis ${monthLabel}, ${o.siteName}`,
+		title: `Leistungsnachweis ${monthLabel}`, runningTitle: `Leistungsnachweis ${monthLabel} · ${o.siteName}`,
+		info: [['Objekt', o.siteName], ['Anschrift', o.siteAddress], ['Monat', monthLabel], ['Datum', formatDate(o.today)]],
+		body: (c) => {
+			c.paragraph('Sehr geehrte Damen und Herren,', { gap: 3 });
+			c.paragraph(`nachfolgend der Nachweis der im ${monthLabel} erbrachten Leistungen für das Objekt ${o.siteName}. Bitte bestätigen Sie die Abnahme mit Ihrer Unterschrift.`, { gap: 5 });
+			c.paragraph(`Vereinbarte Leistungen${o.lvFrom ? ` (Stand ab ${formatDate(o.lvFrom)})` : ''}`, { f: c.bold, size: 10.5, gap: 1.5 });
+			if (!o.lv.length) c.paragraph('Für dieses Objekt ist kein Leistungsverzeichnis hinterlegt.', { gap: 4 });
+			for (const i of o.lv) c.paragraph(`${i.room || 'Allgemein'}: ${i.task} (${i.interval})`, { gap: 0.8, x: X_BODY + 4 * MM });
+			c.y += 3;
+			c.paragraph('Einsätze', { f: c.bold, size: 10.5, gap: 1.5 });
+			if (!o.rows.length) c.paragraph('In diesem Monat fanden keine geplanten Einsätze statt.', { gap: 4 });
+			for (const r of o.rows) {
+				c.paragraph(`${formatDate(r.date)}: Anwesenheit ${r.presence} · Ausführung ${r.execution} · Abnahme ${r.acceptance}`, { gap: 0.8, x: X_BODY + 4 * MM });
+				if (r.missed.length) c.paragraph(`Nicht erbracht: ${r.missed.join('; ')}`, { gap: 0.8, x: X_BODY + 9 * MM, color: gray });
+				if (r.note) c.paragraph(`Hinweis: ${r.note}`, { gap: 0.8, x: X_BODY + 9 * MM, color: gray });
+			}
+			c.y += 8;
+			c.paragraph('Abnahme durch den Auftraggeber', { f: c.bold, size: 10.5, gap: 8 });
+			c.paragraph('Ort, Datum: ______________________    Unterschrift: ______________________________', { gap: 8 });
+			c.paragraph('Mit freundlichen Grüßen', { gap: 12 });
+			c.paragraph(company.owner, { f: c.bold });
+			c.paragraph(company.name, { color: gray });
+		}
+	});
+}

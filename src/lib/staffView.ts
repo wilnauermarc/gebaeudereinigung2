@@ -4,13 +4,18 @@
  */
 import { addDays, entryHours, fromMinutes, toMinutes, weekday } from './calc';
 import type { Data } from './types';
+import { dueAtVisit, lvAt } from './lv';
 
-export interface StaffShift { siteId: string; date: string; start: string; end: string; customer: string; site: string; street: string; note: string; chemicals: string }
+export interface StaffShift { siteId: string; date: string; start: string; end: string; customer: string; site: string; street: string; note: string; chemicals: string;
+	/** Leistungsverzeichnis des Objekts für heute (nur am heutigen Einsatz): fällige Leistungen zuerst */
+	lv?: { id: string; room: string; task: string; due: boolean }[];
+	/** für diesen Einsatz wurde schon eine Checkliste gesendet */
+	checklistSent?: boolean }
 export interface StaffTime { id: string; date: string; start: string; end: string; breakMin: number; hours: number; voided: boolean; edited: boolean; source: string; history: string[]; pending: boolean; offline: boolean }
 export interface StaffRequest { id: string; kind: 'absence' | 'defect' | 'correction'; label: string; from?: string; to?: string; status: string; reply?: string; createdAt: string }
 export interface StaffOpen { id: string; startedAt: string; siteId: string; site: string }
 /** Eingang des Servers für diese Person (Stempelungen und Meldungen, die die Verwaltung noch nicht übernommen hat oder die gerade laufen) */
-export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect' | 'correction'; payload: any; created_at: string; status: string; closed: boolean }
+export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance'; payload: any; created_at: string; status: string; closed: boolean }
 export interface StaffView {
 	name: string; role: string; contract: 'vollzeit' | 'teilzeit' | 'minijob'; weeklyHours: number;
 	shifts: StaffShift[];
@@ -42,7 +47,7 @@ export function staffView(d: Data, employeeId: string, today: string, inbox: Sta
 			if (!p || !p.days.includes(weekday(date))) continue;
 			const mine = (p.staffIds.includes(e.id) && !absent(date) && !d.covers.some((v) => v.siteId === s.id && v.date === date && v.replacesId === e.id)) || d.covers.some((v) => v.siteId === s.id && v.date === date && v.employeeId === e.id);
 			if (!mine) continue;
-			shifts.push({ siteId: s.id, note: s.note ?? '', chemicals: s.chemicals ?? '', date, start: p.start, end: fromMinutes(toMinutes(p.start) + Math.round(p.hours * 60)), customer: c.name, site: s.name, street: `${s.street}, ${s.postal} ${s.city}` });
+			shifts.push({ siteId: s.id, note: s.note ?? '', chemicals: s.chemicals ?? '', date, start: p.start, end: fromMinutes(toMinutes(p.start) + Math.round(p.hours * 60)), customer: c.name, site: s.name, street: `${s.street}, ${s.postal} ${s.city}` , ...(date === today ? { lv: (lvAt(s, date)?.items ?? []).map((it) => ({ id: it.id, room: it.room, task: it.task, due: dueAtVisit(it, date, p.days) })).sort((a, b) => Number(b.due) - Number(a.due)), checklistSent: inbox.some((x) => x.kind === 'checklist' && x.payload.siteId === s.id && x.payload.date === date) } : {}) });
 		}
 	}
 	shifts.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));

@@ -147,10 +147,11 @@
 	$effect(() => { db.init(); });
 	$effect(() => { applyPalette(ui.palette, ui.custom); });
 	const path = $derived(page.url.pathname);
-	const bare = $derived(path.startsWith('/login') || path.startsWith('/mitarbeiter'));
+	const bare = $derived(path.startsWith('/login') || path.startsWith('/mitarbeiter') || path.startsWith('/abnahme'));
 	$effect(() => {
 		if (!db.ready) return;
 		const u = db.session;
+		if (path.startsWith('/abnahme')) return; // öffentliche Abnahme-Seite für Kunden (nur mit Schlüssel im Link)
 		if (!u) { if (!path.startsWith('/login')) goto('/login'); return; }
 		if (u.role === 'mitarbeiter') { if (!path.startsWith('/mitarbeiter')) goto('/mitarbeiter'); return; }
 		if (path.startsWith('/login')) goto('/');
@@ -158,8 +159,8 @@
 	// Eingang der Mitarbeitenden (Stempelungen, Meldungen) regelmäßig übernehmen
 	$effect(() => {
 		if (!db.ready || !db.session?.management || db.session.mustChange) return;
-		db.syncInbox();
-		const t = setInterval(() => db.syncInbox(), 30000);
+		db.syncInbox().then(() => db.syncLvTasks());
+		const t = setInterval(() => { db.syncInbox().then(() => db.syncLvTasks()); }, 30000);
 		const onFocus = () => db.syncInbox();
 		window.addEventListener('focus', onFocus);
 		return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };

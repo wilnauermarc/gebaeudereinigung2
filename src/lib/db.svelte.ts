@@ -1,4 +1,6 @@
 import { geoLabel } from '#lib/geo.ts';
+import { dueLvItems, lvAt, lvKey } from '#lib/lv.ts';
+import { executionFromChecklist, recordOf, setAcceptance, setExecution } from '#lib/nachweis.ts';
 import { company, type Company } from './company';
 import { createDemoData, createEmptyData } from './demo.ts';
 import { todayKey } from './format';
@@ -80,7 +82,7 @@ class Db {
 		try {
 			const r = await fetch('/api/inbox');
 			if (!r.ok) return;
-			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect' | 'correction'; payload: any; createdAt: string; hasPhoto: boolean }[] };
+			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance'; payload: any; createdAt: string; hasPhoto: boolean }[] };
 			if (!items.length) return;
 			const today = todayKey();
 			const d = this.data;
@@ -113,6 +115,36 @@ class Db {
 					const t = this.correctionTarget(p.entryId);
 					corr.push({ id: cid, employeeId: it.employeeId, entryId: t?.id ?? p.entryId, date: p.date, old: t ? { start: t.start, end: t.end, breakMin: t.breakMin } : { start: '', end: '', breakMin: 0 }, proposed: { start: p.start, end: p.end, breakMin: p.breakMin ?? 0 }, reason: String(p.reason).slice(0, 300), status: 'offen', reply: '', createdAt: it.createdAt, decidedOn: null });
 					d.tasks.push({ id: 'a' + it.id, title: `Zeitkorrektur von ${who(it.employeeId)} prüfen (${p.date.split('-').reverse().slice(0, 2).join('.')}.)`, dueOn: today, customerId: null, done: false });
+					n++;
+				} else if (it.kind === 'checklist') {
+					const p = it.payload;
+					const found = this.site(p.siteId);
+					if (!found) continue;
+					if ((recordOf(d, p.siteId, p.date)?.sourceIds ?? []).includes(it.id)) continue;
+					const res = executionFromChecklist(p.dueIds ?? [], p.doneIds ?? []);
+					const reported = `Gemeldet von ${who(it.employeeId)} über die App`;
+					const note = [String(p.note ?? '').trim(), reported].filter(Boolean).join(' · ');
+					const err = setExecution(d, found.site, p.date, { execution: res.execution, missedItemIds: res.missed, note: res.execution === 'nicht' ? `Keine fällige Leistung abgehakt. ${note}` : note }, who(it.employeeId));
+					if (err) continue;
+					const r = recordOf(d, p.siteId, p.date)!;
+					r.reportedBy = who(it.employeeId);
+					r.doneKeys = [...new Set([...(r.doneKeys ?? []), ...(lvAt(found.site, p.date)?.items ?? []).filter((i) => (p.doneIds ?? []).includes(i.id)).map(lvKey)])];
+					r.sourceIds = [...(r.sourceIds ?? []), it.id];
+					if (it.hasPhoto) r.photoIds = [...(r.photoIds ?? []), it.id];
+					if (res.execution !== 'vollstaendig') d.tasks.push({ id: 'a' + it.id, title: `Leistungsnachweis prüfen: ${found.site.name} ${p.date.split('-').reverse().slice(0, 2).join('.')}. (${res.execution === 'nicht' ? 'nichts' : 'teilweise'} ausgeführt)`, dueOn: today, customerId: found.customer.id, done: false });
+					n++;
+				} else if (it.kind === 'acceptance') {
+					const p = it.payload;
+					const found = this.site(p.siteId);
+					if (!found) continue;
+					const r0 = recordOf(d, p.siteId, p.date);
+					if ((r0?.sourceIds ?? []).includes(it.id)) continue;
+					const err = setAcceptance(d, found.site, found.customer.id, p.date, { acceptance: p.acceptance, by: String(p.by ?? 'Kunde'), note: String(p.note ?? ''), createDefect: true }, today, 'Kunde per Link');
+					if (err) continue;
+					const r = recordOf(d, p.siteId, p.date)!;
+					r.sourceIds = [...(r.sourceIds ?? []), it.id];
+					if (p.acceptance === 'beanstandet') d.tasks.push({ id: 'a' + it.id, title: `Beanstandung vom Kunden: ${found.site.name} ${p.date.split('-').reverse().slice(0, 2).join('.')}.`, dueOn: today, customerId: found.customer.id, done: false });
+					this.addEvent(found.customer.id, 'notiz', `Leistung vom ${p.date.split('-').reverse().join('.')} ${p.acceptance === 'abgenommen' ? 'abgenommen' : 'beanstandet'} (${String(p.by ?? 'Kunde')}, per Link).`);
 					n++;
 				} else if (it.kind === 'defect') {
 					const did = 'd' + it.id.slice(0, 12);
@@ -337,6 +369,23 @@ class Db {
 		const absent = regular.filter((e) => this.isAbsent(e.id, date) && !replaced(e.id));
 		const covers = this.data.covers.filter((c) => c.siteId === siteId && c.date === date).map((c) => ({ cover: c, emp: this.employee(c.employeeId)! }));
 		return { present, absent, covers, understaffed: present.length + covers.length < regular.length, empty: present.length + covers.length === 0 };
+	}
+	/**
+	 * Fällige periodische Leistungen (monatlich bis jährlich) als Aufgaben anlegen. Je Leistung und Fälligkeitstag genau eine Aufgabe,
+	 * solange nicht schon eine offene für dieselbe Leistung besteht. Gibt die Zahl neuer Aufgaben zurück.
+	 */
+	syncLvTasks(): number {
+		const d = this.data, today = todayKey();
+		let n = 0;
+		for (const x of dueLvItems(d, today, 7)) {
+			const base = `lv:${x.site.id}:${[...x.key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36)}:`;
+			if (d.tasks.some((t) => t.id.startsWith(base) && !t.done)) continue;
+			const id = base + x.dueOn;
+			if (d.tasks.some((t) => t.id === id)) continue;
+			d.tasks.push({ id, title: `Fällig: ${x.item.task} (${x.item.room || 'Allgemein'}, ${x.site.name})`, dueOn: x.dueOn, customerId: x.customer.id, done: false });
+			n++;
+		}
+		return n;
 	}
 	/** Die Buchung, auf die sich ein Korrekturantrag bezieht (die App-Stempelung heißt im Bestand „t“ + Eingangs-ID) */
 	correctionTarget = (entryId: string) => this.data.timeEntries.find((t) => t.id === entryId || t.id === 't' + entryId);

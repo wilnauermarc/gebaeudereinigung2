@@ -4,7 +4,9 @@
 	import { todayKey, formatDate } from '#lib/format.ts';
 	import { addMonths } from '#lib/calc.ts';
 	import { downloadBytes, toCsv } from '#lib/download.ts';
-	import { lvAt, intervalLabels } from '#lib/lv.ts';
+	import { buildServiceProofPdf } from '#lib/pdf/documentsPdf.ts';
+	import { company } from '#lib/company.ts';
+	import { lvAt, intervalLabels, lvKey } from '#lib/lv.ts';
 	import { plannedVisits, presence, recordOf, setAcceptance, setExecution, summarize, type Visit } from '#lib/nachweis.ts';
 	import type { ServiceRecord } from '#lib/types.ts';
 	import type { Instrument, NextStep } from '#lib/ux.ts';
@@ -48,7 +50,7 @@
 	// ── Prüfen und abnehmen ──
 	let open = $state(false);
 	let cur = $state<Visit | null>(null);
-	let f = $state({ execution: 'vollstaendig' as ServiceRecord['execution'], missed: [] as string[], note: '', acceptance: 'offen' as ServiceRecord['acceptance'], by: '', acceptNote: '', createDefect: true });
+	let f = $state({ done: [] as string[], execution: 'vollstaendig' as ServiceRecord['execution'], missed: [] as string[], note: '', acceptance: 'offen' as ServiceRecord['acceptance'], by: '', acceptNote: '', createDefect: true });
 	let err = $state('');
 	const curSite = $derived(cur ? db.site(cur.siteId) : null);
 	const lv = $derived(cur && curSite ? lvAt(curSite.site, cur.date) : null);
@@ -57,7 +59,7 @@
 		cur = v; err = '';
 		const r = recordOf(db.data, v.siteId, v.date);
 		const contact = db.customer(v.customerId)?.contacts?.[0]?.name ?? '';
-		f = { execution: r?.execution && r.execution !== 'offen' ? r.execution : 'vollstaendig', missed: [...(r?.missedItemIds ?? [])], note: r?.executionNote ?? '', acceptance: r?.acceptance ?? 'offen', by: r?.acceptedBy || contact, acceptNote: r?.acceptNote ?? '', createDefect: !r?.defectId };
+		f = { done: [...(r?.doneKeys ?? [])], execution: r?.execution && r.execution !== 'offen' ? r.execution : 'vollstaendig', missed: [...(r?.missedItemIds ?? [])], note: r?.executionNote ?? '', acceptance: r?.acceptance ?? 'offen', by: r?.acceptedBy || contact, acceptNote: r?.acceptNote ?? '', createDefect: !r?.defectId };
 		open = true;
 	}
 	function save(e: SubmitEvent) {
@@ -69,6 +71,8 @@
 			const e2 = setAcceptance(db.data, curSite.site, cur.customerId, cur.date, { acceptance: f.acceptance, by: f.by, note: f.acceptNote, createDefect: f.createDefect }, today, db.me);
 			if (e2) return (err = e2);
 		}
+		const saved = recordOf(db.data, cur.siteId, cur.date);
+		if (saved) saved.doneKeys = [...f.done];
 		open = false;
 		toasts.push('Leistungsnachweis gespeichert.', { tone: 'success' });
 	}
@@ -84,6 +88,23 @@
 
 	const execLabel = { offen: 'ungeprüft', vollstaendig: 'vollständig', teilweise: 'teilweise', nicht: 'nicht ausgeführt' } as const;
 	const accLabel = { offen: 'offen', abgenommen: 'abgenommen', beanstandet: 'beanstandet' } as const;
+	/** Monatsnachweis für das gewählte Objekt als PDF für den Kunden */
+	async function exportPdf() {
+		const found = siteFilter === 'alle' ? null : db.site(siteFilter);
+		if (!found) return toasts.push('Bitte zuerst oben ein Objekt wählen.', { tone: 'error' });
+		const v = lvAt(found.site, month + '-28') ?? lvAt(found.site, today);
+		const mine = [...rows].reverse();
+		const bytes = await buildServiceProofPdf({
+			company, customer: found.customer, siteName: found.site.name, siteAddress: `${found.site.street}, ${found.site.postal} ${found.site.city}`, month, today, lvFrom: v?.validFrom ?? null,
+			lv: (v?.items ?? []).map((i) => ({ room: i.room, task: i.task, interval: intervalLabels[i.interval] })),
+			rows: mine.map(({ v: vis, r, p, site }) => ({
+				date: vis.date, presence: p.names.length ? `ja (${p.names.join(', ')}, ${p.hours.toFixed(1).replace('.', ',')} Std.)` : 'nicht belegt', execution: execLabel[r?.execution ?? 'offen'],
+				missed: r ? (lvAt(site!.site, vis.date)?.items ?? []).filter((i) => r.missedItemIds.includes(i.id)).map((i) => `${i.room || 'Allgemein'}: ${i.task}`) : [],
+				note: r?.executionNote ?? '', acceptance: r?.acceptance === 'abgenommen' ? `abgenommen (${r.acceptedBy})` : r?.acceptance === 'beanstandet' ? `beanstandet (${r.acceptedBy})` : 'offen'
+			}))
+		});
+		downloadBytes(bytes, `Leistungsnachweis-${found.site.name.replace(/[^\wäöüÄÖÜß-]+/g, '_')}-${month}.pdf`, 'application/pdf');
+	}
 	function exportCsv() {
 		const out = [['Datum', 'Kunde', 'Objekt', 'Anwesenheit', 'Stunden', 'Ausführung', 'Nicht erbracht', 'Notiz Ausführung', 'Abnahme', 'Abgenommen von', 'Abgenommen am', 'Notiz Abnahme']];
 		for (const { v, r, p, site } of [...rows].reverse()) {
@@ -98,6 +119,7 @@
 
 <PageHead title="Leistungsnachweis" subtitle="Je Einsatz drei getrennte Antworten: War jemand da? Wurde geleistet, was vereinbart ist? Hat der Kunde abgenommen?" {instruments} {next}>
 	{#snippet actions()}
+		<button class="btn" onclick={exportPdf} disabled={siteFilter === 'alle' || !rows.length} title={siteFilter === 'alle' ? 'Zuerst ein Objekt wählen' : 'Monatsnachweis für den Kunden'}><Download size={14} /> PDF</button>
 		<button class="btn" onclick={exportCsv} disabled={!rows.length}><Download size={14} /> CSV</button>
 		<button class="btn btn-primary" onclick={bulk} disabled={!bulkCount} title="Alle ungeprüften Einsätze mit Zeitbuchung als vollständig ausgeführt festhalten"><Check size={14} /> {bulkCount || ''} als vollständig</button>
 	{/snippet}
@@ -179,6 +201,19 @@
 						<textarea id="nw-n" class="input" rows="2" maxlength="300" bind:value={f.note}></textarea>
 					{/if}
 				</section>
+				{#if curRec?.reportedBy || curRec?.photoIds?.length}
+					<section class="rounded-lg bg-subtle p-3 text-sm">
+						{#if curRec.reportedBy}<p class="text-xs text-muted">Ausführung gemeldet von <strong class="text-fg">{curRec.reportedBy}</strong> über die Mitarbeiter-App.</p>{/if}
+						{#if curRec.photoIds?.length}<div class="mt-2 flex flex-wrap gap-2">{#each curRec.photoIds as pid}<a href="/api/inbox/photo?id={pid}" target="_blank" rel="noopener"><img src="/api/inbox/photo?id={pid}" alt="Foto vom Einsatz" class="size-20 rounded-lg border border-line object-cover" loading="lazy" /></a>{/each}</div>{/if}
+					</section>
+				{/if}
+				{#if lv && lv.items.some((i) => !['taeglich', 'woechentlich', 'zweiwoechentlich', 'bedarf'].includes(i.interval))}
+					<section>
+						<h3 class="section-label mb-1.5">Periodische Leistungen, heute miterledigt</h3>
+						<ul class="grid gap-1">{#each lv.items.filter((i) => !['taeglich', 'woechentlich', 'zweiwoechentlich', 'bedarf'].includes(i.interval)) as it (it.id)}<li><label class="flex cursor-pointer items-start gap-2 text-sm"><input type="checkbox" class="mt-1 size-[16px] accent-[var(--accent)]" checked={f.done.includes(lvKey(it))} onchange={(e) => (f.done = e.currentTarget.checked ? [...f.done, lvKey(it)] : f.done.filter((x) => x !== lvKey(it)))} /><span>{it.room || 'Allgemein'}: {it.task} <span class="text-xs text-muted">({intervalLabels[it.interval]})</span></span></label></li>{/each}</ul>
+						<p class="mt-1 text-xs text-muted">Das setzt die Fälligkeit der Leistung zurück (Aufgabe „Fällig: …“).</p>
+					</section>
+				{/if}
 				<section>
 					<h3 class="section-label mb-1.5">3 · Abnahme durch den Kunden</h3>
 					<div class="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Abnahme">

@@ -7,7 +7,7 @@
 	import type { StaffView } from '#lib/staffView.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
-	import { Phone, MapPin, Clock, CalendarOff, ShieldCheck, Eye, LogOut, KeyRound, Play, Square, Camera, QrCode, ArrowLeftRight, Bell, Send, Thermometer, Palmtree, TriangleAlert, WifiOff, Info } from '@lucide/svelte';
+	import { Phone, MapPin, Clock, CalendarOff, ShieldCheck, Eye, LogOut, KeyRound, Play, Square, Camera, CircleCheck, QrCode, ArrowLeftRight, Bell, Send, Thermometer, Palmtree, TriangleAlert, WifiOff, Info } from '@lucide/svelte';
 
 	const today = todayKey();
 	// QR-Code am Objekt: der Link enthält Objekt und Schlüssel. Er wird gemerkt (auch über die Anmeldung hinweg) und aus der Adresse entfernt.
@@ -148,6 +148,30 @@
 	async function punchOut() {
 		const ok = await act('/api/me/punch', { action: 'out', breakMin, geo: await fix(), clientId: crypto.randomUUID(), clientAt: new Date().toISOString() }, () => { localOpen = null; });
 		if (ok) { outOpen = false; breakMin = 0; clearQr(); }
+	}
+
+	// ── Checkliste zum Einsatz: Leistungen abhaken, optional Foto ──
+	let cl = $state<Record<string, { done: string[]; note: string; photo: string; edit: boolean }>>({});
+	const blank = { done: [] as string[], note: '', photo: '', edit: false };
+	// Einträge anlegen, bevor sie bedient werden (nicht beim Zeichnen der Seite)
+	$effect(() => { for (const t of todays) if (t.lv?.length && !cl[t.siteId]) cl[t.siteId] = { done: [], note: '', photo: '', edit: false }; });
+	const clOf = (id: string) => cl[id] ?? blank;
+	async function clPhoto(id: string, e: Event) {
+		const f = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (!f) return;
+		const bmp = await createImageBitmap(f);
+		const scale = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+		const c = document.createElement('canvas'); c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+		c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+		let q = 0.72, url = c.toDataURL('image/jpeg', q);
+		while (url.length > 380_000 && q > 0.3) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
+		clOf(id).photo = url;
+	}
+	async function clSend(siteId: string) {
+		flash = '';
+		const x = clOf(siteId);
+		const ok = await act('/api/me/checklist', { siteId, doneIds: x.done, note: x.note, photo: x.photo || undefined, clientId: crypto.randomUUID(), clientAt: new Date().toISOString() });
+		if (ok) { x.edit = false; flash = L.clSent; }
 	}
 
 	// ── Melden: Krank, Urlaub, Mangel ──
@@ -293,6 +317,32 @@
 				<p class="px-5 py-6 text-center text-muted">{L.noShiftToday}</p>
 			{/if}
 		</section>
+
+		{#each todays.filter((x) => x.lv && x.lv.length) as t (t.siteId)}
+			{@const x = clOf(t.siteId)}
+			<section class="card overflow-hidden" aria-labelledby="h-cl-{t.siteId}">
+				<h2 id="h-cl-{t.siteId}" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">{L.clTitle} · {t.site}</h2>
+				{#if t.checklistSent && !x.edit}
+					<div class="flex items-center justify-between gap-3 px-5 py-4"><p class="flex items-center gap-2 font-semibold text-success"><CircleCheck size={18} /> {L.clSent}</p><button class="btn btn-sm" onclick={() => (x.edit = true)}>{L.clEdit}</button></div>
+				{:else}
+					<div class="px-5 py-4">
+						<p class="mb-2 text-sm text-muted">{L.clHint}</p>
+						{#if t.lv!.some((i) => i.due)}
+							<ul class="grid gap-1.5">{#each t.lv!.filter((i) => i.due) as it (it.id)}<li><label class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2 {x.done.includes(it.id) ? 'border-accent bg-accent-soft' : ''}"><input type="checkbox" class="size-6 accent-[var(--accent)]" checked={x.done.includes(it.id)} onchange={(e) => (x.done = e.currentTarget.checked ? [...x.done, it.id] : x.done.filter((y) => y !== it.id))} /><span class="text-base"><span class="font-semibold">{it.room || '·'}</span> {it.task}</span></label></li>{/each}</ul>
+						{:else}<p class="text-sm text-muted">{L.clNoDue}</p>{/if}
+						{#if t.lv!.some((i) => !i.due)}
+							<details class="mt-3"><summary class="cursor-pointer text-sm font-semibold text-muted">{L.clOther}</summary>
+								<ul class="mt-2 grid gap-1.5">{#each t.lv!.filter((i) => !i.due) as it (it.id)}<li><label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2"><input type="checkbox" class="size-5 accent-[var(--accent)]" checked={x.done.includes(it.id)} onchange={(e) => (x.done = e.currentTarget.checked ? [...x.done, it.id] : x.done.filter((y) => y !== it.id))} /><span class="text-sm"><span class="font-semibold">{it.room || '·'}</span> {it.task}</span></label></li>{/each}</ul>
+							</details>
+						{/if}
+						<label class="label mt-3" for="cl-n-{t.siteId}">{L.clNote}</label>
+						<textarea id="cl-n-{t.siteId}" class="input text-base" rows="2" maxlength="300" bind:value={x.note}></textarea>
+						<div class="mt-2"><label class="btn h-12 w-full cursor-pointer"><Camera size={18} /> {L.photo}<input type="file" accept="image/*" capture="environment" class="sr-only" onchange={(e) => clPhoto(t.siteId, e)} /></label>{#if x.photo}<img src={x.photo} alt="" class="mt-2 h-24 rounded-lg object-cover" />{/if}</div>
+						<button class="btn btn-primary mt-3 h-14 w-full text-lg" onclick={() => clSend(t.siteId)}><Send size={18} /> {L.clSend}</button>
+					</div>
+				{/if}
+			</section>
+		{/each}
 
 		<section class="card overflow-hidden" aria-labelledby="h-next">
 			<h2 id="h-next" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">{L.next}</h2>

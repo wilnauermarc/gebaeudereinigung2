@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { buildInvoicePdf, buildPriceAdjustPdf, buildReminderPdf } from './documentsPdf';
+import { buildInvoicePdf, buildPriceAdjustPdf, buildReminderPdf, buildServiceProofPdf } from './documentsPdf';
 import { company } from '../company';
 
 const customer = { name: 'Seniorenresidenz Abendrot', street: 'Abendrotweg 9', postal: '12353', city: 'Beispieldorf', contacts: [{ id: 'c', name: 'Ute Lindner', role: '', email: '', phone: '' }] };
@@ -15,6 +15,12 @@ describe('Geschäftsbriefe', () => {
 		const description = ['Zusatzleistungen nach Absprache:', 'Grundreinigung Teeküche am 05.10.2026: 3 Std. × 38,00 € = 114,00 €', 'Fensterreinigung Treppenhaus am 12.10.2026: 1 pauschal × 140,00 € = 140,00 €'].join('\n');
 		const doc = await PDFDocument.load(await buildInvoicePdf({ company, customer, invoice: { ...invoice, period: null, netCents: 25400, description } }));
 		expect(doc.getPageCount()).toBe(1);
+	});
+	it('Leistungsnachweis mit vielen Einsätzen läuft über mehrere Seiten und bleibt gültig', async () => {
+		const rows = Array.from({ length: 45 }, (_, i) => ({ date: `2026-10-${String((i % 28) + 1).padStart(2, '0')}`, presence: 'ja (Sven, 2,5 Std.)', execution: i % 7 === 0 ? 'teilweise' : 'vollständig', missed: i % 7 === 0 ? ['WC: Sanitär reinigen'] : [], note: '', acceptance: 'abgenommen' }));
+		const bytes = await buildServiceProofPdf({ company, customer, siteName: 'Haupthaus', siteAddress: 'Abendrotweg 9, 12353 Beispieldorf', month: '2026-10', rows, lv: [{ room: 'WC', task: 'Sanitär reinigen', interval: 'an jedem Einsatz' }], lvFrom: '2026-01-01', today: '2026-11-04' });
+		const doc = await PDFDocument.load(bytes);
+		expect(doc.getPageCount()).toBeGreaterThan(1);
 	});
 	it('Zahlungserinnerung und Mahnung werden erzeugt', async () => {
 		for (const stage of [1, 2] as const) {

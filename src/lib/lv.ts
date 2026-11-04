@@ -1,6 +1,6 @@
 /** Leistungsverzeichnis (LV) je Objekt: Versionen mit Gültigkeitsdatum, Vergleich und Fälligkeit. */
-import type { LvInterval, LvItem, LvVersion, Site } from './types.ts';
-import { weekday } from './calc.ts';
+import type { Customer, Data, LvInterval, LvItem, LvVersion, Site } from './types.ts';
+import { addDays, weekday } from './calc.ts';
 
 export const intervalLabels: Record<LvInterval, string> = {
 	taeglich: 'an jedem Einsatz',
@@ -55,4 +55,32 @@ export function dueAtVisit(item: LvItem, date: string, plannedDays: number[]): b
 	if (item.interval === 'taeglich') return true;
 	if (item.interval === 'woechentlich' || item.interval === 'zweiwoechentlich') return weekday(date) === Math.min(...plannedDays);
 	return false;
+}
+
+/** Schlüssel einer Leistung über Versionen hinweg (Raum + Leistung), damit „zuletzt erledigt“ eine neue Version übersteht */
+export const lvKey = (i: Pick<LvItem, 'room' | 'task'>) => `${i.room.trim().toLowerCase()}|${i.task.trim().toLowerCase()}`;
+const PERIOD_DAYS: Partial<Record<LvInterval, number>> = { monatlich: 30, quartal: 91, halbjahr: 182, jaehrlich: 365 };
+
+export interface LvDue { site: Site; customer: Customer; item: LvItem; key: string; dueOn: string; lastDone: string | null }
+/**
+ * Periodische Leistungen (monatlich bis jährlich), die in `horizonDays` Tagen fällig sind oder schon überfällig.
+ * Grundlage ist der letzte Einsatz, an dem die Leistung als erledigt festgehalten wurde; ohne Nachweis zählt der Beginn der Version.
+ */
+export function dueLvItems(d: Data, today: string, horizonDays = 7): LvDue[] {
+	const out: LvDue[] = [];
+	for (const customer of d.customers) for (const site of customer.sites) {
+		if (!site.plan) continue;
+		const v = lvAt(site, today);
+		if (!v) continue;
+		for (const item of v.items) {
+			const days = PERIOD_DAYS[item.interval];
+			if (!days || !item.task.trim()) continue;
+			const key = lvKey(item);
+			const done = (d.serviceRecords ?? []).filter((r) => r.siteId === site.id && (r.doneKeys ?? []).includes(key)).map((r) => r.date).sort().at(-1) ?? null;
+			const anchor = done ?? (site.lv ?? []).map((x) => x.validFrom).sort()[0] ?? v.validFrom;
+			const dueOn = addDays(anchor, days);
+			if (dueOn <= addDays(today, horizonDays)) out.push({ site, customer, item, key, dueOn, lastDone: done });
+		}
+	}
+	return out.sort((a, b) => a.dueOn.localeCompare(b.dueOn));
 }

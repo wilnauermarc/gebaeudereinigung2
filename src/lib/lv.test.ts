@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addVersion, diffLv, dueAtVisit, lvAt } from './lv.ts';
+import { addVersion, diffLv, dueAtVisit, dueLvItems, lvAt, lvKey } from './lv.ts';
+import { createDemoData } from './demo.ts';
 import type { Site } from './types.ts';
 
 const site = (): Site => ({ id: 's', name: 'x', street: '', postal: '', city: '', note: '', plan: null });
@@ -46,5 +47,18 @@ describe('Leistungsverzeichnis', () => {
 		expect(dueAtVisit(item('woechentlich'), '2026-11-02', [0, 2])).toBe(true); // Montag = erster Einsatztag
 		expect(dueAtVisit(item('woechentlich'), '2026-11-04', [0, 2])).toBe(false);
 		expect(dueAtVisit(item('monatlich'), '2026-11-02', [0])).toBe(false);
+	});
+	it('periodische Leistungen werden fällig, nach Erledigung wandert das Datum', () => {
+		const d = createDemoData(8);
+		const site = d.customers[0].sites.find((s) => s.plan)!;
+		site.lv![0].validFrom = '2026-06-01';
+		const quarter = site.lv![0].items.find((i) => i.interval === 'quartal')!;
+		const key = lvKey(quarter);
+		const today = '2026-11-04';
+		const first = dueLvItems(d, today, 0).find((x) => x.site.id === site.id && x.key === key);
+		expect(first).toBeDefined(); // Version beginnt vor 120 Tagen, Quartal ist abgelaufen
+		d.serviceRecords = [{ id: 'r', siteId: site.id, date: '2026-11-03', execution: 'vollstaendig', missedItemIds: [], executionNote: '', lvVersionId: null, acceptance: 'offen', acceptedBy: '', acceptedOn: null, acceptNote: '', history: [], doneKeys: [key] }];
+		expect(dueLvItems(d, today, 0).some((x) => x.site.id === site.id && x.key === key)).toBe(false);
+		expect(dueLvItems(d, '2027-02-10', 0).some((x) => x.site.id === site.id && x.key === key)).toBe(true);
 	});
 });
