@@ -257,6 +257,19 @@ ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requ
 	ok('Verwaltungs-API bleibt ohne Anmeldung gesperrt (401)', (await pub.req('GET', '/api/inbox')).s === 401);
 }
 
+// ── Live-Stand für den Leitstand ──
+{
+	ok('Live-Stand ohne Anmeldung: 401', (await anon.req('GET', '/api/live')).s === 401);
+	ok('Live-Stand für Mitarbeitende gesperrt (403)', (await st2.req('GET', '/api/live')).s === 403);
+	const pin = await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId, clientId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' });
+	ok('Einstempeln für den Live-Test', pin.s === 200, JSON.stringify(pin.j));
+	const lv = await owner.req('GET', '/api/live');
+	const open = lv.j?.punches?.find((x) => x.employeeId === 'm5' && x.endAt === null);
+	ok('Verwaltung sieht die laufende Stempelung im Live-Stand', lv.s === 200 && !!open && open.siteId === todayShift.siteId, JSON.stringify(lv.j)?.slice(0, 200));
+	ok('Live-Stand enthält keine Fotos und keine Standortdaten', !/photo|lat|lon|geo/i.test(JSON.stringify(lv.j)));
+	await st2.req('POST', '/api/me/punch', { action: 'out', breakMin: 0 });
+}
+
 // ── Schichttausch ──
 {
 	// Lukas (m7) bekommt einen Zugang und wird für den Test von allen Plänen genommen, damit er sicher frei ist

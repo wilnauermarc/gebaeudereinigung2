@@ -16,7 +16,7 @@
 	import { caseStatus } from '#lib/cases.ts';
 	import {
 		LayoutDashboard, FileCode2, Users, FileText, Search, Menu, Moon, Sun, Palette, ClipboardList,
-		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge, PackagePlus, Handshake, Route, BadgeCheck, Wallet, Boxes, Star
+		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge, Activity, PackagePlus, Handshake, Route, BadgeCheck, Wallet, Boxes, Star
 	} from '@lucide/svelte';
 
 	let { children } = $props();
@@ -50,6 +50,7 @@
 	type NavItem = { href: string; label: string; icon: typeof Gauge; key: string };
 	const top: NavItem[] = [
 		{ href: '/', label: 'Heute', icon: LayoutDashboard, key: 'h' },
+		{ href: '/leitstand', label: 'Leitstand', icon: Activity, key: 'd' },
 		{ href: '/vorgaenge', label: 'Vorgänge', icon: Workflow, key: 'w' },
 		{ href: '/aufgaben', label: 'Aufgaben', icon: ListChecks, key: 'u' },
 		{ href: '/fristen', label: 'Fristen', icon: CalendarClock, key: 'f' },

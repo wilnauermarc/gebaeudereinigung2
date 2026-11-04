@@ -2,8 +2,8 @@
 export type Role = 'inhaber' | 'buero' | 'objektleitung';
 export const roleLabels: Record<Role, string> = { inhaber: 'Inhaberin', buero: 'Büro', objektleitung: 'Objektleitung' };
 
-const OFFICE = ['/', '/aufgaben', '/fristen', '/vorgaenge', '/kunden', '/angebote', '/kalkulator', '/vertraege', '/ausschreibung', '/projektzeitliste', '/rechnungen', '/e-rechnung', '/einsatzplan', '/karte', '/zeiten', '/maengel', '/team', '/schluessel', '/material', '/nachweise', '/leistungsnachweis', '/zusatzleistungen'];
-const FIELD = ['/', '/aufgaben', '/einsatzplan', '/karte', '/zeiten', '/leistungsnachweis', '/begehungen', '/maengel', '/schluessel', '/material', '/team'];
+const OFFICE = ['/', '/aufgaben', '/fristen', '/leitstand', '/vorgaenge', '/kunden', '/angebote', '/kalkulator', '/vertraege', '/ausschreibung', '/projektzeitliste', '/rechnungen', '/e-rechnung', '/einsatzplan', '/karte', '/zeiten', '/maengel', '/team', '/schluessel', '/material', '/nachweise', '/leistungsnachweis', '/zusatzleistungen'];
+const FIELD = ['/', '/aufgaben', '/leitstand', '/einsatzplan', '/karte', '/zeiten', '/leistungsnachweis', '/begehungen', '/maengel', '/schluessel', '/material', '/team'];
 /** Basismodus: nur das, was im Alltag täglich gebraucht wird */
 const BASIC = ['/', '/aufgaben', '/kunden', '/angebote', '/rechnungen', '/einsatzplan', '/zeiten', '/maengel'];
 

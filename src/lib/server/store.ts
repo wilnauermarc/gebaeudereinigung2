@@ -102,6 +102,9 @@ export function openStore(path = process.env.RESCH_DB ?? 'data/resch.db') {
 			(db.prepare('SELECT id, kind, payload, created_at, status, closed FROM inbox WHERE employee_id = ? AND created_at >= ? ORDER BY created_at DESC').all(employeeId, sinceIso) as { id: string; kind: InboxKind; payload: string; created_at: string; status: string; closed: number }[]).map((r) => ({ ...r, payload: JSON.parse(r.payload), closed: !!r.closed })),
 		inboxPending: () =>
 			(db.prepare("SELECT id, employee_id, kind, payload, created_at, (photo IS NOT NULL) AS has_photo FROM inbox WHERE status = 'neu' AND closed = 1 ORDER BY created_at").all() as { id: string; employee_id: string; kind: InboxKind; payload: string; created_at: string; has_photo: number }[]).map((r) => ({ id: r.id, employeeId: r.employee_id, kind: r.kind, payload: JSON.parse(r.payload), createdAt: r.created_at, hasPhoto: !!r.has_photo })),
+		/** Alle Eingänge seit einem Zeitpunkt (auch laufende Stempelungen), für den Live-Stand der Verwaltung. Ohne Fotos. */
+		inboxLive: (sinceIso: string) =>
+			(db.prepare("SELECT id, employee_id, kind, payload, created_at, closed FROM inbox WHERE created_at >= ? AND kind IN ('punch','checklist','absence') ORDER BY created_at").all(sinceIso) as { id: string; employee_id: string; kind: InboxKind; payload: string; created_at: string; closed: number }[]).map((r) => ({ id: r.id, employeeId: r.employee_id, kind: r.kind, payload: JSON.parse(r.payload), createdAt: r.created_at, closed: !!r.closed })),
 		inboxPhoto: (id: string) => (db.prepare('SELECT photo FROM inbox WHERE id = ?').get(id) as { photo: Uint8Array | null } | undefined)?.photo ?? null,
 		inboxAck: (ids: string[]) => { const st = db.prepare("UPDATE inbox SET status = 'uebernommen' WHERE id = ? AND closed = 1"); for (const id of ids) st.run(id); },
 		inboxCountSince: (employeeId: string, kinds: InboxKind[], sinceIso: string) =>
