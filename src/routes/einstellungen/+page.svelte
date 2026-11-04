@@ -21,6 +21,20 @@
 	type Tab = 'betrieb' | 'umfang' | 'zugaenge' | 'aussehen' | 'daten';
 	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'umfang', label: 'Funktionsumfang' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
 	let tab = $state<Tab>('betrieb');
+	// ── Mein Name ──
+	let nameInput = $state('');
+	let nameErr = $state('');
+	$effect(() => { if (db.session && !nameInput) nameInput = db.me; });
+	async function saveName(e: SubmitEvent) {
+		e.preventDefault();
+		nameErr = '';
+		const r = await fetch('/api/profile', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ display: nameInput }) });
+		const j = await r.json().catch(() => ({}));
+		if (!r.ok) return (nameErr = j.error ?? 'Nicht möglich.');
+		if (db.session) db.session.display = j.display;
+		nameInput = j.display;
+		toasts.push('Name gespeichert.', { tone: 'success' });
+	}
 	// ── Funktionsumfang ──
 	const isAdmin = $derived(db.session?.role === 'inhaber');
 	const active = $derived(activeModules(db.data.settings?.modules));
@@ -163,6 +177,15 @@
 		</section>
 		{/if}
 		{#if tab === 'aussehen'}
+		<section class="card p-5" aria-labelledby="h-name">
+			<h2 id="h-name" class="card-title mb-1">Mein Name</h2>
+			<p class="mb-3 text-xs text-muted">So werden Sie in der Seitenleiste und in der Begrüßung angesprochen („Guten Morgen, <strong>{nameInput.trim().split(' ')[0] || 'Vorname'}</strong>“). Ihr Anmeldename ändert sich dadurch nicht.</p>
+			<form class="flex flex-wrap items-end gap-2" onsubmit={saveName}>
+				<div class="min-w-[220px] flex-1"><label class="label" for="my-name">Vor- und Nachname</label><input id="my-name" class="input" autocomplete="name" maxlength="60" bind:value={nameInput} /></div>
+				<button class="btn btn-primary" disabled={nameInput.trim().length < 2 || nameInput.trim() === db.me}>Speichern</button>
+			</form>
+			{#if nameErr}<p class="mt-2 text-sm text-danger" role="alert">{nameErr}</p>{/if}
+		</section>
 		<section class="card p-5" aria-labelledby="h-photo">
 			<h2 id="h-photo" class="card-title mb-1">Mein Profilfoto</h2>
 			<p class="mb-3 text-xs text-muted">Die Fotos sind Platzhalter (Unsplash) und zeigen nicht die angemeldete Person. Später lässt sich hier ein eigenes Foto hochladen.</p>

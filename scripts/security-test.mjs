@@ -363,6 +363,17 @@ ok('nach 5 Fehlversuchen: Zugang gesperrt (423)', last === 423, String(last));
 ok('auch das richtige Passwort wird dann abgelehnt', (await brute.req('POST', '/api/login', { login: 'tomasz.nowak', password: 'Mein-eigenes-Passwort' })).s === 423);
 
 // Sperren durch Inhaberin beendet Sitzungen
+// ── Eigenen Namen ändern ──
+{
+	ok('Name ändern ohne Anmeldung: 401', (await anon.req('POST', '/api/profile', { display: 'X Y' })).s === 401);
+	ok('Name ändern als Mitarbeiter: 403', (await st2.req('POST', '/api/profile', { display: 'Hacker Test' })).s === 403);
+	ok('zu kurzer oder unzulässiger Name abgelehnt (400)', (await owner.req('POST', '/api/profile', { display: 'A' })).s === 400 && (await owner.req('POST', '/api/profile', { display: '<b>Mist</b>' })).s === 400);
+	const r = await owner.req('POST', '/api/profile', { display: '  Anna   Beispiel ' });
+	ok('Name wird gespeichert und bereinigt', r.s === 200 && r.j.display === 'Anna Beispiel');
+	ok('Sitzung zeigt den neuen Namen, der Anmeldename bleibt', (await owner.req('GET', '/api/session')).j.user.display === 'Anna Beispiel');
+	await owner.req('POST', '/api/profile', { display: 'Anetta R.' });
+}
+
 // ── Funktionsumfang (Bausteine) ──
 {
 	const setModules = async (client, modules) => { const cur = (await owner.req('GET', '/api/state')).j; cur.data.settings = { ...(cur.data.settings ?? {}), modules }; return client.req('PUT', '/api/state', { rev: cur.rev, data: cur.data }); };

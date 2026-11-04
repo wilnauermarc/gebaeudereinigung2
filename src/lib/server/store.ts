@@ -60,6 +60,7 @@ export function openStore(path = process.env.RESCH_DB ?? 'data/resch.db') {
 		insertUser: (u: { id: string; login: string; display: string; role: Role; employeeId: string | null; pwHash: string; mustChange: boolean }) =>
 			db.prepare('INSERT INTO users (id, login, display, role, employee_id, pw_hash, must_change, created_at) VALUES (?,?,?,?,?,?,?,?)').run(u.id, u.login, u.display, u.role, u.employeeId, u.pwHash, u.mustChange ? 1 : 0, iso()),
 		setPassword: (id: string, pwHash: string, mustChange: boolean) => db.prepare('UPDATE users SET pw_hash = ?, must_change = ?, failed = 0, locked_until = 0 WHERE id = ?').run(pwHash, mustChange ? 1 : 0, id),
+		setDisplay: (id: string, display: string) => db.prepare('UPDATE users SET display = ? WHERE id = ?').run(display, id),
 		setDisabled: (id: string, disabled: boolean) => db.prepare('UPDATE users SET disabled = ? WHERE id = ?').run(disabled ? 1 : 0, id),
 		deleteUser: (id: string) => db.prepare('DELETE FROM users WHERE id = ?').run(id),
 		recordFailure: (id: string, max: number, lockMs: number) => {
