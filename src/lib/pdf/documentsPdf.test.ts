@@ -11,6 +11,11 @@ describe('Geschäftsbriefe', () => {
 		const doc = await PDFDocument.load(await buildInvoicePdf({ company, customer, invoice }));
 		expect(doc.getPageCount()).toBe(1);
 	});
+	it('Rechnung mit mehreren Positionen (Zusatzleistungen) bleibt ein gültiges PDF', async () => {
+		const description = ['Zusatzleistungen nach Absprache:', 'Grundreinigung Teeküche am 05.10.2026: 3 Std. × 38,00 € = 114,00 €', 'Fensterreinigung Treppenhaus am 12.10.2026: 1 pauschal × 140,00 € = 140,00 €'].join('\n');
+		const doc = await PDFDocument.load(await buildInvoicePdf({ company, customer, invoice: { ...invoice, period: null, netCents: 25400, description } }));
+		expect(doc.getPageCount()).toBe(1);
+	});
 	it('Zahlungserinnerung und Mahnung werden erzeugt', async () => {
 		for (const stage of [1, 2] as const) {
 			const bytes = await buildReminderPdf({ company, customer, invoice, stage, today: '2026-11-02', deadline: '2026-11-09' });

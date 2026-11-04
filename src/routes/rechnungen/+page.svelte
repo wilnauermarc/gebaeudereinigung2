@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { releaseExtras } from '#lib/extras.ts';
 	import { db } from '#lib/db.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { addDays } from '#lib/calc.ts';
@@ -34,7 +35,7 @@
 		if (i.dueOn < today) return { label: i.remindCount ? `Mahnstufe ${i.remindCount}` : `${-dayDiff(i.dueOn)} Tage überfällig`, tone: 'danger' as const };
 		return { label: `fällig in ${dayDiff(i.dueOn)} Tagen`, tone: 'neutral' as const };
 	}
-	const doc = (i: Invoice) => ({ number: i.number, issuedOn: i.issuedOn, dueOn: i.dueOn, netCents: i.netCents, period: i.period, description: i.period ? `Reinigungsleistungen laut Vertrag, Monatspauschale` : 'Reinigungsleistungen' });
+	const doc = (i: Invoice) => ({ number: i.number, issuedOn: i.issuedOn, dueOn: i.dueOn, netCents: i.netCents, period: i.period, description: i.description ?? (i.period ? `Reinigungsleistungen laut Vertrag, Monatspauschale` : 'Reinigungsleistungen') });
 
 	async function pdf(i: Invoice) {
 		const c = db.customer(i.customerId)!;
@@ -65,9 +66,10 @@
 		const stamp = new Date().toISOString();
 		db.data.invoices.push({ id: 'r' + Date.now().toString(36), number: nr, customerId: i.customerId, netCents: -i.netCents, issuedOn: today, dueOn: today, paidAt: stamp, period: i.period, quoteId: i.quoteId, remindCount: 0, remindedAt: null, stornoOf: i.number });
 		i.cancelledBy = nr;
+		const freed = releaseExtras(db.data, i.id);
 		i.paidAt = stamp;
 		db.addEvent(i.customerId, 'notiz', `Rechnung ${i.number} storniert (Stornorechnung ${nr}).`);
-		toasts.push(`${i.number} storniert. Stornorechnung ${nr} ist angelegt.`, { tone: 'success' });
+		toasts.push(`${i.number} storniert. Stornorechnung ${nr} ist angelegt.${freed ? ` ${freed} Zusatzleistung${freed === 1 ? ' ist' : 'en sind'} wieder abrechenbar.` : ''}`, { tone: 'success' });
 		stornoOpen = false;
 	}
 	function markPaid(i: Invoice) {

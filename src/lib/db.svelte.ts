@@ -106,7 +106,8 @@ class Db {
 					n++;
 				} else if (it.kind === 'correction') {
 					const cid = 'c' + it.id;
-					const corr = (d.corrections ??= []);
+					d.corrections ??= []; // danach über den Zustands-Proxy arbeiten, nicht über das frisch zugewiesene Rohobjekt
+					const corr = d.corrections;
 					if (corr.some((c) => c.id === cid)) continue;
 					const p = it.payload;
 					const t = this.correctionTarget(p.entryId);

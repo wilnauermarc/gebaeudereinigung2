@@ -16,7 +16,7 @@
 	import { caseStatus } from '#lib/cases.ts';
 	import {
 		LayoutDashboard, FileCode2, Users, FileText, Search, Menu, Moon, Sun, Palette, ClipboardList,
-		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge, Handshake, Route, BadgeCheck, Wallet, Boxes, Star
+		Building2, Receipt, CalendarDays, RotateCcw, LogOut, Compass, Check, Calculator, ScrollText, Clock, MessageSquareWarning, UsersRound, KeyRound, Bell, ChevronDown, FolderOpen, Settings, Map, CalendarClock, Workflow, ListTodo, LineChart, ClipboardCheck, Package, ListChecks, FileCheck2, Gauge, PackagePlus, Handshake, Route, BadgeCheck, Wallet, Boxes, Star
 	} from '@lucide/svelte';
 
 	let { children } = $props();
@@ -72,10 +72,12 @@
 		{ id: 'qualitaet', title: 'Qualität', icon: BadgeCheck, items: [
 			{ href: '/maengel', label: 'Mängel', icon: MessageSquareWarning, key: 'm' },
 			{ href: '/begehungen', label: 'Begehungen', icon: ClipboardCheck, key: 'b' },
+			{ href: '/leistungsnachweis', label: 'Leistungsnachweis', icon: ClipboardList, key: 'q' },
 			{ href: '/nachweise', label: 'Nachweise', icon: FileCheck2, key: 'n' }
 		] },
 		{ id: 'geld', title: 'Geld', icon: Wallet, items: [
 			{ href: '/rechnungen', label: 'Rechnungen', icon: Receipt, key: 'r' },
+			{ href: '/zusatzleistungen', label: 'Zusatzleistungen', icon: PackagePlus, key: 'g' },
 			{ href: '/e-rechnung', label: 'E-Rechnung', icon: FileCode2, key: 'y' },
 			{ href: '/controlling', label: 'Controlling', icon: LineChart, key: 'o' },
 			{ href: '/projektzeitliste', label: 'Projektzeitliste', icon: ListTodo, key: 'j' }

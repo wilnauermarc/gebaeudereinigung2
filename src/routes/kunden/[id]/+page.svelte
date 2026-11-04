@@ -8,6 +8,9 @@
 	import Badge from '#lib/components/Badge.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
+	import LvEditor from '#lib/components/LvEditor.svelte';
+	import { lvAt } from '#lib/lv.ts';
+	import type { Site as SiteT } from '#lib/types.ts';
 	import { renderSVG } from 'uqr';
 	import { addDays } from '#lib/calc.ts';
 	import { portal } from '#lib/portal.ts';
@@ -15,7 +18,7 @@
 	import { downloadBytes } from '#lib/download.ts';
 	import { buildMonthlyReportPdf } from '#lib/pdf/documentsPdf.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown, Clock, RotateCcw } from '@lucide/svelte';
+	import { ChevronRight, Plus, Mail, Phone, MapPin, FileText, MessageSquare, Eye, ClipboardCheck, Receipt, Inbox, FilePlus2, Trash2, QrCode, ListChecks, Printer, ExternalLink, Pencil, CalendarPlus, UserPlus, FileDown, Clock, RotateCcw } from '@lucide/svelte';
 
 	const customer = $derived(db.customer(page.params.id!));
 	const quotes = $derived(customer ? db.quotesOf(customer.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : []);
@@ -110,6 +113,8 @@
 		toasts.push('Termin angelegt. Er steht auf „Heute“ unter Termine.', { tone: 'success' });
 	}
 
+	let lvOpen = $state(false);
+	let lvSite = $state<SiteT | null>(null);
 	let qrSite = $state<{ id: string; name: string } | null>(null);
 	let qrOpen = $state(false);
 	/** melden = Aushang für Kunden (Mängelmeldung), stempel = Aushang für das Team (Ein-/Ausstempeln) */
@@ -247,7 +252,7 @@
 								<li class="px-4 py-3">
 									<div class="flex items-start justify-between gap-3">
 										<div><p class="text-sm font-medium">{s.name}</p><p class="text-xs text-muted">{s.street}, {s.postal} {s.city}</p></div>
-										<div class="flex gap-1"><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
+										<div class="flex gap-1"><button class="btn btn-sm" onclick={() => { lvSite = s; lvOpen = true; }} title="Leistungsverzeichnis: was wird wo und wie oft gereinigt"><ListChecks size={13} /> Leistungen{#if lvAt(s, todayKey())} <span class="num text-muted">{lvAt(s, todayKey())?.items.length}</span>{/if}</button><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
 									</div>
 									<p class="mt-1.5 text-xs {s.plan ? 'text-muted' : 'text-warn'}">{#if s.plan}Reinigungsplan: {s.plan.days.map((d) => weekdays[d]).join(', ')} ab {s.plan.start} Uhr, {s.plan.hours.toLocaleString('de-DE')} Std. · {s.plan.staffIds.length} {s.plan.staffIds.length === 1 ? 'Person' : 'Personen'}{:else}Noch kein Reinigungsplan, das Objekt erscheint nicht im Einsatzplan.{/if}</p>
 									{#if s.note}<p class="mt-1.5 rounded-md bg-subtle px-2.5 py-1.5 text-xs text-muted">{s.note}</p>{/if}
@@ -327,6 +332,8 @@
 		</div>
 	{/if}
 {/if}
+
+<LvEditor bind:open={lvOpen} site={lvSite} />
 
 <Dialog bind:open={editOpen} title="Kunde bearbeiten" width={520}>
 	{#snippet children()}

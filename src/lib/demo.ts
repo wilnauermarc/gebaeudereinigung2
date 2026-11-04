@@ -8,7 +8,7 @@ import { defaultCalc } from './tariff';
 import { defaultChecklist } from './cases';
 import { demoCoords } from './geo';
 import { company as defaultCompany } from './company';
-import type { Case, Data, Defect, Quote, QuoteItem, SitePlan } from './types';
+import type { Case, Data, Defect, LvInterval, LvItem, Quote, QuoteItem, SitePlan } from './types';
 
 const DAY = 86400000;
 const at = (days: number, hour = 9, min = 0) => {
@@ -372,5 +372,17 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 		cs('k9', 'k9-s1', 'Büroreinigung Notariat', 160, { decision: 'declined', declineNotedAt: at(-158), dataConfirmed: false })
 	];
 
-	return { company: { ...defaultCompany }, cases, tasks, docs, material, lockedMonths: [on(-45).slice(0, 7)], inspections, keys, customers, quotes, events, appointments, invoices, employees, absences, covers: [], timeEntries, defects, calc: { ...defaultCalc }, settings: { demo: true } };
+	const data: Data = { company: { ...defaultCompany }, cases, tasks, docs, material, lockedMonths: [on(-45).slice(0, 7)], inspections, keys, customers, quotes, events, appointments, invoices, employees, absences, covers: [], timeEntries, defects, calc: { ...defaultCalc }, settings: { demo: true } };
+	// Beispiel-Leistungsverzeichnisse und Zusatzleistungen, damit die neuen Bereiche nicht leer starten
+	const mk = (room: string, task: string, interval: LvInterval, areaM2: number | null = null): LvItem => ({ id: 'l' + Math.random().toString(36).slice(2, 8), room, task, interval, areaM2, note: '' });
+	for (const c of data.customers.slice(0, 3)) for (const st of c.sites) if (st.plan) {
+		st.lv = [{ id: 'v' + st.id, validFrom: on(-120), note: 'Erster Stand', createdAt: new Date().toISOString(), createdBy: 'Demo', items: [mk('Treppenhaus', 'Boden nass wischen', 'taeglich', 60), mk('Treppenhaus', 'Geländer feucht abwischen', 'woechentlich'), mk('WC', 'Sanitär reinigen und desinfizieren', 'taeglich', 12), mk('Eingang', 'Glastüren und Rahmen', 'woechentlich'), mk('Fenster', 'Fenster innen und außen', 'quartal')] }];
+	}
+	const kc = data.customers[0];
+	data.extras = [
+		{ id: 'x1', customerId: kc.id, siteId: kc.sites[0]?.id ?? null, title: 'Grundreinigung Teeküche', description: '', date: on(-9), qty: 3, unit: 'Std.', unitCents: 3800, status: 'ausgefuehrt', orderedBy: kc.contacts[0]?.name ?? '', orderedOn: on(-12), executedOn: on(-9), invoiceId: null, createdAt: new Date().toISOString(), history: ['Demo: Ausgeführt'] },
+		{ id: 'x2', customerId: kc.id, siteId: null, title: 'Fensterreinigung Treppenhaus', description: '', date: on(-2), qty: 1, unit: 'pauschal', unitCents: 14000, status: 'beauftragt', orderedBy: kc.contacts[0]?.name ?? '', orderedOn: on(-2), executedOn: null, invoiceId: null, createdAt: new Date().toISOString(), history: ['Demo: Beauftragt'] },
+		{ id: 'x3', customerId: data.customers[1].id, siteId: null, title: 'Sonderreinigung nach Umbau', description: '', date: on(-1), qty: 6, unit: 'Std.', unitCents: 4200, status: 'angefragt', orderedBy: data.customers[1].contacts[0]?.name ?? '', orderedOn: null, executedOn: null, invoiceId: null, createdAt: new Date().toISOString(), history: ['Demo: Angefragt'] }
+	];
+	return data;
 }

@@ -10,6 +10,25 @@ export interface Contact {
 	phone: string;
 }
 /** Reinigungsplan eines Objekts: Wochentage (0 = Montag), Beginn, Stunden je Einsatz, Stammbesetzung. */
+export type LvInterval = 'taeglich' | 'woechentlich' | 'zweiwoechentlich' | 'monatlich' | 'quartal' | 'halbjahr' | 'jaehrlich' | 'bedarf';
+/** Eine Leistung im Leistungsverzeichnis: was, wo, wie oft */
+export interface LvItem {
+	id: string;
+	room: string;
+	task: string;
+	interval: LvInterval;
+	areaM2: number | null;
+	note: string;
+}
+/** Stand des Leistungsverzeichnisses ab einem Datum. Ältere Stände bleiben für Nachweise und Streitfälle erhalten. */
+export interface LvVersion {
+	id: string;
+	validFrom: string;
+	note: string;
+	createdAt: string;
+	createdBy: string;
+	items: LvItem[];
+}
 export interface SitePlan {
 	days: number[];
 	start: string;
@@ -29,6 +48,8 @@ export interface Site {
 	/** Geheimer Schlüssel im Stempel-QR-Code des Objekts (nur Verwaltung sieht ihn, Mitarbeitende nur über den gedruckten Code) */
 	stampToken?: string;
 	plan: SitePlan | null;
+	/** Leistungsverzeichnis in Versionen mit Gültigkeitsdatum (neueste zuletzt) */
+	lv?: LvVersion[];
 	/** Position für die Karte (WGS84). Ohne Backend von Hand oder per Klick auf der Karte gesetzt. */
 	lat?: number | null;
 	lon?: number | null;
@@ -122,6 +143,10 @@ export interface Invoice {
 	/** Storno statt Überschreiben: Nummer der Stornorechnung bzw. der stornierten Rechnung */
 	cancelledBy?: string;
 	stornoOf?: string;
+	/** Freitext für Rechnungen, die nicht die Monatspauschale sind (zum Beispiel Zusatzleistungen), je Zeile eine Position */
+	description?: string;
+	/** abgerechnete Zusatzleistungen */
+	extraIds?: string[];
 }
 export type ContractType = 'vollzeit' | 'teilzeit' | 'minijob';
 export interface Employee {
@@ -189,6 +214,49 @@ export interface TimeCorrection {
 	reply: string;
 	createdAt: string;
 	decidedOn: string | null;
+}
+/**
+ * Leistungsnachweis je Einsatz (Objekt + Tag) mit drei getrennten Zuständen:
+ * Anwesenheit (aus den Zeitbuchungen abgeleitet), Ausführung (nach Leistungsverzeichnis) und Abnahme (durch den Kunden).
+ */
+export interface ServiceRecord {
+	id: string;
+	siteId: string;
+	date: string;
+	execution: 'offen' | 'vollstaendig' | 'teilweise' | 'nicht';
+	/** bei „teilweise“: nicht erbrachte Leistungen aus dem Verzeichnis */
+	missedItemIds: string[];
+	executionNote: string;
+	/** Stand des Verzeichnisses, nach dem geprüft wurde */
+	lvVersionId: string | null;
+	acceptance: 'offen' | 'abgenommen' | 'beanstandet';
+	acceptedBy: string;
+	acceptedOn: string | null;
+	acceptNote: string;
+	/** aus einer Beanstandung entstandener Mangel */
+	defectId?: string;
+	history: string[];
+}
+/** Zusatzleistung außerhalb der Pauschale: vom Wunsch bis zur Rechnung nachverfolgt, damit nichts unbezahlt bleibt. */
+export type ExtraStatus = 'angefragt' | 'beauftragt' | 'ausgefuehrt' | 'abgerechnet' | 'abgelehnt';
+export interface ExtraService {
+	id: string;
+	customerId: string;
+	siteId: string | null;
+	title: string;
+	description: string;
+	date: string;
+	qty: number;
+	unit: 'Std.' | 'Stk.' | 'pauschal';
+	unitCents: number;
+	status: ExtraStatus;
+	/** wer beim Kunden die Leistung angefragt bzw. beauftragt hat */
+	orderedBy: string;
+	orderedOn: string | null;
+	executedOn: string | null;
+	invoiceId: string | null;
+	createdAt: string;
+	history: string[];
 }
 export type DefectStatus = 'offen' | 'in_bearbeitung' | 'erledigt';
 export interface Defect {
@@ -338,6 +406,10 @@ export interface Data {
 	lockedMonths: string[];
 	/** Korrekturanträge der Mitarbeitenden */
 	corrections?: TimeCorrection[];
+	/** Leistungsnachweise je Einsatz */
+	serviceRecords?: ServiceRecord[];
+	/** Zusatzleistungen bis zur Rechnung */
+	extras?: ExtraService[];
 	/** Protokoll der Monatsabschlüsse: Abschluss, Entsperren mit Grund, Lohnexport */
 	monthLog?: { month: string; kind: 'abgeschlossen' | 'entsperrt' | 'lohnexport'; at: string; by: string; note: string }[];
 	inspections: Inspection[];

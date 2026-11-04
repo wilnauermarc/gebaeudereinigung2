@@ -63,7 +63,8 @@
 	const logLabel = { abgeschlossen: 'Abgeschlossen', entsperrt: 'Entsperrt', lohnexport: 'Lohnexport erzeugt' } as const;
 	const stampOf = (iso: string) => new Date(iso).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'short', timeStyle: 'short' });
 	function logMonth(kind: 'abgeschlossen' | 'entsperrt' | 'lohnexport', note = '') {
-		(db.data.monthLog ??= []).push({ month, kind, at: new Date().toISOString(), by: db.me, note });
+		db.data.monthLog ??= [];
+		db.data.monthLog.push({ month, kind, at: new Date().toISOString(), by: db.me, note });
 	}
 	function openLock() { closeAck = false; reopenWhy = ''; lockOpen = true; }
 	function toggleLock() {

@@ -45,7 +45,7 @@ export function buildInvoicePdf(o: { company: Company; customer: Cust; invoice: 
 		body: (c) => {
 			c.paragraph('Sehr geehrte Damen und Herren,', { gap: 3 });
 			c.paragraph('für die im genannten Zeitraum erbrachten Leistungen berechnen wir Ihnen:', { gap: 4 });
-			c.paragraph(inv.description, { f: c.bold, gap: 4 });
+			inv.description.split('\n').forEach((line, i, all) => c.paragraph(line, { f: i === 0 ? c.bold : c.font, gap: i === all.length - 1 ? 4 : 1 }));
 			table(c, [
 				['Nettobetrag', formatEur(inv.netCents), false],
 				['zzgl. 19 % Umsatzsteuer', formatEur(vat), false],
