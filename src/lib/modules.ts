@@ -39,12 +39,13 @@ export type ModuleChoice = Partial<Record<ModuleId, boolean>>;
 const chosen = (c: ModuleChoice | undefined, id: ModuleId) => id === 'stamm' ? true : c?.[id] !== false;
 
 /** Welche Bausteine sind wirklich aktiv? (gewählt und alle Voraussetzungen aktiv) */
-export function activeModules(c: ModuleChoice | undefined): Set<ModuleId> {
+export function activeModules(c: ModuleChoice | undefined, allowed?: Iterable<ModuleId>): Set<ModuleId> {
+	const lic = allowed ? new Set(allowed) : null; // Paket der Lizenz: was nicht dazugehört, ist aus
 	const on = new Set<ModuleId>();
 	let changed = true;
 	while (changed) {
 		changed = false;
-		for (const m of MODULES) if (!on.has(m.id) && chosen(c, m.id) && m.requires.every((r) => on.has(r))) { on.add(m.id); changed = true; }
+		for (const m of MODULES) if (!on.has(m.id) && chosen(c, m.id) && (!lic || lic.has(m.id)) && m.requires.every((r) => on.has(r))) { on.add(m.id); changed = true; }
 	}
 	return on;
 }
@@ -103,4 +104,4 @@ export function moduleOfPath(path: string): ModuleId | null {
 	}
 	return best?.id ?? null;
 }
-export const pathAllowed = (c: ModuleChoice | undefined, path: string) => { const m = moduleOfPath(path); return m ? activeModules(c).has(m) : true; };
+export const pathAllowed = (c: ModuleChoice | undefined, path: string, allowed?: Iterable<ModuleId>) => { const m = moduleOfPath(path); return m ? activeModules(c, allowed).has(m) : true; };

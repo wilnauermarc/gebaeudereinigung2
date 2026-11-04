@@ -14,6 +14,10 @@ services:
       BODY_SIZE_LIMIT: "26214400"
       # Schützt die Ersteinrichtung auf einem öffentlichen Server (Code beim ersten Aufruf eingeben)
       SETUP_TOKEN: ${SETUP_TOKEN:?Bitte SETUP_TOKEN in der Datei .env setzen}
+      # Abo (nur Betreiber; leer = Eigenbetrieb ohne Begrenzung), siehe docs/betrieb.md
+      LICENSE_PLAN: ${LICENSE_PLAN:-}
+      LICENSE_TRIAL_UNTIL: ${LICENSE_TRIAL_UNTIL:-}
+      LICENSE_PAID_UNTIL: ${LICENSE_PAID_UNTIL:-}
     volumes:
       - resch-data:/data
     expose:

@@ -35,6 +35,19 @@ Weniger geeignet sind Dienste wie Netlify, Vercel oder Cloudflare Pages (nur sta
 - **Datenschutz:** Mit dem Server-Anbieter einen AVV abschließen, ein Verzeichnis der Verarbeitungstätigkeiten führen und die Mitarbeitenden informieren. Eine Prüfung der Sicherheit durch Dritte steht aus, ebenso Zwei-Faktor-Anmeldung.
 - **Mehrere Server:** Die Datenbank ist eine Datei und für einen Server gedacht. Für mehr Last oder Ausfallsicherheit ist ein Umstieg auf PostgreSQL vorgesehen.
 
+## Abo und Pakete (für den Betreiber)
+
+Gesteuert über drei Werte in der Datei `.env`, nach einer Änderung `docker compose up -d`:
+
+| Wert | Bedeutung |
+|---|---|
+| alle leer | Eigenbetrieb: alles freigeschaltet, keine Begrenzung |
+| `LICENSE_TRIAL_UNTIL=2026-12-05` | Testphase (30 Tage), alle Bausteine |
+| `LICENSE_PLAN=standard` und `LICENSE_PAID_UNTIL=2027-01-05` | bezahlt: Bausteine des Pakets (`einfach`, `standard`, `alles`) |
+| Datum liegt in der Vergangenheit | abgelaufen: die App ist nur noch lesbar (Änderungen werden mit Hinweis abgelehnt), Mitarbeiter-App zum Stempeln läuft weiter |
+
+Die Preise (49 / 99 / 179 € netto je Monat, je weitere Person 3 / 4 / 5 €) stehen in `src/lib/pricing.ts`. Sie sind eine Annahme und noch nicht am Markt geprüft.
+
 ## Tägliche Sicherung einrichten (Beispiel)
 
 Als root auf dem Server mit `crontab -e` (täglich 03:15, 14 Tage behalten; die Kopie anschließend **extern** ablegen, z. B. per `rclone` oder `scp` auf eine Storage Box):

@@ -38,7 +38,7 @@ export interface StaffView {
 const MINIJOB_LIMIT = 63300;
 const addYear = (k: string) => `${+k.slice(0, 4) + 1}${k.slice(4)}`;
 
-export function staffView(d: Data, employeeId: string, today: string, inbox: StaffInboxItem[] = []): StaffView | null {
+export function staffView(d: Data, employeeId: string, today: string, inbox: StaffInboxItem[] = [], allowed?: Iterable<import('./modules').ModuleId>): StaffView | null {
 	const e = d.employees.find((x) => x.id === employeeId);
 	if (!e) return null;
 	const absent = (date: string) => d.absences.some((a) => a.status === 'genehmigt' && a.employeeId === e.id && a.from <= date && date <= a.to);
@@ -77,7 +77,7 @@ export function staffView(d: Data, employeeId: string, today: string, inbox: Sta
 		: { id: i.id, kind: 'defect' as const, label: String(i.payload.text).slice(0, 80), status: i.status === 'neu' ? 'offen' : 'übernommen', createdAt: i.created_at });
 
 	return {
-		requireQr: !!d.settings?.requireQr, geo: !!d.settings?.geo, modules: (() => { const m = activeModules(d.settings?.modules); return { active: m.has('mitarbeiter'), zeiten: m.has('zeiten'), nachweis: m.has('nachweis'), maengel: m.has('maengel'), einsatz: m.has('einsatz') }; })(), times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
+		requireQr: !!d.settings?.requireQr, geo: !!d.settings?.geo, modules: (() => { const m = activeModules(d.settings?.modules, allowed); return { active: m.has('mitarbeiter'), zeiten: m.has('zeiten'), nachweis: m.has('nachweis'), maengel: m.has('maengel'), einsatz: m.has('einsatz') }; })(), times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
 		name: e.name, role: e.role, contract: e.contract, weeklyHours: e.weeklyHours,
 		shifts, month, hours, soll: (e.weeklyHours * days) / 7,
 		minijob: e.contract === 'minijob' ? { earnedCents: Math.round(hours * 1500), limitCents: MINIJOB_LIMIT } : null,

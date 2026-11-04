@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { store } from '#lib/server/store.ts';
+import { licenseInfo } from '#lib/server/license.ts';
+import { berlinParts } from '#lib/server/inbox.ts';
 import type { RequestHandler } from './$types';
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -11,6 +13,8 @@ export const GET: RequestHandler = () => {
 	return json({ rev: s.rev, data: JSON.parse(s.json) });
 };
 export const PUT: RequestHandler = async ({ request, locals }) => {
+	// Abgelaufenes Abo: Lesemodus. Daten bleiben sichtbar und exportierbar, gespeichert wird nichts mehr.
+	if (licenseInfo(berlinParts(new Date()).date).status === 'abgelaufen') return json({ error: 'Das Abo ist abgelaufen. Die Daten bleiben les- und exportierbar, Änderungen werden erst nach der Verlängerung gespeichert.', licenseExpired: true }, { status: 402 });
 	const text = await request.text();
 	if (text.length > MAX_BYTES) return json({ error: 'Datenbestand zu groß.' }, { status: 413 });
 	let b: { rev?: unknown; data?: unknown };

@@ -13,6 +13,14 @@ export const LEGACY_KEY = 'resch-demo-data-v11';
 export const CURRENT_USER = 'Anetta R.';
 
 export interface SwapWish { id: string; siteId: string; date: string; offeredBy: string; takenBy: string | null; status: string }
+export interface LicenseView {
+	status: 'eigenbetrieb' | 'test' | 'aktiv' | 'abgelaufen';
+	plan: 'einfach' | 'standard' | 'alles';
+	trialUntil: string | null; paidUntil: string | null; daysLeft: number | null;
+	allowed: import('./modules.ts').ModuleId[];
+	seats: number;
+	price: { baseEur: number; includedSeats: number; seats: number; extraSeats: number; extraEur: number; extraTotalEur: number; totalEur: number } | null;
+}
 export interface Session { id: string; display: string; role: 'inhaber' | 'buero' | 'objektleitung' | 'mitarbeiter'; employeeId: string | null; mustChange: boolean; management: boolean }
 
 const todayKeyPlus = (k: string, n: number) => new Date(Date.parse(k + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
@@ -31,6 +39,18 @@ class Db {
 	storageError = $state(false);
 	/** Der Datenbestand wurde anderswo geändert: Speichern ist gestoppt, bis neu geladen wird */
 	conflict = $state(false);
+	/** Lizenz dieser Installation (Paket, Testphase, Preis); nur für die Verwaltung */
+	license = $state<LicenseView | null>(null);
+	/** Abo abgelaufen: Daten sind les- und exportierbar, gespeichert wird nichts mehr */
+	readOnly = $state(false);
+	async loadLicense() {
+		try {
+			const r = await fetch('/api/license');
+			if (!r.ok) return;
+			this.license = await r.json();
+			this.readOnly = this.license?.status === 'abgelaufen';
+		} catch { /* Lizenz unbekannt: nichts begrenzen */ }
+	}
 	#rev = 0;
 	#last = '';
 	/** Es gibt Änderungen, die noch nicht auf dem Server liegen */
@@ -172,7 +192,7 @@ class Db {
 			this.needsSetup = !!j.needsSetup;
 			this.setupNeedsCode = !!j.setupNeedsCode;
 			this.session = j.user;
-			if (j.user?.management && !j.user.mustChange) await this.load();
+			if (j.user?.management && !j.user.mustChange) { await this.loadLicense(); await this.load(); }
 		} catch {
 			this.storageError = true;
 		}
@@ -203,7 +223,7 @@ class Db {
 				clearTimeout(timer);
 				if (!this.session?.management || !this.ready) return;
 				this.dirty = json !== this.#last;
-				if (this.conflict || !this.dirty) return;
+				if (this.conflict || this.readOnly || !this.dirty) return;
 				timer = setTimeout(() => { this.flush(); }, 600);
 			});
 		});
@@ -223,6 +243,7 @@ class Db {
 			try {
 				const r = await fetch('/api/state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rev: this.#rev, data: this.data }) });
 				if (r.status === 409) { this.conflict = true; return false; }
+				if (r.status === 402) { this.readOnly = true; return false; }
 				if (!r.ok) throw new Error(String(r.status));
 				this.#rev = (await r.json()).rev;
 				this.#last = json;

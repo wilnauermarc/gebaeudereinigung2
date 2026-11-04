@@ -1,12 +1,17 @@
 import { store } from './store.ts';
 import { activeModules, type ModuleId } from '../modules.ts';
+import { licenseInfo } from './license.ts';
+import { berlinParts } from './inbox.ts';
+
+/** Welche Bausteine erlaubt die Lizenz (Paket, Testphase)? */
+export const licenseAllowed = (): ModuleId[] => licenseInfo(berlinParts(new Date()).date).allowed;
 
 /** Aktive Bausteine des Betriebs, aus dem gespeicherten Datenbestand (fehlende Auswahl = alles an). */
 export function serverModules(): Set<ModuleId> {
 	const s = store().getState();
 	let choice;
 	try { choice = s ? JSON.parse(s.json)?.settings?.modules : undefined; } catch { choice = undefined; }
-	return activeModules(choice);
+	return activeModules(choice, licenseAllowed());
 }
 
 /** Welcher Baustein muss für diesen Endpunkt der Mitarbeitenden aktiv sein? (zusätzlich zur Mitarbeiter-App selbst) */

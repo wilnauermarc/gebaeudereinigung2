@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { PHOTO_IDS, photoFor } from '#lib/photos.ts';
-	import { MODULES, MODULE_BY_ID, PRESETS, activeModules, dependentsOf, disable, enable, matchingPreset, presetChoice, prerequisitesOf, type ModuleChoice, type ModuleId, type PresetId } from '#lib/modules.ts';
+	import { PLANS, planModules, priceFor, TRIAL_DAYS, type PlanId } from '#lib/pricing.ts';
+	import { MODULE_IDS, MODULES, MODULE_BY_ID, PRESETS, activeModules, dependentsOf, disable, enable, matchingPreset, presetChoice, prerequisitesOf, type ModuleChoice, type ModuleId, type PresetId } from '#lib/modules.ts';
 	import AccessPanel from '#lib/components/AccessPanel.svelte';
 	import { privacy } from '#lib/privacy.svelte.ts';
 	import { ui, roleLabels, palettes, type Role } from '#lib/ui.svelte.ts';
@@ -18,8 +19,8 @@
 	import type { Data } from '#lib/types.ts';
 
 	/** Bereiche statt einer langen Seite: Betrieb, Zugänge, Aussehen, Daten */
-	type Tab = 'betrieb' | 'umfang' | 'zugaenge' | 'aussehen' | 'daten';
-	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'umfang', label: 'Funktionsumfang' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
+	type Tab = 'betrieb' | 'umfang' | 'abo' | 'zugaenge' | 'aussehen' | 'daten';
+	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'umfang', label: 'Funktionsumfang' }, { id: 'abo', label: 'Abo & Paket' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
 	let tab = $state<Tab>('betrieb');
 	// ── Mein Name ──
 	let nameInput = $state('');
@@ -35,13 +36,20 @@
 		nameInput = j.display;
 		toasts.push('Name gespeichert.', { tone: 'success' });
 	}
+	// ── Abo und Paket ──
+	const lic = $derived(db.license);
+	const allowedSet = $derived(new Set(lic?.allowed ?? MODULE_IDS));
+	const planFor = (id: ModuleId) => PLANS.find((p) => planModules(p.id).has(id))!;
+	const eur = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 0 }) + ' €';
+	const dateDe = (k: string | null) => (k ? k.split('-').reverse().join('.') : '');
+	const statusText = $derived(!lic ? '' : lic.status === 'eigenbetrieb' ? 'Eigenbetrieb: Diese Installation läuft ohne Begrenzung.' : lic.status === 'test' ? `Testphase: alle Bausteine, noch ${lic.daysLeft} ${lic.daysLeft === 1 ? 'Tag' : 'Tage'} (bis ${dateDe(lic.trialUntil)}).` : lic.status === 'aktiv' ? `Abo aktiv bis ${dateDe(lic.paidUntil)}.` : 'Das Abo ist abgelaufen. Ihre Daten bleiben les- und exportierbar, Änderungen werden erst nach der Verlängerung gespeichert.');
 	// ── Funktionsumfang ──
 	const isAdmin = $derived(db.session?.role === 'inhaber');
 	const active = $derived(activeModules(db.data.settings?.modules));
 	const preset = $derived(matchingPreset(db.data.settings?.modules));
 	function setChoice(c: ModuleChoice) { db.data.settings ??= {}; db.data.settings.modules = c; }
 	function toggle(id: ModuleId, on: boolean) {
-		if (!isAdmin) return;
+		if (!isAdmin || (on && !allowedSet.has(id))) return;
 		if (on) {
 			const need = prerequisitesOf(id).filter((x) => !active.has(x));
 			setChoice(enable(db.data.settings?.modules, id));
@@ -53,13 +61,13 @@
 		}
 	}
 	function applyPreset(id: PresetId) {
-		if (!isAdmin) return;
+		if (!isAdmin || !PRESETS.find((p) => p.id === id)!.on.every((m) => allowedSet.has(m))) return;
 		const lost = [...active].filter((m) => !presetChoice(id)[m]);
 		if (lost.length && !confirm(`Voreinstellung „${PRESETS.find((p) => p.id === id)!.label}“ übernehmen? Ausgeblendet wird: ${lost.map((x) => MODULE_BY_ID[x].label).join(', ')}.\n\nDie Daten bleiben erhalten.`)) return;
 		setChoice(presetChoice(id));
 	}
 	function pick(t: Tab) { tab = t; try { history.replaceState(history.state, '', `/einstellungen#${t === 'zugaenge' ? 'zugaenge' : t}`); } catch { /* ignorieren */ } }
-	$effect(() => { const h = location.hash.slice(1); if (h === 'zugaenge' || h === 'aussehen' || h === 'daten' || h === 'betrieb' || h === 'umfang') tab = h as Tab; });
+	$effect(() => { const h = location.hash.slice(1); if (h === 'zugaenge' || h === 'aussehen' || h === 'daten' || h === 'betrieb' || h === 'umfang' || h === 'abo') tab = h as Tab; });
 
 	let f = $state<Company>({ ...db.data.company });
 	let err = $state<Record<string, string>>({});
@@ -204,7 +212,7 @@
 				{#if !isAdmin}<p class="mb-4 rounded-lg bg-warn-soft px-3 py-2.5 text-sm text-warn">Nur Administratoren können den Funktionsumfang ändern.</p>{/if}
 				<div class="mb-5 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Voreinstellung">
 					{#each PRESETS as p}
-						<button class="rounded-xl border-2 p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 {preset === p.id ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'}" role="radio" aria-checked={preset === p.id} disabled={!isAdmin} onclick={() => applyPreset(p.id)}>
+						<button class="rounded-xl border-2 p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 {preset === p.id ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'}" role="radio" aria-checked={preset === p.id} disabled={!isAdmin || !p.on.every((m) => allowedSet.has(m))} onclick={() => applyPreset(p.id)}>
 							<span class="flex items-center justify-between"><span class="font-semibold">{p.label}</span>{#if preset === p.id}<Check size={15} class="text-accent-text" />{/if}</span>
 							<span class="mt-1 block text-xs text-muted">{p.hint}</span>
 						</button>
@@ -217,7 +225,7 @@
 						{@const blocked = chosenOn && !on}
 						<li class="flex items-start gap-3 py-3 {on ? '' : 'opacity-70'}">
 							<label class="relative mt-0.5 inline-flex shrink-0 cursor-pointer items-center {m.id === 'stamm' || !isAdmin ? 'cursor-not-allowed opacity-60' : ''}">
-								<input type="checkbox" class="peer sr-only" checked={on} disabled={m.id === 'stamm' || !isAdmin} onchange={(e) => toggle(m.id, e.currentTarget.checked)} aria-label="{m.label} {on ? 'ausschalten' : 'einschalten'}" />
+								<input type="checkbox" class="peer sr-only" checked={on} disabled={m.id === 'stamm' || !isAdmin || !allowedSet.has(m.id)} onchange={(e) => toggle(m.id, e.currentTarget.checked)} aria-label="{m.label} {on ? 'ausschalten' : 'einschalten'}" />
 								<span class="h-6 w-11 rounded-full bg-line-strong transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2"></span>
 								<span class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
 							</label>
@@ -226,10 +234,34 @@
 								<p class="text-xs text-muted">{m.blurb}</p>
 								<p class="mt-0.5 text-[0.7rem] text-faint">Enthält: {m.contains}</p>
 								{#if m.requires.filter((r) => r !== 'stamm').length}<p class="mt-0.5 text-[0.7rem] text-faint">Braucht: {m.requires.filter((r) => r !== 'stamm').map((r) => MODULE_BY_ID[r].label).join(', ')}</p>{/if}
-								{#if blocked}<p class="mt-1 text-xs font-semibold text-warn">Ausgeschaltet, weil ein nötiger Baustein aus ist.</p>{/if}
+								{#if !allowedSet.has(m.id)}<p class="mt-1 text-xs font-semibold text-info">Nicht in Ihrem Paket. Enthalten ab „{planFor(m.id).label}“.</p>{:else if blocked}<p class="mt-1 text-xs font-semibold text-warn">Ausgeschaltet, weil ein nötiger Baustein aus ist.</p>{/if}
 							</div>
 						</li>
 					{/each}
+				</ul>
+			</section>
+		{/if}
+		{#if tab === 'abo' && lic}
+			<section class="card p-5" aria-labelledby="h-abo">
+				<h2 id="h-abo" class="card-title mb-1">Abo und Paket</h2>
+				<p class="mb-4 rounded-lg px-3 py-2.5 text-sm {lic.status === 'abgelaufen' ? 'bg-danger-soft text-danger' : lic.status === 'test' ? 'bg-accent-soft' : 'bg-subtle'}">{statusText}</p>
+				<div class="grid gap-3 sm:grid-cols-3">
+					{#each PLANS as p}
+						{@const mine = lic.status !== 'eigenbetrieb' && lic.status !== 'test' && lic.plan === p.id}
+						{@const pr = priceFor(p.id, lic.seats)}
+						<div class="rounded-xl border-2 p-4 {mine ? 'border-accent bg-accent-soft' : 'border-line'}">
+							<p class="flex items-center justify-between text-sm font-bold">{p.label}{#if mine}<span class="badge badge-success">Ihr Paket</span>{/if}</p>
+							<p class="num mt-1 text-2xl font-bold">{eur(p.baseEur)}<span class="text-xs font-normal text-muted"> / Monat netto</span></p>
+							<p class="mt-1 text-xs text-muted">bis {p.includedSeats} Personen inklusive, danach {eur(p.extraEur)} je Person</p>
+							<p class="mt-2 text-xs">{p.tagline}</p>
+							<p class="num mt-3 border-t border-line pt-2 text-xs text-muted">Bei Ihren {lic.seats} Personen: <strong class="text-fg">{eur(pr.totalEur)}</strong> / Monat</p>
+						</div>
+					{/each}
+				</div>
+				<ul class="mt-4 grid gap-1 text-xs text-muted">
+					<li>Personen = alle Mitarbeitenden im Team. Büronutzer sind unbegrenzt, die Mitarbeiter-App ist für alle Beschäftigten im Preis.</li>
+					<li>{TRIAL_DAYS} Tage kostenlos testen, mit allen Bausteinen. Preise netto zuzüglich Umsatzsteuer, monatlich kündbar.</li>
+					<li>Ein Paketwechsel läuft über Ihren Ansprechpartner bei Putzbetrieb. Beim Herunterstufen bleiben alle Daten erhalten, nicht enthaltene Bausteine werden nur ausgeblendet.</li>
 				</ul>
 			</section>
 		{/if}

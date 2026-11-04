@@ -297,9 +297,11 @@
 			</button>
 			<span class="ml-auto hidden text-xs md:inline {db.conflict || db.storageError ? 'font-semibold text-danger' : 'text-muted'}" role="status" aria-live="polite">{savedLabel}</span>
 			{#if !online}<span class="badge badge-warn" title="Ohne Netz arbeiten Sie weiter, alle Daten liegen im Browser. Kartenhintergrund und Downloads brauchen Netz.">Offline</span>{/if}
+			{#if db.license?.status === 'test'}<a href="/einstellungen#abo" class="badge badge-info hidden sm:inline-flex" title="Testphase mit allen Bausteinen">Test: noch {db.license.daysLeft} {db.license.daysLeft === 1 ? 'Tag' : 'Tage'}</a>{/if}
 			{#if isDemo}<span class="badge badge-warn hidden sm:inline-flex" title="Diese Daten sind erfunden. Unter Einstellungen → Daten können Sie sie entfernen.">Demodaten</span>{/if}
 			<a href="/aufgaben" class="relative grid size-10 place-items-center rounded-xl text-muted hover:bg-subtle hover:text-fg" aria-label="Aufgaben und Warnungen"><Bell size={19} />{#if attention > 0}<span class="num absolute top-1 right-1 grid min-w-[1.1rem] place-items-center rounded-full bg-accent px-1 text-[0.65rem] font-bold text-white">{attention}</span>{/if}</a>
 		</header>
+		{#if db.readOnly}<div class="border-b border-danger/30 bg-danger-soft px-4 py-2.5 text-center text-sm font-semibold text-danger" role="alert">Das Abo ist abgelaufen: Ihre Daten bleiben les- und exportierbar, Änderungen werden nicht gespeichert. <a href="/einstellungen#abo" class="underline">Details</a></div>{/if}
 		<main id="main" class="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 lg:px-8">
 			{@render children()}
 		</main>
