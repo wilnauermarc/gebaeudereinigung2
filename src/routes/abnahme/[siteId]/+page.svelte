@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { CircleCheck, TriangleAlert, ShieldCheck, Loader } from '@lucide/svelte';
+	import { CircleCheck, Info, TriangleAlert, ShieldCheck, Loader } from '@lucide/svelte';
 
 	interface Day { date: string; execution: string; missed: string[]; acceptance: string; acceptedBy: string; received: boolean }
 	interface Data { company: string; customer: string; site: string; address: string; today: string; days: Day[] }
@@ -65,7 +65,9 @@
 				<input id="ab-n" class="input h-11 text-base" autocomplete="name" placeholder="Vor- und Nachname" bind:value={by} maxlength="60" />
 			</section>
 
-			{#if todo.length === 0}
+			{#if data.days.length === 0}
+				<div class="card flex items-center gap-3 p-5"><Info size={24} class="shrink-0 text-info" /><p class="text-sm">Zurzeit gibt es keine gemeldeten Einsätze zum Abnehmen. Sobald wir einen Einsatz gemeldet haben, erscheint er hier.</p></div>
+			{:else if todo.length === 0}
 				<div class="card flex items-center gap-3 p-5"><CircleCheck size={24} class="shrink-0 text-success" /><p class="text-sm">Alles abgenommen. Vielen Dank! Neue Einsätze erscheinen hier, sobald sie gemeldet sind.</p></div>
 			{/if}
 
