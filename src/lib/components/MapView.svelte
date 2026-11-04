@@ -24,6 +24,7 @@
 		tiles = false,
 		selectedId = null,
 		pickMode = false,
+		circles = [],
 		onselect,
 		onpick
 	}: {
@@ -32,6 +33,8 @@
 		tiles?: boolean;
 		selectedId?: string | null;
 		pickMode?: boolean;
+		/** Kreise um Punkte, z. B. der Radius des Standort-Abgleichs beim Stempeln */
+		circles?: { lat: number; lon: number; radiusM: number; color: string; label?: string }[];
 		onselect?: (id: string) => void;
 		onpick?: (lat: number, lon: number) => void;
 	} = $props();
@@ -42,6 +45,7 @@
 	let tileLayer: L.TileLayer | undefined;
 	let markerLayer: L.LayerGroup | undefined;
 	let routeLayer: L.LayerGroup | undefined;
+	let circleLayer: L.LayerGroup | undefined;
 	const byId = new Map<string, L.Marker>();
 	let ready = $state(false);
 	let fitKey = '';
@@ -55,6 +59,7 @@
 			map = leaflet!.map(el, { zoomControl: true, attributionControl: true }).setView([49.45, 11.08], 11);
 			markerLayer = leaflet!.layerGroup().addTo(map);
 			routeLayer = leaflet!.layerGroup().addTo(map);
+			circleLayer = leaflet!.layerGroup().addTo(map);
 			map.on('click', (e: L.LeafletMouseEvent) => { if (pickRef) onpick?.(e.latlng.lat, e.latlng.lng); });
 			ready = true;
 		})();
@@ -112,6 +117,16 @@
 		if (key !== fitKey) {
 			fitKey = key;
 			if (markers.length) map.fitBounds(leaflet.latLngBounds(markers.map((m) => [m.lat, m.lon] as [number, number])), { padding: [50, 50], maxZoom: 15 });
+		}
+	});
+
+	$effect(() => {
+		if (!ready || !leaflet || !circleLayer) return;
+		circleLayer.clearLayers();
+		for (const c of circles) {
+			const k = leaflet.circle([c.lat, c.lon], { radius: c.radiusM, color: c.color, weight: 2, fillOpacity: 0.12, interactive: false });
+			if (c.label) k.bindTooltip(c.label, { permanent: false });
+			k.addTo(circleLayer);
 		}
 	});
 
