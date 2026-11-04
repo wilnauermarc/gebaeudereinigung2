@@ -137,20 +137,20 @@
 									<span class="block truncate text-sm font-semibold">{sh.siteName}</span>
 									<span class="block truncate text-xs text-muted">{sh.customerName}</span>
 								</button>
-								<div class="relative h-[3.6rem]">
+								<div class="relative h-[4rem]">
 									{#if outside(sh)}
 										<button class="absolute top-1/2 flex h-8 -translate-y-1/2 items-center gap-1 rounded-full border px-2.5 text-xs {barCls[sh.state]} {outside(sh) === 'links' ? 'left-1' : 'right-1'}" onclick={() => (selected = sh.siteId)} title="{sh.start}–{sh.end} Uhr · {stateLabel[sh.state]}">{#if outside(sh) === 'links'}◀{/if}<span class="num font-semibold">{sh.start}–{sh.end}</span>{#if outside(sh) === 'rechts'}▶{/if}</button>
 									{:else}
 									<button
-										class="absolute top-1/2 flex h-10 -translate-y-1/2 items-center gap-1.5 overflow-hidden rounded-xl border-2 px-2 text-left transition hover:-translate-y-[55%] hover:shadow-[var(--shadow-lift)] {barCls[sh.state]} {selected === sh.siteId ? 'ring-4 ring-accent/40' : ''}"
+										class="absolute top-1/2 flex h-12 -translate-y-1/2 items-center gap-1.5 overflow-hidden rounded-xl border-2 px-2 text-left transition hover:-translate-y-[55%] hover:shadow-[var(--shadow-lift)] {barCls[sh.state]} {selected === sh.siteId ? 'ring-4 ring-accent/40' : ''}"
 										style="left:{pct(sh.startMin)}%; width:max({pct(sh.endMin) - pct(sh.startMin)}%, 4.5rem); {sh.state === 'unbesetzt' ? 'background-image: repeating-linear-gradient(135deg, transparent 0 7px, rgb(179 38 30 / 0.12) 7px 14px)' : ''}"
 										onclick={() => (selected = sh.siteId)} title="{sh.start}–{sh.end} Uhr · {stateLabel[sh.state]}"
 									>
 										{#if elapsed > 0}<span class="pointer-events-none absolute inset-y-0 left-0 bg-black/10" style="width:{elapsed * 100}%"></span>{/if}
 										<span class="num relative z-10 shrink-0 text-xs font-bold">{sh.start}</span>
-										<span class="relative z-10 flex -space-x-1.5">
-											{#each sh.people.slice(0, 4) as p (p.id)}<span class="rounded-full bg-surface {ring[p.state]}" title="{p.name}: {personText(p, sh)}"><Avatar name={p.name} size={22} person /></span>{/each}
-											{#if sh.people.length > 4}<span class="grid size-[22px] place-items-center rounded-full bg-surface text-[0.6rem] font-bold text-fg ring-1 ring-line-strong">+{sh.people.length - 4}</span>{/if}
+										<span class="relative z-10 flex -space-x-2">
+											{#each sh.people.slice(0, 4) as p (p.id)}<span class="inline-grid shrink-0 rounded-full bg-surface p-0.5 {ring[p.state]}" title="{p.name}: {personText(p, sh)}"><Avatar name={p.name} size={26} square={false} person /></span>{/each}
+											{#if sh.people.length > 4}<span class="grid size-[32px] place-items-center rounded-full bg-surface text-[0.65rem] font-bold text-fg ring-1 ring-line-strong">+{sh.people.length - 4}</span>{/if}
 										</span>
 										{#if sh.empty}<span class="relative z-10 text-xs font-bold">unbesetzt</span>{/if}
 										{#if sh.state === 'fertig'}<Check size={14} strokeWidth={3} class="relative z-10 ml-auto shrink-0" />{/if}
@@ -201,14 +201,14 @@
 					<ul class="divide-y divide-line">
 						{#each sel.people as p (p.id)}
 							<li class="flex items-center gap-3 px-4 py-2.5">
-								<span class="rounded-full {ring[p.state]}"><Avatar name={p.name} size={34} person /></span>
+								<span class="inline-grid shrink-0 rounded-full p-0.5 {ring[p.state]}"><Avatar name={p.name} size={34} square={false} person /></span>
 								<span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">{p.name}{#if p.cover} <span class="text-xs font-normal text-muted">(Vertretung)</span>{/if}</span><span class="block truncate text-xs {p.state === 'spaet' || p.state === 'fehlt' ? 'font-semibold text-warn' : p.state === 'drin' || p.state === 'fertig' ? 'text-success' : 'text-muted'}">{personText(p, sel)}</span></span>
 								{#if p.phone}<a class="btn btn-icon btn-sm" href="tel:{tel(p.phone)}" aria-label="{p.first} anrufen" title={p.phone}><Phone size={14} /></a>{/if}
 							</li>
 						{/each}
 						{#each sel.absent as a (a.id)}
 							<li class="flex items-center gap-3 bg-danger-soft/40 px-4 py-2.5">
-								<span class="rounded-full opacity-60 ring-2 ring-danger"><Avatar name={a.name} size={34} person /></span>
+								<span class="inline-grid shrink-0 rounded-full p-0.5 opacity-60 ring-2 ring-danger"><Avatar name={a.name} size={34} square={false} person /></span>
 								<span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium line-through decoration-danger/50">{a.name}</span><span class="block text-xs font-semibold text-danger">{a.kind === 'krank' ? 'krank gemeldet' : 'im Urlaub'}</span></span>
 								{#if a.phone}<a class="btn btn-icon btn-sm" href="tel:{tel(a.phone)}" aria-label="{a.first} anrufen"><Phone size={14} /></a>{/if}
 							</li>
@@ -232,7 +232,7 @@
 						<ul class="divide-y divide-line">
 							{#each radar as r (r.employee.id)}
 								<li class="flex items-center gap-2.5 px-4 py-2">
-									<Avatar name={r.employee.name} size={28} person />
+									<Avatar name={r.employee.name} size={28} square={false} person />
 									<span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">{r.employee.name} <span class="text-xs font-normal text-muted">· {r.employee.role}</span></span><span class="block truncate text-xs text-muted">{r.km != null ? `${r.km.toLocaleString('de-DE', { maximumFractionDigits: 1 })} km von ${r.from} · ca. ${r.needMin} Min Fahrt` : 'an diesem Tag sonst nicht eingeplant'}</span></span>
 									{#if r.employee.phone}<a class="btn btn-icon btn-sm" href="tel:{tel(r.employee.phone)}" aria-label="{r.employee.name.split(' ')[0]} anrufen"><Phone size={14} /></a>{/if}
 									<button class="btn btn-primary btn-sm" onclick={() => assign(r.employee.id)}>Einteilen</button>
