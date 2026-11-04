@@ -116,8 +116,11 @@
 	// ── Abnahme-Link für den Kunden ──
 	let acOpen = $state(false);
 	let acSite = $state<SiteT | null>(null);
-	function openAccept(site: SiteT) { if (!site.acceptToken) site.acceptToken = newToken(); acSite = site; acOpen = true; }
-	function renewAccept() { if (acSite && confirm('Neuen Link erzeugen? Der bisherige Link funktioniert danach nicht mehr.')) acSite.acceptToken = newToken(); }
+	/** Der Link gilt erst, wenn der Server den neuen Schlüssel kennt (die Kundenseite liest ihn dort). Bis dahin ist Kopieren gesperrt. */
+	let acState = $state<'speichert' | 'ok' | 'fehler'>('ok');
+	async function persistAccept() { acState = 'speichert'; acState = (await db.flush()) ? 'ok' : 'fehler'; }
+	function openAccept(site: SiteT) { acSite = site; acOpen = true; if (!site.acceptToken) { site.acceptToken = newToken(); persistAccept(); } else acState = 'ok'; }
+	function renewAccept() { if (acSite && confirm('Neuen Link erzeugen? Der bisherige Link funktioniert danach nicht mehr.')) { acSite.acceptToken = newToken(); persistAccept(); } }
 	const acUrl = $derived(acSite?.acceptToken ? `${location.origin}/abnahme/${acSite.id}?t=${acSite.acceptToken}` : '');
 	const acSvg = $derived(acUrl ? renderSVG(acUrl, { border: 1 }) : '');
 	async function copyAccept() { try { await navigator.clipboard.writeText(acUrl); toasts.push('Link kopiert.', { tone: 'success' }); } catch { toasts.push('Kopieren nicht möglich, bitte markieren und kopieren.'); } }
@@ -348,12 +351,13 @@
 		{#if acSite}
 			<div class="grid gap-3">
 				<div><label class="label" for="ac-u">Link</label><input id="ac-u" class="input num" readonly value={acUrl} onfocus={(e) => e.currentTarget.select()} /></div>
+				{#if acState === 'speichert'}<p class="text-xs text-muted" role="status">Wird gespeichert … der Link gilt gleich.</p>{:else if acState === 'fehler'}<p class="text-sm text-danger" role="alert">Der neue Link konnte nicht gespeichert werden (zum Beispiel weil die Daten an anderer Stelle geändert wurden). Bitte Seite neu laden und erneut versuchen. Bis dahin funktioniert der Link nicht.</p>{:else}<p class="text-xs text-success" role="status">Gespeichert. Der Link gilt.</p>{/if}
 				<div class="mx-auto w-40 rounded-lg bg-white p-2">{@html acSvg}</div>
 				<p class="text-xs text-muted">Der Link enthält einen geheimen Schlüssel. Wer ihn hat, kann dieses Objekt abnehmen. Schicken Sie ihn nur an Ihre Ansprechperson (per E-Mail oder als QR-Code auf dem Leistungsnachweis). Mit „Neuer Link“ wird der alte ungültig. Der Kunde sieht nur Tage, an denen Sie die Ausführung festgehalten haben, und keine Namen Ihrer Mitarbeitenden.</p>
 			</div>
 		{/if}
 	{/snippet}
-	{#snippet footer()}<button class="btn" onclick={renewAccept}>Neuer Link</button><button class="btn" onclick={copyAccept}>Link kopieren</button><button class="btn btn-primary" onclick={() => (acOpen = false)}>Fertig</button>{/snippet}
+	{#snippet footer()}<button class="btn" onclick={renewAccept} disabled={acState === 'speichert'}>Neuer Link</button><button class="btn" onclick={copyAccept} disabled={acState !== 'ok'}>Link kopieren</button><button class="btn btn-primary" onclick={() => (acOpen = false)}>Fertig</button>{/snippet}
 </Dialog>
 
 <Dialog bind:open={editOpen} title="Kunde bearbeiten" width={520}>

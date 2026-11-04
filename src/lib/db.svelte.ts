@@ -204,22 +204,40 @@ class Db {
 				if (!this.session?.management || !this.ready) return;
 				this.dirty = json !== this.#last;
 				if (this.conflict || !this.dirty) return;
-				timer = setTimeout(async () => {
-					try {
-						const r = await fetch('/api/state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rev: this.#rev, data: this.data }) });
-						if (r.status === 409) { this.conflict = true; return; }
-						if (!r.ok) throw new Error(String(r.status));
-						this.#rev = (await r.json()).rev;
-						this.#last = json;
-						this.dirty = JSON.stringify(this.data) !== json;
-						this.savedAt = new Date();
-						this.storageError = false;
-					} catch {
-						this.storageError = true;
-					}
-				}, 600);
+				timer = setTimeout(() => { this.flush(); }, 600);
 			});
 		});
+	}
+
+	#chain: Promise<unknown> = Promise.resolve();
+	/**
+	 * Ungespeicherte Änderungen sofort an den Server schicken (statt auf die kurze Wartezeit zu warten). Aufrufe laufen nacheinander,
+	 * damit nie zwei Speichervorgänge mit derselben Revision kollidieren. Gibt zurück, ob der Server den aktuellen Stand hat.
+	 */
+	flush(): Promise<boolean> {
+		const run = async (): Promise<boolean> => {
+			if (!this.session?.management || !this.ready) return false;
+			const json = JSON.stringify(this.data);
+			if (json === this.#last) { this.dirty = false; return true; }
+			if (this.conflict) return false;
+			try {
+				const r = await fetch('/api/state', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rev: this.#rev, data: this.data }) });
+				if (r.status === 409) { this.conflict = true; return false; }
+				if (!r.ok) throw new Error(String(r.status));
+				this.#rev = (await r.json()).rev;
+				this.#last = json;
+				this.dirty = JSON.stringify(this.data) !== json;
+				this.savedAt = new Date();
+				this.storageError = false;
+				return true;
+			} catch {
+				this.storageError = true;
+				return false;
+			}
+		};
+		const p = this.#chain.then(run, run);
+		this.#chain = p;
+		return p;
 	}
 
 	customer = (id: string) => this.data.customers.find((c) => c.id === id);
