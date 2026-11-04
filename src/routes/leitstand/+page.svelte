@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { db } from '#lib/db.svelte.ts';
+	import { features } from '#lib/features.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { addDays } from '#lib/calc.ts';
 	import { todayKey, formatWeekday } from '#lib/format.ts';
@@ -220,7 +221,7 @@
 							<div class="h-2 overflow-hidden rounded-full bg-subtle"><div class="h-full rounded-full bg-success" style="width:{sel.checklist.due ? Math.min(100, (sel.checklist.done / sel.checklist.due) * 100) : 100}%"></div></div>
 						</div>
 					{/if}
-					{#if sel.defects}<a href="/maengel" class="flex items-center gap-2 border-t border-line px-4 py-2.5 text-sm text-danger hover:bg-subtle/60"><TriangleAlert size={14} /> {sel.defects} offene{sel.defects === 1 ? 'r Mangel' : ' Mängel'} an diesem Objekt <ExternalLink size={12} class="ml-auto" /></a>{/if}
+					{#if sel.defects && features.has('maengel')}<a href="/maengel" class="flex items-center gap-2 border-t border-line px-4 py-2.5 text-sm text-danger hover:bg-subtle/60"><TriangleAlert size={14} /> {sel.defects} offene{sel.defects === 1 ? 'r Mangel' : ' Mängel'} an diesem Objekt <ExternalLink size={12} class="ml-auto" /></a>{/if}
 					{#if sel.note}<p class="border-t border-line px-4 py-2.5 text-xs text-muted">{sel.note}</p>{/if}
 					<div class="flex flex-wrap gap-2 border-t border-line px-4 py-3"><a class="btn btn-sm" href="/kunden/{sel.customerId}"><ExternalLink size={13} /> Kunde</a><a class="btn btn-sm" href="/karte"><MapPin size={13} /> Karte</a><a class="btn btn-sm" href="/einsatzplan">Einsatzplan</a></div>
 				</section>

@@ -17,7 +17,7 @@ describe('Mitarbeiter-Projektion', () => {
 		const json = JSON.stringify(v);
 		expect(json).not.toMatch(/netCents|monthlyCents|invoice|Rechnung|calc|wageCents|iban/i);
 		for (const other of d.employees.filter((e) => e.id !== 'm5')) expect(json).not.toContain(other.name);
-		expect(Object.keys(v).sort()).toEqual(['company', 'contract', 'geo', 'hours', 'instructedOn', 'leave', 'minijob', 'month', 'name', 'officePhone', 'open', 'requests', 'requireQr', 'role', 'shifts', 'soll', 'times', 'weeklyHours'].sort());
+		expect(Object.keys(v).sort()).toEqual(['company', 'contract', 'geo', 'modules', 'hours', 'instructedOn', 'leave', 'minijob', 'month', 'name', 'officePhone', 'open', 'requests', 'requireQr', 'role', 'shifts', 'soll', 'times', 'weeklyHours'].sort());
 	});
 	it('zeigt eigene Stempelungen aus dem Eingang als „beim Büro eingegangen“', () => {
 		const iso = (h: number) => new Date(`${today}T${String(h).padStart(2, '0')}:00:00+01:00`).toISOString();

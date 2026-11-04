@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { features } from '#lib/features.svelte.ts';
 	import { privacy } from '#lib/privacy.svelte.ts';
 	import { db } from '#lib/db.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
@@ -43,7 +44,7 @@
 	const defectSites = $derived(placed.filter((x) => openDefects.has(x.s.id)).length);
 	const upcoming = $derived(db.data.appointments.filter((a) => a.at.slice(0, 10) >= today && a.at.slice(0, 10) <= addDays(today, 14)).map((a) => ({ a, site: db.customer(a.customerId)?.sites.find((s) => s.lat != null) })).filter((x) => x.site));
 	const allMarkers = $derived<MapMarker[]>([
-		...placed.map(({ c, s }) => ({ id: s.id, lat: s.lat!, lon: s.lon!, color: colorOf[c.status], title: `${c.name} · ${s.name}`, popup: `<strong>${esc(c.name.length > 50 ? c.name.slice(0, 48) + '…' : c.name)}</strong><br>${esc(s.name)}<br>${esc(s.street)}, ${esc(s.postal)} ${esc(s.city)}${openDefects.get(s.id) ? `<br><strong style="color:#b3261e">${openDefects.get(s.id)!.n} offene${openDefects.get(s.id)!.n === 1 ? 'r Mangel' : ' Mängel'}${openDefects.get(s.id)!.late ? `, ${openDefects.get(s.id)!.late} überfällig` : ''}</strong>` : ''}`, ...(showDefects && openDefects.has(s.id) ? { alert: true, label: String(openDefects.get(s.id)!.n) } : {}) })),
+		...placed.map(({ c, s }) => ({ id: s.id, lat: s.lat!, lon: s.lon!, color: colorOf[c.status], title: `${c.name} · ${s.name}`, popup: `<strong>${esc(c.name.length > 50 ? c.name.slice(0, 48) + '…' : c.name)}</strong><br>${esc(s.name)}<br>${esc(s.street)}, ${esc(s.postal)} ${esc(s.city)}${openDefects.get(s.id) ? `<br><strong style="color:#b3261e">${openDefects.get(s.id)!.n} offene${openDefects.get(s.id)!.n === 1 ? 'r Mangel' : ' Mängel'}${openDefects.get(s.id)!.late ? `, ${openDefects.get(s.id)!.late} überfällig` : ''}</strong>` : ''}`, ...(showDefects && features.has('maengel') && openDefects.has(s.id) ? { alert: true, label: String(openDefects.get(s.id)!.n) } : {}) })),
 		...(showAppts ? upcoming.map(({ a, site }) => ({ id: 'ap' + a.id, lat: site!.lat!, lon: site!.lon!, color: a.kind === 'besichtigung' ? '#2457c5' : '#19734a', shape: 'diamond' as const, title: a.title, popup: `<strong>${esc(a.title)}</strong><br>${formatDate(a.at.slice(0, 10))} ${formatTime(a.at)} Uhr · ${esc(a.who)}` })) : [])
 	]);
 	const counts = $derived({
@@ -157,8 +158,8 @@
 		{#if privacy.tours}<select class="input w-52" aria-label="Person wählen" bind:value={who}><option value="alle">Alle Einsätze</option>{#each db.data.employees as e}<option value={e.id}>Tour: {e.name}</option>{/each}</select>{/if}
 	{/if}
 	{#if view === 'alle'}
-		<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" class="size-4 accent-[var(--accent)]" bind:checked={showDefects} /> Offene Mängel{#if defectSites} <span class="num text-xs text-muted">({defectSites})</span>{/if}</label>
-		<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" class="size-4 accent-[var(--accent)]" bind:checked={showAppts} /> Termine (14 Tage)</label>
+		{#if features.has('maengel')}<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" class="size-4 accent-[var(--accent)]" bind:checked={showDefects} /> Offene Mängel{#if defectSites} <span class="num text-xs text-muted">({defectSites})</span>{/if}</label>{/if}
+		{#if features.has('verkauf')}<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" class="size-4 accent-[var(--accent)]" bind:checked={showAppts} /> Termine (14 Tage)</label>{/if}
 	{/if}
 	<label class="ml-auto flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" class="size-4 accent-[var(--accent)]" checked={tiles} onchange={(e) => setTiles(e.currentTarget.checked)} /> Kartenhintergrund (OpenStreetMap)</label>
 </div>

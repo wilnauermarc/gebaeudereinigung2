@@ -10,6 +10,7 @@
 	import CaseFlow from '#lib/components/CaseFlow.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { findGaps, healthScores, gauges as gaugesOf } from '#lib/cockpit.ts';
+	import { features } from '#lib/features.svelte.ts';
 	import GaugeRing from '#lib/components/Gauge.svelte';
 	import { countUp } from '#lib/countup.ts';
 	import Dialog from '#lib/components/Dialog.svelte';
@@ -112,7 +113,8 @@
 			const notice = addMonthsKey(end, -c.noticeMonths);
 			if (dayDiff(notice) >= 0 && dayDiff(notice) <= 60) out.push({ href: '/vertraege', text: `Kündigungsfrist ${db.customer(q.customerId)?.name.slice(0, 32)} endet ${relativeDay(notice)}`, tone: 'warn' });
 		}
-		return out.sort((a, b) => Number(a.tone === 'warn') - Number(b.tone === 'warn'));
+		// Hinweise zu ausgeschalteten Bereichen gar nicht erst zeigen (sonst führt der Link ins Leere)
+		return out.filter((a) => features.path(a.href.split('?')[0])).sort((a, b) => Number(a.tone === 'warn') - Number(b.tone === 'warn'));
 	});
 	const urgent = $derived(alerts.filter((a) => a.tone === 'danger').length);
 
@@ -241,25 +243,27 @@
 		</div>
 		<div class="flex flex-wrap gap-2">
 			<button class="btn-hero" onclick={() => (briefOpen = true)}><Sunrise size={15} /> Briefing</button>
-			<a href="/vorgaenge?neu=1" class="btn-hero"><Workflow size={15} /> Vorgang</a>
+			{#if features.has('verkauf')}<a href="/vorgaenge?neu=1" class="btn-hero"><Workflow size={15} /> Vorgang</a>{/if}
 			<a href="/kunden?neu=1" class="btn-hero"><Users size={15} /> Kunde</a>
-			<a href="/zeiten?neu=1" class="btn-hero"><Clock size={15} /> Zeit</a>
-			<a href="/maengel?neu=1" class="btn-hero"><MessageSquareWarning size={15} /> Mangel</a>
+			{#if features.has('zeiten')}<a href="/zeiten?neu=1" class="btn-hero"><Clock size={15} /> Zeit</a>{/if}
+			{#if features.has('maengel')}<a href="/maengel?neu=1" class="btn-hero"><MessageSquareWarning size={15} /> Mangel</a>{/if}
 		</div>
 	</div>
 </header>
 
+{#if features.has('verkauf')}
 <section class="mb-5" aria-labelledby="h-flow">
 	<div class="mb-2 flex items-baseline justify-between"><h2 id="h-flow" class="card-title">Vorgänge im Ablauf</h2><a href="/vorgaenge" class="text-sm font-semibold text-accent hover:underline">Alle Vorgänge →</a></div>
 	{#if flowRows.length}<CaseFlow rows={flowRows} compact />{:else}<p class="card px-5 py-4 text-sm text-muted">Gerade läuft kein Vorgang. Eine neue Kundenanfrage legen Sie unter „Vorgänge“ an.</p>{/if}
 </section>
+{/if}
 
 <section class="card mb-5 overflow-hidden" aria-label="Betriebs-Cockpit">
 	<div class="grid grid-cols-2 gap-1 p-2.5 md:grid-cols-5">
-		<GaugeRing size={84} value={gaugeData.margin / 0.3} shown={gaugeData.margin} label="Marge nach Lohn" sub="vor Material, Gemeinkosten" href="/cockpit" />
-		<GaugeRing size={84} value={gaugeData.staffing} label="Besetzung" sub="{gaugeData.staffedCount}/{gaugeData.plannedCount} Einsätze, Woche" good={0.95} warn={0.8} href="/einsatzplan" />
-		<GaugeRing size={84} value={gaugeData.payment} label="Zahlungsmoral" sub="pünktlich oder bezahlt" good={0.9} warn={0.75} href="/rechnungen" />
-		<GaugeRing size={84} value={gaugeData.plan} label="Plan-Treue" sub="Ist gegen Soll" good={0.9} warn={0.75} href="/zeiten" />
+		{#if features.has('controlling')}<GaugeRing size={84} value={gaugeData.margin / 0.3} shown={gaugeData.margin} label="Marge nach Lohn" sub="vor Material, Gemeinkosten" href="/cockpit" />{/if}
+		{#if features.has('einsatz')}<GaugeRing size={84} value={gaugeData.staffing} label="Besetzung" sub="{gaugeData.staffedCount}/{gaugeData.plannedCount} Einsätze, Woche" good={0.95} warn={0.8} href="/einsatzplan" />{/if}
+		{#if features.has('rechnungen')}<GaugeRing size={84} value={gaugeData.payment} label="Zahlungsmoral" sub="pünktlich oder bezahlt" good={0.9} warn={0.75} href="/rechnungen" />{/if}
+		{#if features.has('zeiten')}<GaugeRing size={84} value={gaugeData.plan} label="Plan-Treue" sub="Ist gegen Soll" good={0.9} warn={0.75} href="/zeiten" />{/if}
 		<div class="relative flex flex-col items-center justify-center rounded-xl bg-accent-soft/60 p-1 text-center">
 			{#if celebrate}<div class="confetti" aria-hidden="true">{#each Array(14) as _, i}<i style="--a:{(i * 360) / 14}deg;--c:{['#d95a14', '#19734a', '#2457c5', '#e2a64b', '#b3261e'][i % 5]};--d:{(i % 4) * 60}ms"></i>{/each}</div>{/if}
 			<GaugeRing size={84} value={goalRatio} label="Tagesziel" sub={goalTotal === 0 ? 'Nichts fällig' : goalOpen === 0 ? 'Geschafft!' : `${goalDone} von ${goalTotal} Aufgaben`} good={0.99} warn={0.5} href="/aufgaben" />
@@ -269,6 +273,7 @@
 
 <div class="grid gap-5 lg:grid-cols-3">
 	<div class="flex flex-col gap-5 lg:col-span-2">
+		{#if features.has('einsatz')}
 		<section class="card" aria-labelledby="h-jobs">
 			<div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
 				<h2 id="h-jobs" class="card-title">Heute im Einsatz <span class="num font-normal text-muted">{jobs.length}</span></h2>
@@ -301,6 +306,7 @@
 				</ol>
 			{/if}
 		</section>
+		{/if}
 
 		<section class="card" aria-labelledby="h-alert">
 			<div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
@@ -345,6 +351,7 @@
 			{/if}
 		</section>
 
+		{#if features.has('verkauf')}
 		<section class="card" aria-labelledby="h-appt">
 			<div class="border-b border-line px-4 py-3.5"><h2 id="h-appt" class="card-title">Termine</h2></div>
 			{#if grouped.length === 0}
@@ -360,7 +367,9 @@
 				</ul>
 			{/if}
 		</section>
+		{/if}
 
+		{#if features.has('verkauf')}
 		<section class="card" aria-labelledby="h-follow">
 			<div class="flex items-center justify-between border-b border-line px-4 py-3.5">
 				<h2 id="h-follow" class="card-title flex items-center gap-2"><BellRing size={15} class="text-muted" /> Nachfassen</h2>
@@ -380,6 +389,7 @@
 				</ul>
 			{/if}
 		</section>
+		{/if}
 	</div>
 </div>
 
@@ -407,13 +417,14 @@
 			<span class="min-w-0"><span class="num block text-[1.45rem] leading-tight font-semibold tracking-tight {tone === 'danger' ? 'text-danger' : ''}">{value}</span><span class="block truncate text-xs font-medium">{label}</span><span class="block truncate text-xs text-muted">{sub}</span></span>
 		</a>
 	{/snippet}
-	{@render kpi('/angebote?status=entwurf', 'Angebote in Arbeit', String(inWork.length), `${waiting.length} warten auf Antwort`, FileText, 'chip-blue')}
-	{@render kpi('/vorgaenge', 'Offene Vorgänge', String(db.data.cases.filter((c) => !caseStatus(db.data, c).closed).length), 'von Anfrage bis Start', Workflow, 'chip-amber')}
-	{@render kpi('/kunden?status=aktiv', 'Wiederkehrend / Monat', formatEur(db.monthlyRecurring()), 'netto, laufende Verträge', TrendingUp, 'chip-green')}
-	{@render kpi('/rechnungen', 'Überfällig', formatEur(overdueSum), `${overdue.length} Rechnung${overdue.length === 1 ? '' : 'en'} · offen gesamt ${formatEur(db.data.invoices.filter((i) => !i.paidAt).reduce((a, i) => a + i.netCents, 0))}`, Receipt, 'chip-red', overdue.length ? 'danger' : '')}
+	{#if features.has('verkauf')}{@render kpi('/angebote?status=entwurf', 'Angebote in Arbeit', String(inWork.length), `${waiting.length} warten auf Antwort`, FileText, 'chip-blue')}{/if}
+	{#if features.has('verkauf')}{@render kpi('/vorgaenge', 'Offene Vorgänge', String(db.data.cases.filter((c) => !caseStatus(db.data, c).closed).length), 'von Anfrage bis Start', Workflow, 'chip-amber')}{/if}
+	{#if features.has('verkauf')}{@render kpi('/kunden?status=aktiv', 'Wiederkehrend / Monat', formatEur(db.monthlyRecurring()), 'netto, laufende Verträge', TrendingUp, 'chip-green')}{/if}
+	{#if features.has('rechnungen')}{@render kpi('/rechnungen', 'Überfällig', formatEur(overdueSum), `${overdue.length} Rechnung${overdue.length === 1 ? '' : 'en'} · offen gesamt ${formatEur(db.data.invoices.filter((i) => !i.paidAt).reduce((a, i) => a + i.netCents, 0))}`, Receipt, 'chip-red', overdue.length ? 'danger' : '')}{/if}
 </section>
 
 <div class="mt-5 grid gap-5 lg:grid-cols-2">
+	{#if features.has('verkauf')}
 	<section class="card p-4" aria-labelledby="h-mrr">
 		<div class="mb-1 flex items-start justify-between">
 			<div><h2 id="h-mrr" class="card-title">Wiederkehrender Umsatz</h2><p class="text-xs text-muted">Monatlich netto, aus laufenden Verträgen</p></div>
@@ -421,6 +432,8 @@
 		</div>
 		<AreaChart points={mrr} format={fmtE} step height={170} />
 	</section>
+	{/if}
+	{#if features.has('zeiten')}
 	<section class="card p-4" aria-labelledby="h-hours">
 		<div class="mb-1 flex items-start justify-between">
 			<div><h2 id="h-hours" class="card-title">Geleistete Stunden</h2><p class="text-xs text-muted">Letzte abgeschlossene Woche</p></div>
@@ -428,6 +441,7 @@
 		</div>
 		<BarChart bars={weekBars} format={fmtH} height={170} />
 	</section>
+	{/if}
 </div>
 
 <Dialog bind:open={briefOpen} title="Tagesbriefing" description="Fertiger Text für WhatsApp, E-Mail oder Aushang." width={560}>

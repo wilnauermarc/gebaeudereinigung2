@@ -8,6 +8,7 @@
 	import Badge from '#lib/components/Badge.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
+	import { features } from '#lib/features.svelte.ts';
 	import LvEditor from '#lib/components/LvEditor.svelte';
 	import { lvAt } from '#lib/lv.ts';
 	import type { Site as SiteT } from '#lib/types.ts';
@@ -166,11 +167,12 @@
 	}
 
 	const eventIcon = { notiz: MessageSquare, anfrage: Inbox, besichtigung: Eye, angebot: FileText, auftrag: ClipboardCheck, rechnung: Receipt };
-	const tabs = [
+	const allTabs = [
 		['uebersicht', 'Übersicht'],
 		['angebote', 'Angebote'],
 		['verlauf', 'Verlauf']
 	] as const;
+	const tabs = $derived(allTabs.filter(([id]) => id !== 'angebote' || features.has('verkauf')));
 
 	function onTabKey(e: KeyboardEvent) {
 		const i = tabs.findIndex((t) => t[0] === tab);
@@ -204,10 +206,10 @@
 					<p class="mt-1 flex items-center gap-1.5 text-sm text-muted"><MapPin size={13} /> {customer.street}, {customer.postal} {customer.city}</p>
 				</div>
 			</div>
-			<div class="flex flex-wrap gap-2"><button class="btn" onclick={openEdit}><Pencil size={14} /> Bearbeiten</button><button class="btn" onclick={openTermin}><CalendarPlus size={14} /> Termin</button><button class="btn" onclick={monthlyReport}><FileDown size={14} /> Monatsbericht</button><button class="btn btn-primary" onclick={newQuote}><FilePlus2 size={15} /> Neues Angebot</button></div>
+			<div class="flex flex-wrap gap-2"><button class="btn" onclick={openEdit}><Pencil size={14} /> Bearbeiten</button><button class="btn" onclick={openTermin}><CalendarPlus size={14} /> Termin</button>{#if features.has('maengel')}<button class="btn" onclick={monthlyReport}><FileDown size={14} /> Monatsbericht</button>{/if}{#if features.has('verkauf')}<button class="btn btn-primary" onclick={newQuote}><FilePlus2 size={15} /> Neues Angebot</button>{/if}</div>
 		</div>
 		<dl class="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
-			{#each [['Monatlich wiederkehrend', formatEur(db.monthlyRecurring(customer.id)), ''], ['Offene Rechnungen', formatEur(openInvoices.reduce((s, i) => s + i.netCents, 0)), openInvoices.some((i) => db.isOverdue(i)) ? 'text-danger' : ''], ['Objekte', String(customer.sites.length), ''], ['Zuletzt aktiv', relativeTime(db.lastActivity(customer.id)), '']] as [k, v, c]}
+			{#each [...(features.has('verkauf') ? [['Monatlich wiederkehrend', formatEur(db.monthlyRecurring(customer.id)), '']] : []), ...(features.has('rechnungen') ? [['Offene Rechnungen', formatEur(openInvoices.reduce((s, i) => s + i.netCents, 0)), openInvoices.some((i) => db.isOverdue(i)) ? 'text-danger' : '']] : []), ['Objekte', String(customer.sites.length), ''], ['Zuletzt aktiv', relativeTime(db.lastActivity(customer.id)), '']] as [k, v, c]}
 				<div class="bg-surface px-4 py-3"><dt class="text-xs text-muted">{k}</dt><dd class="num mt-0.5 text-base font-semibold {c}">{v}</dd></div>
 			{/each}
 		</dl>
@@ -263,7 +265,7 @@
 								<li class="px-4 py-3">
 									<div class="flex items-start justify-between gap-3">
 										<div><p class="text-sm font-medium">{s.name}</p><p class="text-xs text-muted">{s.street}, {s.postal} {s.city}</p></div>
-										<div class="flex flex-wrap gap-1"><button class="btn btn-sm" onclick={() => openAccept(s)} title="Link, mit dem Ihr Kunde Leistungen online abnimmt"><UserCheck size={13} /> Abnahme-Link</button><button class="btn btn-sm" onclick={() => { lvSite = s; lvOpen = true; }} title="Leistungsverzeichnis: was wird wo und wie oft gereinigt"><ListChecks size={13} /> Leistungen{#if lvAt(s, todayKey())} <span class="num text-muted">{lvAt(s, todayKey())?.items.length}</span>{/if}</button><button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button><button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{#if s.plan}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
+										<div class="flex flex-wrap gap-1">{#if features.has('nachweis')}<button class="btn btn-sm" onclick={() => openAccept(s)} title="Link, mit dem Ihr Kunde Leistungen online abnimmt"><UserCheck size={13} /> Abnahme-Link</button><button class="btn btn-sm" onclick={() => { lvSite = s; lvOpen = true; }} title="Leistungsverzeichnis: was wird wo und wie oft gereinigt"><ListChecks size={13} /> Leistungen{#if lvAt(s, todayKey())} <span class="num text-muted">{lvAt(s, todayKey())?.items.length}</span>{/if}</button>{/if}<button class="btn btn-sm" onclick={() => openSite(s.id)}><Pencil size={13} /> Bearbeiten</button>{#if features.has('maengel')}<button class="btn btn-sm" onclick={() => openQr(s.id, 'melden')} title="Aushang für Kunden: Mängel melden"><QrCode size={13} /> QR-Code</button>{/if}{#if s.plan && features.has('mitarbeiter')}<button class="btn btn-sm" onclick={() => openQr(s.id, 'stempel')} title="Aushang für das Team: Ein- und Ausstempeln"><Clock size={13} /> Stempel-QR</button>{/if}</div>
 									</div>
 									<p class="mt-1.5 text-xs {s.plan ? 'text-muted' : 'text-warn'}">{#if s.plan}Reinigungsplan: {s.plan.days.map((d) => weekdays[d]).join(', ')} ab {s.plan.start} Uhr, {s.plan.hours.toLocaleString('de-DE')} Std. · {s.plan.staffIds.length} {s.plan.staffIds.length === 1 ? 'Person' : 'Personen'}{:else}Noch kein Reinigungsplan, das Objekt erscheint nicht im Einsatzplan.{/if}</p>
 									{#if s.note}<p class="mt-1.5 rounded-md bg-subtle px-2.5 py-1.5 text-xs text-muted">{s.note}</p>{/if}
@@ -276,7 +278,7 @@
 			</div>
 
 			<div class="flex flex-col gap-4">
-				{#if openInvoices.length}
+				{#if openInvoices.length && features.has('rechnungen')}
 					<section class="card">
 						<div class="border-b border-line px-4 py-3"><h2 class="card-title">Offene Rechnungen</h2></div>
 						<ul class="divide-y divide-line">

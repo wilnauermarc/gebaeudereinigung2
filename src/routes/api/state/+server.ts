@@ -16,6 +16,14 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 	let b: { rev?: unknown; data?: unknown };
 	try { b = JSON.parse(text); } catch { return json({ error: 'Ungültige Daten.' }, { status: 400 }); }
 	if (typeof b.rev !== 'number' || !b.data || typeof b.data !== 'object' || !Array.isArray((b.data as { customers?: unknown }).customers)) return json({ error: 'Ungültige Daten.' }, { status: 400 });
+	// Den Funktionsumfang ändern nur Administratoren (sonst bliebe die Einstellung eine reine Anzeige)
+	const cur = store().getState();
+	if (cur && locals.user?.role !== 'inhaber') {
+		let before: unknown = null;
+		try { before = JSON.parse(cur.json)?.settings?.modules ?? null; } catch { /* keine Vorgabe */ }
+		const after = (b.data as { settings?: { modules?: unknown } }).settings?.modules ?? null;
+		if (JSON.stringify(before) !== JSON.stringify(after)) return json({ error: 'Den Funktionsumfang ändern nur Administratoren.' }, { status: 403 });
+	}
 	const r = store().putState(JSON.stringify(b.data), b.rev);
 	if (!r.ok) return json({ error: 'Der Datenbestand wurde zwischenzeitlich anderswo geändert. Bitte neu laden.', rev: r.rev }, { status: 409 });
 	if (locals.user && b.rev === 0) store().audit('state_init', locals.user.id);

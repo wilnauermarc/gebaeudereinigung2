@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { PHOTO_IDS, photoFor } from '#lib/photos.ts';
+	import { MODULES, MODULE_BY_ID, PRESETS, activeModules, dependentsOf, disable, enable, matchingPreset, presetChoice, prerequisitesOf, type ModuleChoice, type ModuleId, type PresetId } from '#lib/modules.ts';
 	import AccessPanel from '#lib/components/AccessPanel.svelte';
 	import { privacy } from '#lib/privacy.svelte.ts';
 	import { ui, roleLabels, palettes, type Role } from '#lib/ui.svelte.ts';
@@ -12,16 +13,39 @@
 	import { ibanValid } from '#lib/iban.ts';
 	import PageHead from '#lib/components/PageHead.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
-	import { Save, Download, Upload, ShieldCheck, TriangleAlert, Trash2, Users } from '@lucide/svelte';
+	import { Save, Download, Upload, ShieldCheck, TriangleAlert, Trash2, Users, Check } from '@lucide/svelte';
 	import type { Company } from '#lib/company.ts';
 	import type { Data } from '#lib/types.ts';
 
 	/** Bereiche statt einer langen Seite: Betrieb, Zugänge, Aussehen, Daten */
-	type Tab = 'betrieb' | 'zugaenge' | 'aussehen' | 'daten';
-	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
+	type Tab = 'betrieb' | 'umfang' | 'zugaenge' | 'aussehen' | 'daten';
+	const tabList: { id: Tab; label: string }[] = [{ id: 'betrieb', label: 'Betrieb' }, { id: 'umfang', label: 'Funktionsumfang' }, { id: 'zugaenge', label: 'Zugänge & Stempeln' }, { id: 'aussehen', label: 'Aussehen' }, { id: 'daten', label: 'Daten & Datenschutz' }];
 	let tab = $state<Tab>('betrieb');
+	// ── Funktionsumfang ──
+	const isAdmin = $derived(db.session?.role === 'inhaber');
+	const active = $derived(activeModules(db.data.settings?.modules));
+	const preset = $derived(matchingPreset(db.data.settings?.modules));
+	function setChoice(c: ModuleChoice) { db.data.settings ??= {}; db.data.settings.modules = c; }
+	function toggle(id: ModuleId, on: boolean) {
+		if (!isAdmin) return;
+		if (on) {
+			const need = prerequisitesOf(id).filter((x) => !active.has(x));
+			setChoice(enable(db.data.settings?.modules, id));
+			if (need.length) toasts.push(`Zusätzlich eingeschaltet, weil nötig: ${need.map((x) => MODULE_BY_ID[x].label).join(', ')}.`);
+		} else {
+			const gone = dependentsOf(id).filter((x) => active.has(x));
+			if (gone.length && !confirm(`„${MODULE_BY_ID[id].label}“ ausschalten? Das schaltet auch aus: ${gone.map((x) => MODULE_BY_ID[x].label).join(', ')}.\n\nDie Daten bleiben erhalten.`)) return;
+			setChoice(disable(db.data.settings?.modules, id));
+		}
+	}
+	function applyPreset(id: PresetId) {
+		if (!isAdmin) return;
+		const lost = [...active].filter((m) => !presetChoice(id)[m]);
+		if (lost.length && !confirm(`Voreinstellung „${PRESETS.find((p) => p.id === id)!.label}“ übernehmen? Ausgeblendet wird: ${lost.map((x) => MODULE_BY_ID[x].label).join(', ')}.\n\nDie Daten bleiben erhalten.`)) return;
+		setChoice(presetChoice(id));
+	}
 	function pick(t: Tab) { tab = t; try { history.replaceState(history.state, '', `/einstellungen#${t === 'zugaenge' ? 'zugaenge' : t}`); } catch { /* ignorieren */ } }
-	$effect(() => { const h = location.hash.slice(1); if (h === 'zugaenge' || h === 'aussehen' || h === 'daten' || h === 'betrieb') tab = h as Tab; });
+	$effect(() => { const h = location.hash.slice(1); if (h === 'zugaenge' || h === 'aussehen' || h === 'daten' || h === 'betrieb' || h === 'umfang') tab = h as Tab; });
 
 	let f = $state<Company>({ ...db.data.company });
 	let err = $state<Record<string, string>>({});
@@ -149,6 +173,42 @@
 				{/each}
 			</div>
 		</section>
+		{/if}
+		{#if tab === 'umfang'}
+			<section class="card p-5" aria-labelledby="h-umfang">
+				<h2 id="h-umfang" class="card-title mb-1">Funktionsumfang</h2>
+				<p class="mb-4 text-sm text-muted">Nicht jeder Betrieb braucht alles. Schalten Sie Bausteine aus, die Sie nicht nutzen: Sie verschwinden aus Menü, Suche und Mitarbeiter-App. <strong>Es wird nichts gelöscht.</strong> Alle Daten bleiben erhalten und sind nach dem Einschalten wieder da.</p>
+				{#if !isAdmin}<p class="mb-4 rounded-lg bg-warn-soft px-3 py-2.5 text-sm text-warn">Nur Administratoren können den Funktionsumfang ändern.</p>{/if}
+				<div class="mb-5 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Voreinstellung">
+					{#each PRESETS as p}
+						<button class="rounded-xl border-2 p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 {preset === p.id ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'}" role="radio" aria-checked={preset === p.id} disabled={!isAdmin} onclick={() => applyPreset(p.id)}>
+							<span class="flex items-center justify-between"><span class="font-semibold">{p.label}</span>{#if preset === p.id}<Check size={15} class="text-accent-text" />{/if}</span>
+							<span class="mt-1 block text-xs text-muted">{p.hint}</span>
+						</button>
+					{/each}
+				</div>
+				<ul class="divide-y divide-line">
+					{#each MODULES as m (m.id)}
+						{@const on = active.has(m.id)}
+						{@const chosenOn = db.data.settings?.modules?.[m.id] !== false}
+						{@const blocked = chosenOn && !on}
+						<li class="flex items-start gap-3 py-3 {on ? '' : 'opacity-70'}">
+							<label class="relative mt-0.5 inline-flex shrink-0 cursor-pointer items-center {m.id === 'stamm' || !isAdmin ? 'cursor-not-allowed opacity-60' : ''}">
+								<input type="checkbox" class="peer sr-only" checked={on} disabled={m.id === 'stamm' || !isAdmin} onchange={(e) => toggle(m.id, e.currentTarget.checked)} aria-label="{m.label} {on ? 'ausschalten' : 'einschalten'}" />
+								<span class="h-6 w-11 rounded-full bg-line-strong transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2"></span>
+								<span class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+							</label>
+							<div class="min-w-0 flex-1">
+								<p class="text-sm font-semibold">{m.label}{#if m.id === 'stamm'}{' '}<span class="text-xs font-normal text-muted">(immer an)</span>{/if}</p>
+								<p class="text-xs text-muted">{m.blurb}</p>
+								<p class="mt-0.5 text-[0.7rem] text-faint">Enthält: {m.contains}</p>
+								{#if m.requires.filter((r) => r !== 'stamm').length}<p class="mt-0.5 text-[0.7rem] text-faint">Braucht: {m.requires.filter((r) => r !== 'stamm').map((r) => MODULE_BY_ID[r].label).join(', ')}</p>{/if}
+								{#if blocked}<p class="mt-1 text-xs font-semibold text-warn">Ausgeschaltet, weil ein nötiger Baustein aus ist.</p>{/if}
+							</div>
+						</li>
+					{/each}
+				</ul>
+			</section>
 		{/if}
 		{#if tab === 'zugaenge'}
 		<section class="card p-5" aria-labelledby="h-qr">

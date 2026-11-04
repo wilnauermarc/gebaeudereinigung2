@@ -259,6 +259,8 @@
 	{:else if phase === 'fehler' || !v}
 		<p class="card p-6 text-center text-lg">{errMsg || L.notFound}</p>
 		<a href="/" class="btn">Zur Verwaltung</a>
+	{:else if !v.modules.active}
+		<section class="card p-6 text-center"><h1 class="card-title mb-1">{v.name}</h1><p class="text-muted">Die Mitarbeiter-App ist in Ihrem Betrieb zurzeit nicht eingeschaltet. Bitte wenden Sie sich an das Büro.</p>{#if v.officePhone}<a href="tel:{v.officePhone.replace(/\s/g, '')}" class="btn btn-primary mt-4 h-12"><Phone size={18} /> {L.call}</a>{/if}</section>
 	{:else}
 		<header class="hero flex items-center gap-4 p-5">
 			<Avatar name={v.name} size={64} square={false} person ring />
@@ -277,7 +279,7 @@
 		{#if queued}<p class="flex items-center gap-2 rounded-lg bg-warn-soft px-4 py-2.5 text-sm text-warn"><WifiOff size={15} /> {queued} × {L.offlineQ}</p>{/if}
 
 		<!-- Stempeln -->
-		<section class="card overflow-hidden" aria-labelledby="h-punch">
+		{#if v.modules.zeiten}<section class="card overflow-hidden" aria-labelledby="h-punch">
 			<h2 id="h-punch" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">{L.punchTitle}</h2>
 			{#if v?.geo}<p class="flex items-start gap-2 border-b border-line bg-info-soft/50 px-5 py-2.5 text-xs text-info"><MapPin size={14} class="mt-0.5 shrink-0" /> {L.geoHint}</p>{/if}
 			{#if qr && v}
@@ -316,9 +318,9 @@
 			{:else}
 				<p class="px-5 py-6 text-center text-muted">{L.noShiftToday}</p>
 			{/if}
-		</section>
+		</section>{/if}
 
-		{#each todays.filter((x) => x.lv && x.lv.length) as t (t.siteId)}
+		{#each v.modules.nachweis ? todays.filter((x) => x.lv && x.lv.length) : [] as t (t.siteId)}
 			{@const x = clOf(t.siteId)}
 			<section class="card overflow-hidden" aria-labelledby="h-cl-{t.siteId}">
 				<h2 id="h-cl-{t.siteId}" class="border-b border-line px-5 py-3 text-sm font-bold tracking-wide text-accent uppercase">{L.clTitle} · {t.site}</h2>
@@ -370,7 +372,7 @@
 		</section>
 
 		<!-- Schichttausch -->
-		<section class="card p-5" aria-labelledby="h-swap">
+		{#if v.modules.einsatz}<section class="card p-5" aria-labelledby="h-swap">
 			<h2 id="h-swap" class="mb-1 flex items-center gap-2 text-sm font-bold tracking-wide text-muted uppercase"><ArrowLeftRight size={15} /> {L.swapTitle}</h2>
 			<p class="mb-3 text-xs text-muted">{L.swapHint}</p>
 			{#if offers.length}
@@ -385,7 +387,7 @@
 				<h3 class="mb-1 text-xs font-bold tracking-wide text-muted uppercase">{L.swapOwn}</h3>
 				<ul class="divide-y divide-line">{#each givable as s (s.siteId + s.date)}<li class="flex items-center gap-3 py-2.5"><div class="min-w-0 flex-1"><p class="text-sm font-medium capitalize">{dayName(s.date)} <span class="num font-normal text-muted">{s.start}–{s.end}</span></p><p class="truncate text-xs text-muted">{s.customer}</p></div><button class="btn btn-sm" onclick={() => { if (confirm(L.swapConfirm)) swapAct({ action: 'offer', siteId: s.siteId, date: s.date }, L.swapGave); }}>{L.swapGive}</button></li>{/each}</ul>
 			{/if}
-		</section>
+		</section>{/if}
 
 		<!-- Melden -->
 		<section class="card p-5" aria-labelledby="h-rep">
@@ -393,7 +395,7 @@
 			<div class="grid gap-2">
 				<button class="btn h-14 justify-start px-4 text-base" onclick={() => openReport('krank')}><Thermometer size={20} class="text-danger" /> {L.sickBtn}</button>
 				<button class="btn h-14 justify-start px-4 text-base" onclick={() => openReport('urlaub')}><Palmtree size={20} class="text-info" /> {L.vacBtn}</button>
-				<button class="btn h-14 justify-start px-4 text-base" onclick={() => openReport('defekt')} disabled={!sitesList.length}><TriangleAlert size={20} class="text-warn" /> {L.defectBtn}</button>
+{#if v.modules.maengel}				<button class="btn h-14 justify-start px-4 text-base" onclick={() => openReport('defekt')} disabled={!sitesList.length}><TriangleAlert size={20} class="text-warn" /> {L.defectBtn}</button>{/if}
 			</div>
 			{#if v.requests.length}
 				<h3 class="mt-4 mb-1 text-xs font-bold tracking-wide text-muted uppercase">{L.myReports}</h3>
@@ -401,7 +403,7 @@
 			{/if}
 		</section>
 
-		<section class="card p-5" aria-labelledby="h-hours">
+		{#if v.modules.zeiten}<section class="card p-5" aria-labelledby="h-hours">
 			<h2 id="h-hours" class="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-muted uppercase"><Clock size={15} /> {L.month}</h2>
 			<div class="flex items-end justify-between"><p class="num text-4xl font-bold">{fmt(v.hours)} <span class="text-lg font-semibold text-muted">{L.hours}</span></p><p class="text-right text-sm text-muted">{L.target} {fmt(v.soll)} {L.hours}<br />{L.diff}: <strong class="num text-fg">{v.hours - v.soll > 0 ? '+' : ''}{fmt(v.hours - v.soll)}</strong></p></div>
 			<div class="mt-3 h-3 overflow-hidden rounded-full bg-subtle" role="img" aria-label="{fmt(v.hours)} / {fmt(v.soll)}"><div class="h-full rounded-full bg-accent transition-all" style="width:{Math.min(100, v.soll ? (v.hours / v.soll) * 100 : 0)}%"></div></div>
@@ -417,7 +419,7 @@
 					{/each}
 				</ul>
 			{/if}
-		</section>
+		</section>{/if}
 
 		<section class="card p-5" aria-labelledby="h-leave">
 			<h2 id="h-leave" class="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-muted uppercase"><CalendarOff size={15} /> {L.leave}</h2>

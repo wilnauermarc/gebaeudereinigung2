@@ -8,6 +8,7 @@
 import type { Handle } from '@sveltejs/kit/hooks';
 import { COOKIE, hashToken, isManagement } from '#lib/server/auth.ts';
 import { store } from '#lib/server/store.ts';
+import { serverModules, staffEndpointModule } from '#lib/server/modules.ts';
 
 const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme']);
 const ANY_USER = (p: string) => p.startsWith('/api/me/') || p === '/api/logout' || p === '/api/password';
@@ -31,7 +32,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (!u) return json(401, { error: 'Nicht angemeldet.' });
 			if (!isManagement(u.role) && !ANY_USER(path)) return json(403, { error: 'Keine Berechtigung.' });
 			if (u.mustChange && path !== '/api/password' && path !== '/api/logout' && path !== '/api/me/profile') return json(403, { error: 'Bitte zuerst ein neues Passwort wählen.', mustChange: true });
+			// Ausgeschaltete Bausteine gelten auch auf dem Server (nicht nur im Menü): Mitarbeiter-Endpunkte werden abgelehnt
+			const need = staffEndpointModule(path);
+			if (need && path.startsWith('/api/me/')) {
+				const on = serverModules();
+				if (!on.has('mitarbeiter') || !on.has(need as never)) return json(403, { error: 'Diese Funktion ist in Ihrem Betrieb nicht eingeschaltet.', disabled: true });
+			}
 		}
+		// Öffentliche Abnahme-Seite des Kunden: nur mit eingeschaltetem Baustein
+		if (path === '/api/abnahme' && !serverModules().has('nachweis')) return json(404, { error: 'Dieser Link ist ungültig oder wurde ersetzt.' });
 	}
 	const res = await resolve(event);
 	res.headers.set('X-Content-Type-Options', 'nosniff');

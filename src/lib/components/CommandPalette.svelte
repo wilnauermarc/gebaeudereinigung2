@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { db } from '#lib/db.svelte.ts';
+	import { features } from '#lib/features.svelte.ts';
 	import Dialog from './Dialog.svelte';
 	import { Search, LayoutDashboard, Users, FileText, Palette, Building2, FilePlus2 } from '@lucide/svelte';
 	import { quoteStatus } from '#lib/labels.ts';
@@ -34,7 +35,8 @@
 				icon: FilePlus2,
 				href: `/angebote/${x.id}`
 			}));
-		const navs = nav.filter((n) => !s || n.label.toLowerCase().includes(s));
+		const navs = nav.filter((n) => features.path(n.href) && (!s || n.label.toLowerCase().includes(s)));
+		if (!features.has('verkauf')) quotes.length = 0;
 		return [...navs, ...customers.slice(0, s ? 6 : 4), ...quotes.slice(0, s ? 5 : 3)];
 	});
 

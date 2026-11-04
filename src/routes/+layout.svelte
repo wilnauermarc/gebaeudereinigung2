@@ -1,10 +1,12 @@
 <script lang="ts">
 	import '../app.css';
+	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { db } from '#lib/db.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { ui, roleLabels, applyPalette } from '#lib/ui.svelte.ts';
+	import { features } from '#lib/features.svelte.ts';
 	import PasswordChange from '#lib/components/PasswordChange.svelte';
 	import Tour from '#lib/components/Tour.svelte';
 	import { tour } from '#lib/tour.svelte.ts';
@@ -23,6 +25,7 @@
 
 	let paletteOpen = $state(false);
 	let menuOpen = $state(false);
+	let blockedPath = '';
 	let resetOpen = $state(false);
 	let dark = $state(false);
 	let online = $state(true);
@@ -112,7 +115,7 @@
 		if (href === '/angebote') return db.data.quotes.filter((q) => q.status === 'versendet' && q.followupOn && q.followupOn < today).length;
 		return 0;
 	}
-	const attention = $derived(['/maengel', '/angebote', '/rechnungen', '/aufgaben'].reduce((n, h) => n + badge(h), 0));
+	const attention = $derived(['/maengel', '/angebote', '/rechnungen', '/aufgaben'].filter((h) => features.path(h)).reduce((n, h) => n + badge(h), 0));
 	const isActive = (href: string) => (href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href));
 
 	// Tastatur: ⌘K / Strg+K Suche, „g“ dann Buchstabe navigiert
@@ -153,6 +156,12 @@
 		if (!db.ready) return;
 		const u = db.session;
 		if (path.startsWith('/abnahme')) return; // öffentliche Abnahme-Seite für Kunden (nur mit Schlüssel im Link)
+		if (u && u.management && !features.path(path)) {
+			// einmal melden und weiterleiten; ohne untrack würde der Hinweis diesen Effekt erneut auslösen (Endlosschleife)
+			untrack(() => { if (blockedPath !== path) { blockedPath = path; toasts.push('Dieser Bereich ist ausgeschaltet. Administratoren können ihn unter Einstellungen → Funktionsumfang einschalten.'); } goto('/'); });
+			return;
+		}
+		blockedPath = '';
 		if (!u) { if (!path.startsWith('/login')) goto('/login'); return; }
 		if (u.role === 'mitarbeiter') { if (!path.startsWith('/mitarbeiter')) goto('/mitarbeiter'); return; }
 		if (path.startsWith('/login')) goto('/');

@@ -5,6 +5,7 @@
 import { addDays, entryHours, fromMinutes, toMinutes, weekday } from './calc';
 import type { Data } from './types';
 import { dueAtVisit, lvAt } from './lv';
+import { activeModules } from './modules';
 
 export interface StaffShift { siteId: string; date: string; start: string; end: string; customer: string; site: string; street: string; note: string; chemicals: string;
 	/** Leistungsverzeichnis des Objekts für heute (nur am heutigen Einsatz): fällige Leistungen zuerst */
@@ -26,6 +27,8 @@ export interface StaffView {
 	requireQr: boolean;
 	/** Standort-Abgleich beim Stempeln aktiv */
 	geo: boolean;
+	/** Welche Bereiche der Betrieb eingeschaltet hat (die Mitarbeiter-App blendet Ausgeschaltetes aus) */
+	modules: { active: boolean; zeiten: boolean; nachweis: boolean; maengel: boolean; einsatz: boolean };
 	month: string; hours: number; soll: number;
 	minijob: { earnedCents: number; limitCents: number } | null;
 	leave: { from: string; to: string; kind: 'urlaub' | 'krank'; status: 'beantragt' | 'genehmigt' }[];
@@ -74,7 +77,7 @@ export function staffView(d: Data, employeeId: string, today: string, inbox: Sta
 		: { id: i.id, kind: 'defect' as const, label: String(i.payload.text).slice(0, 80), status: i.status === 'neu' ? 'offen' : 'übernommen', createdAt: i.created_at });
 
 	return {
-		requireQr: !!d.settings?.requireQr, geo: !!d.settings?.geo, times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
+		requireQr: !!d.settings?.requireQr, geo: !!d.settings?.geo, modules: (() => { const m = activeModules(d.settings?.modules); return { active: m.has('mitarbeiter'), zeiten: m.has('zeiten'), nachweis: m.has('nachweis'), maengel: m.has('maengel'), einsatz: m.has('einsatz') }; })(), times, requests, open: openRow ? { id: openRow.id, startedAt: openRow.payload.startAt, siteId: openRow.payload.siteId, site: siteName(openRow.payload.siteId) } : null,
 		name: e.name, role: e.role, contract: e.contract, weeklyHours: e.weeklyHours,
 		shifts, month, hours, soll: (e.weeklyHours * days) / 7,
 		minijob: e.contract === 'minijob' ? { earnedCents: Math.round(hours * 1500), limitCents: MINIJOB_LIMIT } : null,

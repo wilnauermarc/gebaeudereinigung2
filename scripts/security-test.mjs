@@ -363,6 +363,21 @@ ok('nach 5 Fehlversuchen: Zugang gesperrt (423)', last === 423, String(last));
 ok('auch das richtige Passwort wird dann abgelehnt', (await brute.req('POST', '/api/login', { login: 'tomasz.nowak', password: 'Mein-eigenes-Passwort' })).s === 423);
 
 // Sperren durch Inhaberin beendet Sitzungen
+// ── Funktionsumfang (Bausteine) ──
+{
+	const setModules = async (client, modules) => { const cur = (await owner.req('GET', '/api/state')).j; cur.data.settings = { ...(cur.data.settings ?? {}), modules }; return client.req('PUT', '/api/state', { rev: cur.rev, data: cur.data }); };
+	ok('Administratorin ändert den Funktionsumfang', (await setModules(owner, { nachweis: false })).s === 200);
+	const v1 = await st2.req('GET', '/api/me/view');
+	ok('Mitarbeiter-Ansicht meldet ausgeschaltete Bausteine', v1.s === 200 && v1.j.modules.nachweis === false && v1.j.modules.zeiten === true && v1.j.modules.active === true, JSON.stringify(v1.j.modules));
+	ok('Ausgeschaltet: Checkliste wird auf dem Server abgelehnt (403)', (await st2.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: [] })).s === 403);
+	ok('Ausgeschaltet: öffentliche Abnahme-Seite liefert 404', (await anon.req('GET', `/api/abnahme?s=${todayShift.siteId}&t=ABNAHME-TESTSCHLUESSEL-0123456789`)).s === 404);
+	ok('Zeiterfassung bleibt nutzbar (Korrektur-Endpunkt antwortet nicht mit 403)', (await st2.req('POST', '/api/me/correction', {})).s !== 403);
+	ok('Zeiten aus: Stempeln und Mitarbeiter-App folgen (403)', (await setModules(owner, { zeiten: false })).s === 200 && (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId })).s === 403);
+	ok('Mitarbeiter-App aus: nur noch die Ansicht mit Hinweis, alles andere 403', (await setModules(owner, { mitarbeiter: false })).s === 200 && (await st2.req('GET', '/api/me/view')).j.modules.active === false && (await st2.req('POST', '/api/me/request', { kind: 'krank', from: '2026-11-04', to: '2026-11-04' })).s === 403);
+	ok('Verwaltungs-Schnittstellen bleiben davon unberührt', (await owner.req('GET', '/api/inbox')).s === 200);
+	ok('Alles wieder an', (await setModules(owner, {})).s === 200 && (await st2.req('GET', '/api/me/view')).j.modules.active === true);
+}
+
 const id = list.j.users.find((u) => u.login === 'tomasz.nowak').id;
 await owner.req('POST', '/api/users', { action: 'reset', id }); // neuer Code, Sitzung des Mitarbeiters endet
 ok('nach Reset ist die alte Sitzung des Mitarbeiters ungültig', (await staff.req('GET', '/api/me/view')).s === 401);
@@ -374,6 +389,7 @@ await buero.req('POST', '/api/login', { login: 'buero.kraft', password: b.j.code
 await buero.req('POST', '/api/password', { current: b.j.code, next: 'Buero-Passwort-123' });
 await buero.req('POST', '/api/login', { login: 'buero.kraft', password: 'Buero-Passwort-123' });
 ok('Büro lädt Datenbestand', (await buero.req('GET', '/api/state')).s === 200);
+ok('Büro darf den Funktionsumfang nicht ändern (403)', (await (async () => { const base = (await owner.req('GET', '/api/state')).j; const d = base.data; d.settings = { ...(d.settings ?? {}), modules: { zusatz: false } }; return buero.req('PUT', '/api/state', { rev: base.rev, data: d }); })()).s === 403);
 ok('Büro darf keine Verwaltungszugänge anlegen (403)', (await buero.req('POST', '/api/users', { action: 'create', role: 'buero', login: 'x1x', display: 'X1x' })).s === 403);
 ok('Büro darf keinen Administrator anlegen (403)', (await buero.req('POST', '/api/users', { action: 'create', role: 'inhaber', login: 'hacker2', display: 'Hacker' })).s === 403);
 // Weiterer Administrator: nur durch einen Administrator, mit Einmal-Code und Passwortzwang

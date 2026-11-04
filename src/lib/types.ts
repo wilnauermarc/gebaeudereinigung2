@@ -401,6 +401,8 @@ export interface Data {
 		geo?: boolean;
 		/** Radius um das Objekt in Metern (Standard 150) */
 		geoRadius?: number;
+		/** Funktionsumfang: welche Bausteine der Betrieb eingeschaltet hat (fehlend = an) */
+		modules?: import('./modules.ts').ModuleChoice;
 		/** Der Bestand besteht aus erfundenen Demodaten (steuert den Hinweis in der Kopfleiste) */
 		demo?: boolean;
 	};

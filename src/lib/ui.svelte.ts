@@ -1,3 +1,4 @@
+import { features } from './features.svelte.ts';
 /** Rolle und Basismodus: bestimmen nur, welche Bereiche in der Navigation stehen. KEIN Zugriffsschutz (ohne Backend gibt es keine Anmeldung). */
 export type Role = 'inhaber' | 'buero' | 'objektleitung';
 export const roleLabels: Record<Role, string> = { inhaber: 'Inhaberin', buero: 'Büro', objektleitung: 'Objektleitung' };
@@ -58,6 +59,7 @@ class UiMode {
 	setCustom(c: string) { this.custom = c; if (this.palette === 'eigen') applyPalette('eigen', c); this.save(); }
 	save() { try { localStorage.setItem(KEY, JSON.stringify({ v: 2, role: this.role, basic: this.basic, palette: this.palette, custom: this.custom })); } catch { /* ignorieren */ } }
 	allows(href: string): boolean {
+		if (!features.path(href)) return false; // vom Betrieb ausgeschaltet
 		if (this.basic && !BASIC.includes(href)) return false;
 		if (this.role === 'inhaber') return true;
 		return (this.role === 'buero' ? OFFICE : FIELD).includes(href);
