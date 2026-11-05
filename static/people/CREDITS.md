@@ -11,3 +11,5 @@ tomasz 1499996860823, lukas 1758598303616 (images.unsplash.com/photo-<ID>).
 Weitere Fotos (12-Personen-Demo): marek 1758598497192, piotr 1758598497201 (images.unsplash.com/photo-<ID>-...). Dilara und Ioana haben gezeichnete Figuren.
 
 Weitere Fotos: robin 1548544149-4835e62ee5b3, kim 1724225618356-4af4289f62d9. Personen ohne gleichnamiges Foto bekommen stabil eines aus dem Pool zugeordnet (photos.ts); gewählt werden kann unter Einstellungen → Mein Profilfoto. Es gibt keine gezeichneten Figuren mehr.
+
+Foto von Tomasz (neu): Pexels (https://www.pexels.com/photo/smiling-young-man-in-red-shirt-portrait-37159572/), Pexels-Lizenz (kostenlose Nutzung, https://www.pexels.com/license/). Zuschnitt quadratisch 192 px.

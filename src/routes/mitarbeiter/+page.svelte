@@ -266,7 +266,7 @@
 			<Avatar name={v.name} size={64} square={false} person ring />
 			<div class="relative z-10 min-w-0 flex-1">
 				<p class="text-sm text-white/70">{v.company}</p>
-				<h1 class="truncate text-2xl font-semibold">{L.hello}, {v.name.split(' ')[0]}</h1>
+				<h1 class="break-words text-2xl font-semibold leading-tight"><span class="block text-base font-normal text-white/70">{L.hello},</span>{v.name.split(' ')[0]}</h1>
 			</div>
 			<button class="relative z-10 grid size-12 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="{L.notifTitle}{unread ? ` (${unread})` : ''}" onclick={() => (notifOpen = true)}><Bell size={22} />{#if unread}<span class="num absolute -top-0.5 -right-0.5 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-bold text-white">{unread}</span>{/if}</button>
 		</header>
