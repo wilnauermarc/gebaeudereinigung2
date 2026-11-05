@@ -9,9 +9,3 @@
 		Strict-Transport-Security "max-age=31536000"
 	}
 }
-
-# www.<Domain> leitet auf die Hauptadresse weiter. Der A-Eintrag für www muss auf den Server zeigen.
-# Bei einer Subdomain wie app.beispiel.de diesen Block entfernen (www.app.… gibt es nicht).
-www.{$DOMAIN} {
-	redir https://{$DOMAIN}{uri} permanent
-}

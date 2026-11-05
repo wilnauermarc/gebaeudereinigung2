@@ -35,6 +35,13 @@ Weniger geeignet sind Dienste wie Netlify, Vercel oder Cloudflare Pages (nur sta
 - **Datenschutz:** Mit dem Server-Anbieter einen AVV abschließen, ein Verzeichnis der Verarbeitungstätigkeiten führen und die Mitarbeitenden informieren. Eine Prüfung der Sicherheit durch Dritte steht aus, ebenso Zwei-Faktor-Anmeldung.
 - **Mehrere Server:** Die Datenbank ist eine Datei und für einen Server gedacht. Für mehr Last oder Ausfallsicherheit ist ein Umstieg auf PostgreSQL vorgesehen.
 
+## Domains: Webseite und App getrennt
+
+- `putzbetrieb.app` und `www.putzbetrieb.app`: die Webseite (liegt bei Netlify). In Netlify unter „Domain management“ die Domain `putzbetrieb.app` hinzufügen und die DNS-Einträge setzen, die Netlify anzeigt (Netlify holt das Zertifikat selbst).
+- `app.putzbetrieb.app`: diese App auf dem Server. DNS: A-Eintrag `app` auf die Server-IP (62.83.96.138), `DOMAIN=app.putzbetrieb.app` in der `.env`, dann `docker compose up -d --build && docker compose restart caddy`. Das Zertifikat holt Caddy selbst.
+- Die Webseite verlinkt „Anmelden“ auf `https://app.putzbetrieb.app`.
+- Die A-Einträge für `@` und `www` dürfen **nicht** mehr auf den Server zeigen, sonst erscheint dort die App statt der Webseite. Der www-Weiterleitungsblock im Caddyfile ist entfernt.
+
 ## Abo und Pakete (für den Betreiber)
 
 Gesteuert über drei Werte in der Datei `.env`, nach einer Änderung `docker compose up -d`:
