@@ -359,3 +359,8 @@ dialog.dlg::backdrop {
 @media (prefers-reduced-motion: reduce) {
 	.confetti { display: none; }
 }
+
+/* Wortmarke: auf hellem Grund dunkle Schrift, im Dunkelmodus helle */
+.logo-dark { display: none; }
+:root[data-theme='dark'] .logo-light { display: none; }
+:root[data-theme='dark'] .logo-dark { display: block; }

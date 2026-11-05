@@ -50,7 +50,7 @@
 
 <div class="mx-auto grid min-h-dvh max-w-md place-items-center px-4 py-8">
 	<form class="card w-full p-6" onsubmit={submit} novalidate>
-		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">P</div><div><p class="text-lg font-semibold">Putzbetrieb</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
+		<div class="mb-5"><img src="/brand/logo-480.webp" alt="Putzbetrieb" width="480" height="120" class="logo-light h-12 w-auto" /><img src="/brand/logo-dark-480.webp" alt="" aria-hidden="true" width="480" height="120" class="logo-dark h-12 w-auto" /><p class="mt-1 text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div>
 		{#if !db.ready}
 			<p class="flex items-center gap-2 text-sm text-muted"><Loader size={14} class="animate-spin" /> Wird geladen …</p>
 		{:else if db.demo}
