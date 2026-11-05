@@ -18,6 +18,13 @@ Stand: 5. November 2026. Das ist eine Arbeitsliste für alles, was nur Sie selbs
 4. [Bing Webmaster Tools](https://www.bing.com/webmasters) → „Aus der Google Search Console importieren“. Dort gibt es auch Berichte zu Zitaten in Copilot.
 5. In den ersten Wochen wöchentlich ansehen: Indexierung (Seiten „Gefunden, nicht indexiert“ sind normal bei neuen Domains), Suchanfragen, Klicks, Positionen.
 
+## 2b. Anfrageformular (Netlify Forms)
+
+1. Nach dem ersten Deploy erscheint in Netlify unter **Forms** das Formular `testzugang`. Testen Sie es einmal mit einer eigenen Anfrage.
+2. Forms → Settings & usage → **Form notifications** → „Add notification“ → E-Mail an Ihre Adresse. Ohne diesen Schritt landen Anfragen nur im Netlify-Menü.
+3. Spam: Das Formular hat ein verstecktes Feld (Honeypot). Netlify bietet zusätzlich einen Spam-Filter in den Formular-Einstellungen.
+4. Datenschutz: Erledigte Einträge in Netlify löschen. Die gelb markierte Stelle in der Datenschutzerklärung (Auftragsverarbeitung, Speicherdauer) füllen.
+
 ## 3. Rechtstexte (vor dem Start)
 
 - **Impressum** (`impressum.html`): Telefonnummer ergänzen oder streichen, USt-IdNr. ergänzen oder streichen. Ob weitere Angaben nötig sind, hängt von Ihrer Rechtsform und Tätigkeit ab.
