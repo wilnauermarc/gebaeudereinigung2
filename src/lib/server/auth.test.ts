@@ -79,3 +79,21 @@ describe('Datenbestand', () => {
 		expect(JSON.parse(s.getState()!.json)).toEqual({ a: 2 });
 	});
 });
+
+describe('Protokoll: IP-Adressen', () => {
+	it('werden nach 90 Tagen entfernt, der Eintrag bleibt', () => {
+		s.audit('login', 'u1', '', '203.0.113.7');
+		const day = 86_400_000;
+		expect(s.trimAudit(90, Date.now() + 89 * day)).toBe(0);
+		expect(s.trimAudit(90, Date.now() + 91 * day)).toBe(1);
+		const row = s.recentAudit(1)[0];
+		expect(row.ip).toBe('');
+		expect(row.action).toBe('login');
+	});
+	it('die Anmeldung stößt die Bereinigung an', () => {
+		s.audit('login_fail', null, 'x', '198.51.100.9');
+		const old = Date.now() + 100 * 86_400_000;
+		login(s, 'maria', 'falsch-falsch', '198.51.100.9', old);
+		expect(s.recentAudit(5).some((r) => r.action === 'login_fail' && r.detail === 'x' && r.ip === '')).toBe(true);
+	});
+});

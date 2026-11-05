@@ -15,6 +15,9 @@ export type InboxKind = 'punch' | 'absence' | 'defect' | 'correction' | 'checkli
 export interface UserRow { id: string; login: string; display: string; role: Role; employee_id: string | null; pw_hash: string; must_change: number; disabled: number; created_at: string; failed: number; locked_until: number }
 export interface SessionUser { id: string; login: string; display: string; role: Role; employeeId: string | null; mustChange: boolean }
 
+/** So lange bleibt die IP-Adresse in einem Protokolleintrag (Anmeldungen, Fehlversuche) gespeichert */
+export const AUDIT_IP_DAYS = 90;
+
 export function openStore(path = process.env.RESCH_DB ?? 'data/resch.db') {
 	if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
 	const db = new DatabaseSync(path);
@@ -138,6 +141,8 @@ export function openStore(path = process.env.RESCH_DB ?? 'data/resch.db') {
 		swapsPending: () => db.prepare("SELECT * FROM swaps WHERE status = 'angenommen' OR (status = 'bestaetigt' AND applied = 0) ORDER BY date").all() as unknown as SwapRow[],
 		swapsApplied: (ids: string[]) => { const st = db.prepare("UPDATE swaps SET applied = 1 WHERE id = ? AND status = 'bestaetigt'"); for (const id of ids) st.run(id); },
 		audit: (action: string, userId: string | null, detail = '', ip = '') => db.prepare('INSERT INTO audit (at, user_id, action, detail, ip) VALUES (?,?,?,?,?)').run(iso(), userId, action, detail, ip),
+		/** IP-Adressen im Protokoll werden nach so vielen Tagen entfernt (der Eintrag selbst bleibt) */
+		trimAudit: (days = AUDIT_IP_DAYS, nowMs = Date.now()) => db.prepare("UPDATE audit SET ip = '' WHERE ip <> '' AND at < ?").run(new Date(nowMs - days * 86400_000).toISOString()).changes as number,
 		recentAudit: (n = 100) => db.prepare('SELECT at, user_id, action, detail, ip FROM audit ORDER BY id DESC LIMIT ?').all(n) as { at: string; user_id: string | null; action: string; detail: string; ip: string }[],
 		close: () => db.close()
 	};

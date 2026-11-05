@@ -6,7 +6,7 @@ Stand: 5. November 2026. *Entwurf.*
 |---|---|---|---|---|
 | netcup (genaue Firma und Anschrift **[OFFEN]**) | Hosting der Server, auf denen Anwendung und Datenbank laufen | Deutschland (Angabe des Betreibers). Rechenzentrum **[OFFEN]** | alle in der Anwendung gespeicherten Daten | AV-Vertrag **[OFFEN: abschließen]** |
 | E-Mail-Dienst für die Testanmeldung (Anbieter **[OFFEN: noch nicht gewählt]**) | Versand von Bestätigungs- und Erinnerungs-E-Mails (Bestätigungslink, Hinweis vor Ablauf der Testphase) | **[OFFEN]** | E-Mail-Adresse, Name, Firmenname der Testanmelder | AV-Vertrag **[OFFEN]** |
-| Sicherungsspeicher (Anbieter **[OFFEN: falls extern]**) | Ablage der Sicherungen | **[OFFEN]** | Sicherungskopien aller Daten | **[OFFEN]** |
+| Sicherungsspeicher | Ablage der Sicherungen | Nach den Beispielen in `docs/betrieb.md` im Docker-Volume auf demselben netcup-Server; ein externer Speicher ist **nicht** eingerichtet **[OFFEN: ob und wohin]** | Sicherungskopien der Hauptdatenbank | wie netcup |
 
 ## Weitere Empfänger, die keine Unterauftragsverarbeiter sind
 

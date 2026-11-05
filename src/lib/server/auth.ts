@@ -59,7 +59,16 @@ export function rateLimited(ip: string, now = Date.now()): boolean {
 }
 export const resetRateLimit = () => hits.clear();
 
+// IP-Adressen im Protokoll werden höchstens einmal am Tag bereinigt (beim Anmelden angestoßen)
+const trimmed = new WeakMap<Store, number>();
+function trimAuditDaily(store: Store, now: number) {
+	if (now - (trimmed.get(store) ?? 0) < 86_400_000) return;
+	trimmed.set(store, now);
+	try { store.trimAudit(undefined, now); } catch { /* Bereinigung ist nicht kritisch */ }
+}
+
 export function login(store: Store, loginName: string, password: string, ip: string, now = Date.now()): LoginResult {
+	trimAuditDaily(store, now);
 	if (rateLimited(ip, now)) { store.audit('login_ratelimit', null, loginName.slice(0, 60), ip); return { ok: false, reason: 'ratelimit' }; }
 	const u = store.userByLogin(loginName.trim());
 	if (!u) { verifyPassword(password, DUMMY); store.audit('login_fail', null, `unbekannt: ${loginName.slice(0, 60)}`, ip); return { ok: false, reason: 'invalid' }; }
