@@ -64,5 +64,6 @@
 		{#if err}<p class="mt-3 rounded-md bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">{err}</p>{/if}
 		{#if db.ready}<button class="btn btn-primary mt-5 h-11 w-full text-base" disabled={busy}><LogIn size={16} /> {db.needsSetup ? 'Einrichten und anmelden' : 'Anmelden'}</button>{/if}
 		<p class="mt-4 flex items-start gap-1.5 text-xs text-muted"><ShieldCheck size={13} class="mt-0.5 shrink-0" /> Mitarbeitende sehen nach der Anmeldung nur ihre eigenen Einsätze und Stunden. Verwaltungsbereiche sind auf dem Server gesperrt.</p>
+		<p class="mt-4 border-t border-line pt-3 text-center text-xs text-muted"><a class="font-semibold underline" href="https://putzbetrieb.app" rel="noopener">← Zur Webseite putzbetrieb.app</a></p>
 	</form>
 </div>
