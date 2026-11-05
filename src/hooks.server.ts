@@ -6,18 +6,39 @@
  *  - schreibende Anfragen nur vom eigenen Ursprung (Schutz vor Fremdseiten).
  */
 import type { Handle } from '@sveltejs/kit/hooks';
-import { COOKIE, hashToken, isManagement } from '#lib/server/auth.ts';
-import { store } from '#lib/server/store.ts';
+import { COOKIE, hashToken, isManagement, parseSessionCookie } from '#lib/server/auth.ts';
+import { store, mainStore, tenantScope, type TenantContext } from '#lib/server/store.ts';
+import { licenseEnvFor, maintainTenants, tenantById, tenantBySlug, tenantStore, tenantsEnabled } from '#lib/server/tenants.ts';
 import { serverModules, staffEndpointModule } from '#lib/server/modules.ts';
 import { isDemoServer, maintainDemo } from '#lib/server/demo.ts';
 
-const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme', '/api/demo/enter']);
+const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme', '/api/demo/enter', '/api/signup', '/api/signup/confirm']);
 const ANY_USER = (p: string) => p.startsWith('/api/me/') || p === '/api/logout' || p === '/api/password';
 
-export const handle: Handle = async ({ event, resolve }) => {
+/** Mehrere Betriebe (TENANTS=1): das Cookie nennt den Betrieb, die Anfrage läuft mit dessen Speicher und Lizenz */
+export const handle: Handle = async (input) => {
+	const c = parseSessionCookie(input.event.cookies.get(COOKIE));
+	if (!tenantsEnabled()) return run(input, c && c.tenant === 'main' ? c.token : undefined);
+	let ctx: TenantContext = { id: 'main', store: mainStore() };
+	let token = c?.token;
+	if (c && c.tenant !== 'main') {
+		const t = tenantById(c.tenant);
+		if (t) ctx = { id: t.id, slug: t.slug, store: tenantStore(t.id), env: licenseEnvFor(t) };
+		else token = undefined; // Betrieb gibt es nicht (mehr)
+	}
+	// Öffentliche Abnahme-Seite: der Betrieb steht als Kürzel (?b=) im Link, weil es dort keine Sitzung gibt
+	if (input.event.url.pathname === '/api/abnahme') {
+		const b = input.event.url.searchParams.get('b');
+		const t = b ? tenantBySlug(b) : undefined;
+		if (t) { ctx = { id: t.id, slug: t.slug, store: tenantStore(t.id), env: licenseEnvFor(t) }; token = undefined; }
+	}
+	void maintainTenants().catch(() => undefined); // Warnmails und Löschung nach Testende, höchstens stündlich
+	return tenantScope.run(ctx, () => run(input, token));
+};
+
+const run = async ({ event, resolve }: Parameters<Handle>[0], token: string | undefined) => {
 	const path = event.url.pathname;
 	if (isDemoServer()) maintainDemo(store()); // Demo: bei Bedarf anlegen oder zurücksetzen
-	const token = event.cookies.get(COOKIE);
 	event.locals.user = token ? store().sessionUser(hashToken(token)) : null;
 
 	if (path.startsWith('/api/')) {

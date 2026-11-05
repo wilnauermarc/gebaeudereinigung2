@@ -42,6 +42,18 @@ Weniger geeignet sind Dienste wie Netlify, Vercel oder Cloudflare Pages (nur sta
 - Die Webseite verlinkt „Anmelden“ auf `https://app.putzbetrieb.app`.
 - Die A-Einträge für `@` und `www` dürfen **nicht** mehr auf den Server zeigen, sonst erscheint dort die App statt der Webseite. Der www-Weiterleitungsblock im Caddyfile ist entfernt.
 
+## Testanmeldung mit mehreren Betrieben
+
+Mit `TENANTS=1` nimmt die Installation Testanmeldungen auf `/start` an. Jeder Betrieb bekommt eine **eigene Datenbankdatei** (`tenants/<id>.db` neben der Hauptdatenbank); der bisherige Betrieb dieser Installation bleibt als Hauptbetrieb unverändert.
+
+- **Ablauf:** Formular (Firma, Name, E-Mail, Passwort, Zustimmung) → Bestätigungslink per E-Mail (24 Stunden gültig) → Betrieb mit 30 Tagen Testphase, alle Bausteine.
+- **E-Mail:** `SMTP_URL` und `MAIL_FROM` in der `.env`. Ohne sie wird nichts versendet, die Nachrichten landen als Dateien im Ordner `outbox` (nur zum Testen). **Ohne SMTP gibt es keine echten Testanmeldungen.**
+- **Anmelden:** Inhaberin mit der E-Mail-Adresse. Mitarbeitende mit `name@betriebskürzel` (das Kürzel steht in der Anzeige des Zugangs).
+- **Ende:** 3 Tage vor Ablauf und bei Ablauf geht eine E-Mail raus. 14 Tage nach Ablauf wird die Datenbankdatei **endgültig gelöscht**, es bleibt nur ein Hash der E-Mail-Adresse (damit die Testphase nicht beliebig oft neu beginnt). Bezahlte Betriebe (`paid_until` im Verzeichnis `registry.db`) werden nie gelöscht.
+- **Schutz:** Köderfeld, höchstens 5 gültige Anträge je Adresse und Stunde, höchstens 2 Mails je E-Mail-Adresse und Tag, Höchstzahl der Betriebe (`MAX_TENANTS`), immer dieselbe Antwort (keine Adress-Abfrage), Sitzungen sind an den Betrieb gebunden.
+- **Sicherung:** `scripts/backup.mjs` sichert nur die Hauptdatenbank. Die Betriebe (`tenants/`) und `registry.db` müssen separat gesichert werden (zum Beispiel das ganze Datenverzeichnis).
+- **Nicht gebaut:** Obergrenze für den Speicher je Betrieb, Bezahlen und Paketwechsel in der App (das setzt der Betreiber in `registry.db`), Passwort-vergessen per E-Mail.
+
 ## Öffentliche Demo
 
 Eine eigene Instanz mit erfundenen Daten, ohne Anmeldung, nur lesend, alle 3 Stunden zurückgesetzt. Sie nutzt eine eigene Datenbank und hat nichts mit den echten Betrieben zu tun.

@@ -36,6 +36,10 @@ class Db {
 	setupNeedsCode = $state(false);
 	/** Öffentliche Demo-Instanz: erfundene Daten, nur lesend */
 	demo = $state(false);
+	/** Diese Installation nimmt Testanmeldungen an (mehrere Betriebe) */
+	signup = $state(false);
+	/** Betriebskürzel (bei mehreren Betrieben in einer Installation), für Anmeldung der Mitarbeitenden und Abnahme-Links */
+	tenant = $state<string | null>(null);
 	/** Zeitpunkt der letzten Speicherung auf dem Server (für die Statusanzeige) */
 	savedAt = $state<Date | null>(null);
 	storageError = $state(false);
@@ -194,6 +198,8 @@ class Db {
 			this.needsSetup = !!j.needsSetup;
 			this.setupNeedsCode = !!j.setupNeedsCode;
 			this.demo = !!j.demo;
+			this.signup = !!j.signup;
+			this.tenant = j.tenant ?? null;
 			this.session = j.user;
 			if (j.user?.management && !j.user.mustChange) { await this.loadLicense(); await this.load(); }
 		} catch {

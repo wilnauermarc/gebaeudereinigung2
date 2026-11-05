@@ -18,6 +18,11 @@ services:
       LICENSE_PLAN: ${LICENSE_PLAN:-}
       LICENSE_TRIAL_UNTIL: ${LICENSE_TRIAL_UNTIL:-}
       LICENSE_PAID_UNTIL: ${LICENSE_PAID_UNTIL:-}
+      # Testanmeldung mit mehreren Betrieben (TENANTS=1) und E-Mail-Versand, siehe docs/betrieb.md
+      TENANTS: ${TENANTS:-}
+      MAX_TENANTS: ${MAX_TENANTS:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
     volumes:
       - resch-data:/data
     expose:

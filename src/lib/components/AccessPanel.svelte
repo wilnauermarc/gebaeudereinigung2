@@ -28,7 +28,8 @@
 	// Einmal-Code: wird genau einmal angezeigt, danach nur noch zurücksetzbar
 	let code = $state<{ login: string; code: string } | null>(null);
 	let codeOpen = $state(false);
-	function showCode(login: string, c: string) { code = { login, code: c }; codeOpen = true; }
+	/** Bei mehreren Betrieben in einer Installation melden sich Mitarbeitende mit name@betriebskürzel an */
+	function showCode(login: string, c: string) { code = { login: db.tenant && !login.includes('@') ? `${login}@${db.tenant}` : login, code: c }; codeOpen = true; }
 	async function copy() { try { await navigator.clipboard.writeText(`Anmeldename: ${code!.login}\nEinmal-Code: ${code!.code}`); toasts.push('Kopiert.', { tone: 'success' }); } catch { toasts.push('Kopieren nicht möglich, bitte abschreiben.'); } }
 
 	let open = $state(false);

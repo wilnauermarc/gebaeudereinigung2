@@ -14,10 +14,13 @@
 	let open = $state<string | null>(null);
 	const siteId = $derived(page.params.siteId!);
 	const token = $derived(page.url.searchParams.get('t') ?? '');
+	/** Betrieb (nur bei mehreren Betrieben in einer Installation) */
+	const biz = $derived(page.url.searchParams.get('b') ?? '');
+	const bq = $derived(biz ? `&b=${encodeURIComponent(biz)}` : '');
 
 	async function load() {
 		try {
-			const r = await fetch(`/api/abnahme?s=${encodeURIComponent(siteId)}&t=${encodeURIComponent(token)}`);
+			const r = await fetch(`/api/abnahme?s=${encodeURIComponent(siteId)}&t=${encodeURIComponent(token)}${bq}`);
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) { error = j.error ?? 'Der Link ist ungültig.'; return; }
 			data = j; error = '';
@@ -30,7 +33,7 @@
 		busy = date + acceptance; formErr[date] = '';
 		try {
 			try { localStorage.setItem('putzbetrieb-abnahme-name', by.trim()); } catch { /* ignorieren */ }
-			const r = await fetch('/api/abnahme', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ s: siteId, t: token, date, acceptance, by, note: note[date] ?? '' }) });
+			const r = await fetch(`/api/abnahme?x=1${bq}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ s: siteId, t: token, date, acceptance, by, note: note[date] ?? '' }) });
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) { formErr[date] = j.error ?? 'Nicht möglich.'; return; }
 			open = null; await load();

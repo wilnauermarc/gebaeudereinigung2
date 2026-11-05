@@ -8,6 +8,7 @@
  */
 import { MODULE_IDS, type ModuleId } from '../modules.ts';
 import { planModules, type PlanId } from '../pricing.ts';
+import { tenantScope } from './store.ts';
 
 export type LicenseStatus = 'eigenbetrieb' | 'test' | 'aktiv' | 'abgelaufen' | 'demo';
 /** Bausteine der Demo: Heute, Vorgänge, Einsatzplan, Leistungsnachweis, Leitstand, Mitarbeiter-Ansicht */
@@ -18,7 +19,7 @@ type Env = Record<string, string | undefined>;
 const day = (s: string | undefined) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 86400_000);
 
-export function licenseInfo(today: string, env: Env = process.env): LicenseInfo {
+export function licenseInfo(today: string, env: Env = tenantScope.getStore()?.env ?? process.env): LicenseInfo {
 	if (env.DEMO === '1') return { status: 'demo', plan: 'alles', trialUntil: null, paidUntil: null, daysLeft: null, allowed: [...DEMO_MODULES] };
 	const plan = (['einfach', 'standard', 'alles'] as const).find((p) => p === env.LICENSE_PLAN?.trim().toLowerCase()) ?? null;
 	const trialUntil = day(env.LICENSE_TRIAL_UNTIL), paidUntil = day(env.LICENSE_PAID_UNTIL);

@@ -3,6 +3,13 @@ import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypt
 import { MANAGEMENT, type Role, type SessionUser, type Store } from './store.ts';
 
 export const COOKIE = 'resch_session';
+/** Sitzungs-Cookie: bei weiteren Betrieben "<betriebs-id>.<token>", beim Hauptbetrieb nur das Token */
+export function parseSessionCookie(raw: string | undefined): { tenant: string; token: string } | null {
+	if (!raw) return null;
+	const i = raw.indexOf('.');
+	return i < 0 ? { tenant: 'main', token: raw } : { tenant: raw.slice(0, i), token: raw.slice(i + 1) };
+}
+export const sessionCookieValue = (tenant: string, token: string) => tenant === 'main' ? token : `${tenant}.${token}`;
 export const MAX_FAILS = 5;
 export const LOCK_MS = 15 * 60_000;
 export const TTL_MS: Record<'management' | 'staff', number> = { management: 12 * 3600_000, staff: 30 * 86_400_000 };

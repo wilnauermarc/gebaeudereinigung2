@@ -6,6 +6,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type Role = 'inhaber' | 'buero' | 'objektleitung' | 'mitarbeiter';
 export const MANAGEMENT: Role[] = ['inhaber', 'buero', 'objektleitung'];
@@ -144,5 +145,9 @@ export function openStore(path = process.env.RESCH_DB ?? 'data/resch.db') {
 export type Store = ReturnType<typeof openStore>;
 
 let shared: Store | null = null;
-/** Gemeinsame Instanz für den laufenden Server */
-export const store = (): Store => (shared ??= openStore());
+/** Betrieb der laufenden Anfrage (nur mit TENANTS=1): welcher Speicher, welche Lizenz */
+export interface TenantContext { id: string; slug?: string; store: Store; env?: Record<string, string | undefined> }
+export const tenantScope = new AsyncLocalStorage<TenantContext>();
+/** Speicher des Betriebs der laufenden Anfrage; ohne Betriebskontext die gemeinsame Hauptinstanz */
+export const store = (): Store => tenantScope.getStore()?.store ?? (shared ??= openStore());
+export const mainStore = (): Store => (shared ??= openStore());

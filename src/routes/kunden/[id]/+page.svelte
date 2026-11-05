@@ -122,7 +122,7 @@
 	async function persistAccept() { acState = 'speichert'; acState = (await db.flush()) ? 'ok' : 'fehler'; }
 	function openAccept(site: SiteT) { acSite = site; acOpen = true; if (!site.acceptToken) { site.acceptToken = newToken(); persistAccept(); } else acState = 'ok'; }
 	function renewAccept() { if (acSite && confirm('Neuen Link erzeugen? Der bisherige Link funktioniert danach nicht mehr.')) { acSite.acceptToken = newToken(); persistAccept(); } }
-	const acUrl = $derived(acSite?.acceptToken ? `${location.origin}/abnahme/${acSite.id}?t=${acSite.acceptToken}` : '');
+	const acUrl = $derived(acSite?.acceptToken ? `${location.origin}/abnahme/${acSite.id}?t=${acSite.acceptToken}${db.tenant ? `&b=${db.tenant}` : ''}` : '');
 	const acSvg = $derived(acUrl ? renderSVG(acUrl, { border: 1 }) : '');
 	async function copyAccept() { try { await navigator.clipboard.writeText(acUrl); toasts.push('Link kopiert.', { tone: 'success' }); } catch { toasts.push('Kopieren nicht möglich, bitte markieren und kopieren.'); } }
 	let lvOpen = $state(false);
