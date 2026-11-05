@@ -1,0 +1,12 @@
+# Adresse der öffentlichen Demo (Voraussetzung: A-Eintrag auf den Server, Container mit: docker compose --profile demo up -d).
+# Diese Datei liegt im Repository, damit der rsync mit --delete sie nicht vom Server löscht.
+demo.putzbetrieb.app {
+	encode zstd gzip
+	reverse_proxy demo:3000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+	}
+}

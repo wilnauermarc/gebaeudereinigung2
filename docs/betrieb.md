@@ -59,7 +59,7 @@ Mit `TENANTS=1` nimmt die Installation Testanmeldungen auf `/start` an. Jeder Be
 Eine eigene Instanz mit erfundenen Daten, ohne Anmeldung, nur lesend, alle 3 Stunden zurückgesetzt. Sie nutzt eine eigene Datenbank und hat nichts mit den echten Betrieben zu tun.
 
 1. DNS: A-Eintrag `demo` auf die Server-IP.
-2. `cp sites/demo.caddy.beispiel sites/demo.caddy` (Adresse anpassen).
+2. Die Datei `sites/demo.caddy` liegt im Repository (Adresse bei Bedarf anpassen). Sie muss im Repository bleiben, sonst löscht ein rsync mit `--delete` sie auf dem Server und die Demo ist nicht mehr erreichbar. Ohne Demo die Datei entfernen.
 3. `docker compose --profile demo up -d --build && docker compose restart caddy`
 4. Adressen: `https://demo.putzbetrieb.app` (Anmeldeseite mit zwei Knöpfen), `/demo` (Büro-Ansicht direkt), `/demo?as=staff` (Mitarbeiter-App direkt).
 
