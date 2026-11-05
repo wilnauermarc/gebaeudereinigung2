@@ -49,3 +49,14 @@ describe('Lizenz', () => {
 		expect(activeModules(undefined, ['stamm', 'zeiten']).has('zeiten')).toBe(false);
 	});
 });
+
+describe('Demo-Lizenz', () => {
+	it('DEMO=1 ist nur lesend mit schmalem Umfang', async () => {
+		const { licenseInfo, DEMO_MODULES } = await import('./server/license.ts');
+		const l = licenseInfo('2026-11-05', { DEMO: '1' });
+		expect(l.status).toBe('demo');
+		expect(l.allowed).toEqual(DEMO_MODULES);
+		expect(l.allowed).not.toContain('rechnungen');
+		expect(licenseInfo('2026-11-05', {}).status).toBe('eigenbetrieb');
+	});
+});

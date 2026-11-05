@@ -14,7 +14,9 @@ export const GET: RequestHandler = () => {
 };
 export const PUT: RequestHandler = async ({ request, locals }) => {
 	// Abgelaufenes Abo: Lesemodus. Daten bleiben sichtbar und exportierbar, gespeichert wird nichts mehr.
-	if (licenseInfo(berlinParts(new Date()).date).status === 'abgelaufen') return json({ error: 'Das Abo ist abgelaufen. Die Daten bleiben les- und exportierbar, Änderungen werden erst nach der Verlängerung gespeichert.', licenseExpired: true }, { status: 402 });
+	const st = licenseInfo(berlinParts(new Date()).date).status;
+	if (st === 'demo') return json({ error: 'In der Demo werden Änderungen nicht gespeichert.', demo: true }, { status: 402 });
+	if (st === 'abgelaufen') return json({ error: 'Das Abo ist abgelaufen. Die Daten bleiben les- und exportierbar, Änderungen werden erst nach der Verlängerung gespeichert.', licenseExpired: true }, { status: 402 });
 	const text = await request.text();
 	if (text.length > MAX_BYTES) return json({ error: 'Datenbestand zu groß.' }, { status: 413 });
 	let b: { rev?: unknown; data?: unknown };

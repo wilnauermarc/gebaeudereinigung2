@@ -242,6 +242,7 @@
 <svelte:head><title>Meine Einsätze · Putzbetrieb</title><meta name="robots" content="noindex" /></svelte:head>
 
 <div class="mx-auto flex min-h-dvh max-w-xl flex-col gap-4 px-4 py-5">
+	{#if db.demo}<div class="rounded-xl bg-accent-soft px-3 py-2 text-center text-xs" role="status"><strong>Demo mit erfundenen Daten.</strong> Stempeln und Meldungen werden nicht gespeichert. <a href="https://putzbetrieb.app" class="font-semibold underline">Zur Webseite</a></div>{/if}
 	{#if phase === 'laden'}
 		<p class="card p-6 text-center text-muted" role="status">…</p>
 	{:else if db.session?.mustChange}

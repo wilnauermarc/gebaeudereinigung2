@@ -11,5 +11,5 @@ export const GET: RequestHandler = () => {
 	const s = store().getState();
 	let seats = 0;
 	try { seats = s ? (JSON.parse(s.json).employees?.length ?? 0) : 0; } catch { seats = 0; }
-	return json({ ...lic, seats, price: lic.status === 'eigenbetrieb' ? null : priceFor(lic.plan, seats) });
+	return json({ ...lic, seats, price: lic.status === 'eigenbetrieb' || lic.status === 'demo' ? null : priceFor(lic.plan, seats) });
 };

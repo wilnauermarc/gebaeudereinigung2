@@ -42,6 +42,17 @@ Weniger geeignet sind Dienste wie Netlify, Vercel oder Cloudflare Pages (nur sta
 - Die Webseite verlinkt „Anmelden“ auf `https://app.putzbetrieb.app`.
 - Die A-Einträge für `@` und `www` dürfen **nicht** mehr auf den Server zeigen, sonst erscheint dort die App statt der Webseite. Der www-Weiterleitungsblock im Caddyfile ist entfernt.
 
+## Öffentliche Demo
+
+Eine eigene Instanz mit erfundenen Daten, ohne Anmeldung, nur lesend, alle 3 Stunden zurückgesetzt. Sie nutzt eine eigene Datenbank und hat nichts mit den echten Betrieben zu tun.
+
+1. DNS: A-Eintrag `demo` auf die Server-IP.
+2. `cp sites/demo.caddy.beispiel sites/demo.caddy` (Adresse anpassen).
+3. `docker compose --profile demo up -d --build && docker compose restart caddy`
+4. Adressen: `https://demo.putzbetrieb.app` (Anmeldeseite mit zwei Knöpfen), `/demo` (Büro-Ansicht direkt), `/demo?as=staff` (Mitarbeiter-App direkt).
+
+Schutz: höchstens 300 gleichzeitige Demo-Sitzungen, Begrenzung je Adresse, alle schreibenden Anfragen werden abgelehnt (auch Stempeln, Zugänge, Passwort, Export), Suchmaschinen werden ausgeschlossen. Ohne `--profile demo` startet die Demo nicht.
+
 ## Abo und Pakete (für den Betreiber)
 
 Gesteuert über drei Werte in der Datei `.env`, nach einer Änderung `docker compose up -d`:

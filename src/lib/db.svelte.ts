@@ -14,7 +14,7 @@ export const CURRENT_USER = 'Anetta R.';
 
 export interface SwapWish { id: string; siteId: string; date: string; offeredBy: string; takenBy: string | null; status: string }
 export interface LicenseView {
-	status: 'eigenbetrieb' | 'test' | 'aktiv' | 'abgelaufen';
+	status: 'eigenbetrieb' | 'test' | 'aktiv' | 'abgelaufen' | 'demo';
 	plan: 'einfach' | 'standard' | 'alles';
 	trialUntil: string | null; paidUntil: string | null; daysLeft: number | null;
 	allowed: import('./modules.ts').ModuleId[];
@@ -34,6 +34,8 @@ class Db {
 	needsSetup = $state(false);
 	/** Auf dem Server ist ein Einrichtungscode gesetzt (SETUP_TOKEN) */
 	setupNeedsCode = $state(false);
+	/** Öffentliche Demo-Instanz: erfundene Daten, nur lesend */
+	demo = $state(false);
 	/** Zeitpunkt der letzten Speicherung auf dem Server (für die Statusanzeige) */
 	savedAt = $state<Date | null>(null);
 	storageError = $state(false);
@@ -48,7 +50,7 @@ class Db {
 			const r = await fetch('/api/license');
 			if (!r.ok) return;
 			this.license = await r.json();
-			this.readOnly = this.license?.status === 'abgelaufen';
+			this.readOnly = this.license?.status === 'abgelaufen' || this.license?.status === 'demo';
 		} catch { /* Lizenz unbekannt: nichts begrenzen */ }
 	}
 	#rev = 0;
@@ -191,6 +193,7 @@ class Db {
 			const j = await r.json();
 			this.needsSetup = !!j.needsSetup;
 			this.setupNeedsCode = !!j.setupNeedsCode;
+			this.demo = !!j.demo;
 			this.session = j.user;
 			if (j.user?.management && !j.user.mustChange) { await this.loadLicense(); await this.load(); }
 		} catch {

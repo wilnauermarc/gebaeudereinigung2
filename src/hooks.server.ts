@@ -9,12 +9,14 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { COOKIE, hashToken, isManagement } from '#lib/server/auth.ts';
 import { store } from '#lib/server/store.ts';
 import { serverModules, staffEndpointModule } from '#lib/server/modules.ts';
+import { isDemoServer, maintainDemo } from '#lib/server/demo.ts';
 
-const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme']);
+const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme', '/api/demo/enter']);
 const ANY_USER = (p: string) => p.startsWith('/api/me/') || p === '/api/logout' || p === '/api/password';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
+	if (isDemoServer()) maintainDemo(store()); // Demo: bei Bedarf anlegen oder zurücksetzen
 	const token = event.cookies.get(COOKIE);
 	event.locals.user = token ? store().sessionUser(hashToken(token)) : null;
 
@@ -26,6 +28,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			let same = false;
 			try { same = !!origin && new URL(origin).host === event.url.host; } catch { same = false; }
 			if (!same) return json(403, { error: 'Ungültiger Ursprung.' });
+			// Demo: nur lesen. Ausnahmen: Demo betreten und abmelden (der Datenbestand selbst antwortet mit 402)
+			if (isDemoServer() && path !== '/api/demo/enter' && path !== '/api/logout' && path !== '/api/state') return json(403, { error: 'In der Demo werden Änderungen nicht gespeichert.', demo: true });
 		}
 		if (!PUBLIC.has(path)) {
 			const u = event.locals.user;

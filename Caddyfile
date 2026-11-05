@@ -9,3 +9,6 @@
 		Strict-Transport-Security "max-age=31536000"
 	}
 }
+
+# Weitere Adressen (zum Beispiel die Demo): Dateien *.caddy im Ordner sites/ (siehe sites/demo.caddy.beispiel)
+import /etc/caddy/sites/*.caddy

@@ -16,6 +16,14 @@
 		const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 		return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) };
 	}
+	async function enterDemo(as: 'office' | 'staff') {
+		busy = true; err = '';
+		const r = await post('/api/demo/enter', { as });
+		if (!r.ok) { err = r.body.error ?? 'Die Demo ist gerade nicht erreichbar.'; busy = false; return; }
+		await db.init();
+		await goto(as === 'staff' ? '/mitarbeiter' : '/');
+		busy = false;
+	}
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		err = ''; busy = true;
@@ -45,6 +53,12 @@
 		<div class="mb-5 flex items-center gap-3"><div class="grid size-11 place-items-center rounded-xl bg-accent text-lg font-extrabold text-white">P</div><div><p class="text-lg font-semibold">Putzbetrieb</p><p class="text-xs text-muted">{db.needsSetup ? 'Ersteinrichtung' : 'Anmelden'}</p></div></div>
 		{#if !db.ready}
 			<p class="flex items-center gap-2 text-sm text-muted"><Loader size={14} class="animate-spin" /> Wird geladen …</p>
+		{:else if db.demo}
+			<p class="mb-3 text-sm"><strong>Demo mit erfundenen Daten.</strong> Ohne Anmeldung ausprobieren: Änderungen werden nicht gespeichert, die Demo wird regelmäßig zurückgesetzt.</p>
+			<div class="grid gap-2">
+				<button type="button" class="btn btn-primary h-11 w-full text-base" disabled={busy} onclick={() => enterDemo('office')}>Büro-Ansicht ansehen</button>
+				<button type="button" class="btn h-11 w-full text-base" disabled={busy} onclick={() => enterDemo('staff')}>Mitarbeiter-App ansehen (Handy)</button>
+			</div>
 		{:else if db.needsSetup}
 			<p class="mb-4 text-sm text-muted">Legen Sie das Konto der Inhaberin an. Dieser Schritt ist nur beim ersten Start möglich.</p>
 			<div class="grid gap-3">
@@ -62,7 +76,7 @@
 			</div>
 		{/if}
 		{#if err}<p class="mt-3 rounded-md bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">{err}</p>{/if}
-		{#if db.ready}<button class="btn btn-primary mt-5 h-11 w-full text-base" disabled={busy}><LogIn size={16} /> {db.needsSetup ? 'Einrichten und anmelden' : 'Anmelden'}</button>{/if}
+		{#if db.ready && !db.demo}<button class="btn btn-primary mt-5 h-11 w-full text-base" disabled={busy}><LogIn size={16} /> {db.needsSetup ? 'Einrichten und anmelden' : 'Anmelden'}</button>{/if}
 		<p class="mt-4 flex items-start gap-1.5 text-xs text-muted"><ShieldCheck size={13} class="mt-0.5 shrink-0" /> Mitarbeitende sehen nach der Anmeldung nur ihre eigenen Einsätze und Stunden. Verwaltungsbereiche sind auf dem Server gesperrt.</p>
 		<p class="mt-4 border-t border-line pt-3 text-center text-xs text-muted"><a class="font-semibold underline" href="https://putzbetrieb.app" rel="noopener">← Zur Webseite putzbetrieb.app</a></p>
 	</form>
