@@ -4,6 +4,7 @@
  */
 import { addDays, addMonths } from './calc';
 import { contractQuotes } from './cockpit';
+import { paperDeadlines } from './personal';
 import type { Data } from './types';
 
 export type DeadlineKind = 'vertrag' | 'personal' | 'betrieb' | 'kunde' | 'gesetz';
@@ -34,6 +35,7 @@ export function deadlines(d: Data, today: string, horizonDays = 365): Deadline[]
 	for (const q of d.quotes) if (q.status === 'versendet' && q.followupOn) push({ date: q.followupOn, title: `Angebot nachfassen: ${name(q.customerId)}`, detail: q.number, kind: 'kunde', href: `/angebote/${q.id}` });
 	for (const x of d.docs) if (x.validUntil) push({ date: x.validUntil, title: `${x.title} läuft ab`, detail: x.owner, kind: x.ownerType === 'betrieb' ? 'betrieb' : 'vertrag', href: '/nachweise' });
 	for (const e of d.employees) push({ date: e.instructedOn ? addMonths(e.instructedOn, 12) : today, title: `Unterweisung: ${e.name}`, detail: e.instructedOn ? 'jährlich fällig' : 'noch nie dokumentiert', kind: 'personal', href: '/team' });
+	for (const x of paperDeadlines(d.employees, today)) push({ date: x.date, title: x.title, detail: x.detail, kind: 'personal', href: '/team' });
 	for (const m of d.material) if (m.nextCheckOn) push({ date: m.nextCheckOn, title: `Geräteprüfung: ${m.name}`, detail: 'DGUV V3', kind: 'betrieb', href: '/material' });
 	for (const t of d.tasks) if (!t.done && t.dueOn) push({ date: t.dueOn, title: t.title, kind: 'betrieb', href: '/aufgaben' });
 	for (const x of d.defects) if (x.status !== 'erledigt') push({ date: x.dueOn, title: `Mangel beheben: ${x.title}`, detail: name(x.customerId), kind: 'kunde', href: '/maengel' });

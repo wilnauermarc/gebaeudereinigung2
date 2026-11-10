@@ -195,7 +195,7 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 	contract('q24', -270, 12, 6);
 
 	// ── Team ──
-	const emp = (id: string, name: string, role: string, ct: 'vollzeit' | 'teilzeit' | 'minijob', h: number, phone: string, instructed: number | null) => ({ id, name, role, contract: ct, weeklyHours: h, phone, instructedOn: instructed === null ? null : on(instructed) });
+	const emp = (id: string, name: string, role: string, ct: 'vollzeit' | 'teilzeit' | 'minijob', h: number, phone: string, instructed: number | null) => ({ id, name, role, contract: ct, weeklyHours: h, phone, instructedOn: instructed === null ? null : on(instructed), personnelNo: String(1000 + Number(id.slice(1))), email: name.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]+/g, '').trim().replace(/ +/g, '.') + '@beispiel.de' });
 	const employees: Data['employees'] = [
 		emp('m1', 'Maria Kowalski', 'Objektleitung', 'vollzeit', 40, '0123 800101', -120),
 		emp('m2', 'Jana Petrov', 'Reinigungskraft', 'teilzeit', 25, '0123 800102', -340),
@@ -206,6 +206,11 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 		emp('m7', 'Lukas Brandt', 'Springer', 'vollzeit', 40, '0123 800107', null),
 		emp('m8', 'Olga Sidorova', 'Reinigungskraft', 'teilzeit', 20, '0123 800108', -310)
 	];
+
+	// Beispiele für Papiere mit Ablaufdatum: eines läuft bald ab, eines ist abgelaufen, eines ist gültig
+	employees[4].papers = [{ id: 'pp1', kind: 'arbeitserlaubnis', until: on(40), leadDays: 60 }];
+	employees[5].papers = [{ id: 'pp2', kind: 'aufenthaltstitel', until: on(900), leadDays: 90 }];
+	employees[6].papers = [{ id: 'pp3', kind: 'befristung', until: on(-6), leadDays: 30 }];
 
 	// ── Erweiterung auf 12 Personen: vier weitere Mitarbeitende und zusätzliche Objekte aktiver Kunden ──
 	if (team === 12) {

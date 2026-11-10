@@ -9,7 +9,8 @@
 	import Dialog from '#lib/components/Dialog.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { Plus, CalendarOff, Trash2, TriangleAlert, ShieldCheck, KeyRound, ArrowLeftRight, ArrowRight, Check, X } from '@lucide/svelte';
-	import type { ContractType } from '#lib/types.ts';
+	import type { ContractType, EmployeeStatus, PersonPaper } from '#lib/types.ts';
+	import { STATUS, statusOf, statusLabel, onboarding, canActivate, openSteps, PAPER_KINDS, paperLabel, paperState, worstPaper } from '#lib/personal.ts';
 
 	const today = todayKey();
 	const month = db.refMonth;
@@ -44,16 +45,39 @@
 
 	// Mitarbeiter anlegen
 	let empOpen = $state(false);
-	let emp = $state({ name: '', role: 'Reinigungskraft', contract: 'teilzeit' as ContractType, weeklyHours: 20, phone: '' });
+	let emp = $state({ name: '', role: 'Reinigungskraft', contract: 'teilzeit' as ContractType, weeklyHours: 20, phone: '', email: '', direct: false });
+	/** nächste freie Personalnummer (ab 1001) */
+	const nextNo = () => String(Math.max(1000, ...db.data.employees.map((x) => Number(x.personnelNo) || 0)) + 1);
 	let empErr = $state('');
 	function addEmployee(ev: SubmitEvent) {
 		ev.preventDefault();
 		if (emp.name.trim().length < 2) return (empErr = 'Bitte einen Namen eingeben.');
 		if (!(emp.weeklyHours > 0 && emp.weeklyHours <= 48)) return (empErr = 'Wochenstunden zwischen 1 und 48 angeben.');
-		db.data.employees.push({ id: 'm' + Date.now().toString(36), name: emp.name.trim(), role: emp.role, contract: emp.contract, weeklyHours: emp.weeklyHours, phone: emp.phone, instructedOn: null });
+		db.data.employees.push({ id: 'm' + Date.now().toString(36), name: emp.name.trim(), role: emp.role, contract: emp.contract, weeklyHours: emp.weeklyHours, phone: emp.phone, email: emp.email.trim(), personnelNo: nextNo(), status: emp.direct ? 'aktiv' : 'einstellung', startOn: todayKey(), instructedOn: null });
 		empOpen = false;
-		toasts.push(`${emp.name.trim()} angelegt.`, { tone: 'success' });
+		toasts.push(emp.direct ? `${emp.name.trim()} angelegt.` : `${emp.name.trim()} angelegt, Status „In Einstellung“. Erledigen Sie die Schritte in der Personalakte, dann wird die Person einplanbar.`, { tone: 'success', ms: 8000 });
 	}
+
+	// Personalakte
+	let acte = $state<string | null>(null);
+	const person = $derived(acte ? db.employee(acte) : undefined);
+	let acteOpen = $state(false);
+	const steps = $derived(person ? onboarding(person) : []);
+	let paperDraft = $state<{ kind: PersonPaper['kind']; label: string; until: string; leadDays: number }>({ kind: 'arbeitserlaubnis', label: '', until: '', leadDays: 60 });
+	function setStatus(s: EmployeeStatus) {
+		if (!person) return;
+		if (s === 'aktiv' && !canActivate(person) && !confirm(`Es sind noch ${openSteps(person).length} Schritte offen. Trotzdem aktivieren?`)) return;
+		person.status = s;
+		if (s === 'ausgeschieden') toasts.push('Bitte auch den Zugang zur Mitarbeiter-App sperren (Einstellungen → Zugänge).', { ms: 9000 });
+	}
+	function toggleStep(id: string, on: boolean) { if (!person) return; person.onboarding = { ...(person.onboarding ?? {}), [id]: on }; }
+	function addPaper() {
+		if (!person || !paperDraft.until) return;
+		(person.papers ??= []);
+		person.papers.push({ id: 'pp' + Date.now().toString(36), kind: paperDraft.kind, label: paperDraft.label.trim() || undefined, until: paperDraft.until, leadDays: Math.max(0, Math.min(365, Math.round(paperDraft.leadDays) || 60)) });
+		paperDraft = { ...paperDraft, label: '', until: '' };
+	}
+	function removePaper(id: string) { if (person?.papers) person.papers = person.papers.filter((x) => x.id !== id); }
 
 	// Abwesenheit
 	let absOpen = $state(false);
@@ -110,7 +134,7 @@
 <PageHead title="Team" subtitle={`${db.data.employees.length} Mitarbeitende, Stunden und Minijob-Grenze im Monat ${month.split('-').reverse().join('/')}`} {instruments} next={nextStep}>
 	{#snippet actions()}
 		<button class="btn" onclick={() => openAbsence()}><CalendarOff size={14} /> Abwesenheit</button>
-		<button class="btn btn-primary" onclick={() => { emp = { name: '', role: 'Reinigungskraft', contract: 'teilzeit', weeklyHours: 20, phone: '' }; empErr = ''; empOpen = true; }}><Plus size={15} /> Mitarbeiter</button>
+		<button class="btn btn-primary" onclick={() => { emp = { name: '', role: 'Reinigungskraft', contract: 'teilzeit', weeklyHours: 20, phone: '', email: '', direct: false }; empErr = ''; empOpen = true; }}><Plus size={15} /> Mitarbeiter</button>
 	{/snippet}
 </PageHead>
 
@@ -141,7 +165,7 @@
 			{#each rows as r (r.e.id)}
 				{@const tr = training(r.e)}
 				<tr>
-					<td class="td font-medium whitespace-nowrap"><span class="flex items-center gap-2.5"><Avatar name={r.e.name} size={30} square={false} person />{r.e.name}<a href="/einstellungen#zugaenge" class="ml-1 inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs font-medium text-muted hover:border-accent hover:text-accent" title="Handy-Zugang verwalten" aria-label="Zugang für {r.e.name} verwalten"><KeyRound size={11} /> Zugang</a></span></td>
+					<td class="td font-medium whitespace-nowrap"><span class="flex items-center gap-2.5"><Avatar name={r.e.name} size={30} square={false} person /><button class="text-left font-medium hover:underline" onclick={() => { acte = r.e.id; acteOpen = true; }} title="Personalakte öffnen">{r.e.name}</button>{#if statusOf(r.e) !== 'aktiv'}<Badge tone={STATUS.find((s) => s.id === statusOf(r.e))!.tone} label={statusLabel(statusOf(r.e))} />{/if}{#if worstPaper(r.e, today)?.state === 'abgelaufen'}<span title="Ein Papier ist abgelaufen"><Badge tone="danger" label="Papier abgelaufen" /></span>{:else if worstPaper(r.e, today)?.state === 'bald'}<span title="Ein Papier läuft bald ab"><Badge tone="warn" label="Papier läuft ab" /></span>{/if}<a href="/einstellungen#zugaenge" class="ml-1 inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs font-medium text-muted hover:border-accent hover:text-accent" title="Handy-Zugang verwalten" aria-label="Zugang für {r.e.name} verwalten"><KeyRound size={11} /> Zugang</a></span></td>
 					<td class="td text-muted">{r.e.role}</td>
 					<td class="td"><Badge tone={r.e.contract === 'minijob' ? 'warn' : 'neutral'} label={label[r.e.contract]} /></td>
 					<td class="td num text-right">{r.e.weeklyHours}</td>
@@ -214,7 +238,9 @@
 			<div><label class="label" for="e-r">Rolle</label><select id="e-r" class="input" bind:value={emp.role}><option>Reinigungskraft</option><option>Objektleitung</option><option>Springer</option></select></div>
 			<div><label class="label" for="e-c">Vertrag</label><select id="e-c" class="input" bind:value={emp.contract}><option value="vollzeit">Vollzeit</option><option value="teilzeit">Teilzeit</option><option value="minijob">Minijob</option></select></div>
 			<div><label class="label" for="e-h">Stunden pro Woche</label><input id="e-h" type="number" min="1" max="48" step="0.5" class="input num" bind:value={emp.weeklyHours} /></div>
-			<div><label class="label" for="e-p">Telefon</label><input id="e-p" type="tel" class="input" bind:value={emp.phone} /></div>
+			<div><label class="label" for="e-p">Mobilnummer</label><input id="e-p" type="tel" class="input" bind:value={emp.phone} /></div>
+			<div class="col-span-2"><label class="label" for="e-m">E-Mail</label><input id="e-m" type="email" class="input" bind:value={emp.email} /></div>
+			<label class="col-span-2 flex items-start gap-2 text-sm"><input type="checkbox" class="mt-0.5 size-4 accent-[var(--accent)]" bind:checked={emp.direct} /> <span>Direkt als aktiv anlegen (schon eingearbeitet). Sonst startet die Person „In Einstellung“ und wird erst nach den Schritten einplanbar.</span></label>
 			{#if empErr}<p class="col-span-2 text-xs text-danger">{empErr}</p>{/if}
 		</form>
 	{/snippet}
@@ -222,6 +248,76 @@
 		<button class="btn" type="button" onclick={() => (empOpen = false)}>Abbrechen</button>
 		<button class="btn btn-primary" type="submit" form="emp-form">Anlegen</button>
 	{/snippet}
+</Dialog>
+
+<Dialog bind:open={acteOpen} title={person ? `Personalakte: ${person.name}` : 'Personalakte'} width={640}>
+	{#snippet children()}
+		{#if person}
+			<div class="grid gap-5">
+				<section aria-labelledby="pa-s">
+					<h3 id="pa-s" class="mb-2 text-sm font-semibold">Stammdaten</h3>
+					<div class="grid grid-cols-2 gap-3">
+						<div><label class="label" for="pa-n">Name</label><input id="pa-n" class="input" bind:value={person.name} /></div>
+						<div><label class="label" for="pa-no">Personalnummer</label><input id="pa-no" class="input num" bind:value={person.personnelNo} /></div>
+						<div><label class="label" for="pa-p">Mobilnummer</label><input id="pa-p" type="tel" class="input" bind:value={person.phone} /></div>
+						<div><label class="label" for="pa-m">E-Mail</label><input id="pa-m" type="email" class="input" bind:value={person.email} /></div>
+						<div><label class="label" for="pa-r">Rolle</label><select id="pa-r" class="input" bind:value={person.role}><option>Reinigungskraft</option><option>Objektleitung</option><option>Springer</option></select></div>
+						<div><label class="label" for="pa-c">Vertrag</label><select id="pa-c" class="input" bind:value={person.contract}><option value="vollzeit">Vollzeit</option><option value="teilzeit">Teilzeit</option><option value="minijob">Minijob</option></select></div>
+						<div><label class="label" for="pa-h">Stunden pro Woche</label><input id="pa-h" type="number" min="1" max="48" step="0.5" class="input num" bind:value={person.weeklyHours} /></div>
+						<div><label class="label" for="pa-b">Beschäftigungsbeginn</label><input id="pa-b" type="date" class="input" bind:value={person.startOn} /></div>
+					</div>
+				</section>
+
+				<section aria-labelledby="pa-st">
+					<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 id="pa-st" class="text-sm font-semibold">Status und Einstellung</h3>
+						<select class="input h-9 w-auto" aria-label="Status" value={statusOf(person)} onchange={(e) => { const v = e.currentTarget.value as EmployeeStatus; setStatus(v); e.currentTarget.value = statusOf(person); }}>{#each STATUS as s}<option value={s.id}>{s.label}</option>{/each}</select>
+					</div>
+					{#if ['bewerber', 'einstellung', 'vertrag'].includes(statusOf(person))}
+					<ul class="divide-y divide-line rounded-lg border border-line">
+						{#each steps as s (s.id)}
+							<li class="flex items-start gap-3 px-3 py-2.5 text-sm">
+								<input type="checkbox" class="mt-0.5 size-[18px] accent-[var(--accent)]" checked={s.done} disabled={s.auto} onchange={(e) => toggleStep(s.id, e.currentTarget.checked)} aria-label={s.label} />
+								<div class="min-w-0 flex-1"><p class="font-medium {s.done ? 'text-muted line-through' : ''}">{s.label}</p><p class="text-xs text-muted">{s.hint}{#if s.auto} <span class="text-faint">(ergibt sich aus der Unterweisung)</span>{/if}</p></div>
+								{#if s.auto && !s.done}<button class="btn btn-sm" onclick={() => instruct(person.id)}><ShieldCheck size={13} /> Heute dokumentieren</button>{/if}
+							</li>
+						{/each}
+					</ul>
+					{:else}<p class="text-sm text-muted">{statusOf(person) === 'aktiv' ? 'Die Person ist aktiv und wird eingeplant.' : `Status „${statusLabel(statusOf(person))}“: Die Person wird nicht neu eingeplant.`} Wählen Sie „In Einstellung“, um die Schritte der Einstellung zu sehen.</p>{/if}
+					{#if ['bewerber', 'einstellung', 'vertrag'].includes(statusOf(person))}
+						<div class="mt-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2.5 text-sm {canActivate(person) ? 'bg-accent-soft' : 'bg-subtle'}">
+							<span class="flex-1">{canActivate(person) ? 'Alle Schritte sind erledigt. Die Person kann jetzt aktiviert und eingeplant werden.' : `Noch ${openSteps(person).length} Schritte offen, bevor die Person eingeplant werden kann.`}</span>
+							<button class="btn btn-primary btn-sm" disabled={!canActivate(person)} onclick={() => setStatus('aktiv')}><Check size={14} /> Aktivieren</button>
+						</div>
+					{/if}
+				</section>
+
+				<section aria-labelledby="pa-pp">
+					<h3 id="pa-pp" class="mb-2 text-sm font-semibold">Papiere mit Ablaufdatum</h3>
+					{#if (person.papers ?? []).length}
+						<ul class="mb-3 divide-y divide-line rounded-lg border border-line">
+							{#each person.papers ?? [] as p (p.id)}
+								{@const st = paperState(p, today)}
+								<li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
+									<span class="min-w-[140px] flex-1 font-medium">{paperLabel(p)}</span>
+									<span class="num text-muted">bis {formatDate(p.until)}</span>
+									<Badge tone={st.state === 'abgelaufen' ? 'danger' : st.state === 'bald' ? 'warn' : 'success'} label={st.state === 'abgelaufen' ? `seit ${-st.days} Tagen abgelaufen` : st.state === 'bald' ? `noch ${st.days} Tage` : 'gültig'} />
+									<button class="btn btn-ghost btn-icon btn-sm hover:text-danger" aria-label="Papier löschen" onclick={() => removePaper(p.id)}><Trash2 size={13} /></button>
+								</li>
+							{/each}
+						</ul>
+					{:else}<p class="mb-3 text-sm text-muted">Noch keine Papiere hinterlegt. Hier tragen Sie Arbeitserlaubnis, Aufenthaltstitel oder die Befristung eines Vertrags ein. Der Fristenkalender warnt rechtzeitig.</p>{/if}
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_130px_90px_auto]">
+						<select class="input" aria-label="Art" bind:value={paperDraft.kind}>{#each PAPER_KINDS as k}<option value={k.id}>{k.label}</option>{/each}</select>
+						<input class="input" aria-label="Bezeichnung (optional)" placeholder="Bezeichnung (optional)" bind:value={paperDraft.label} />
+						<input type="date" class="input" aria-label="Gültig bis" bind:value={paperDraft.until} />
+						<input type="number" min="0" max="365" class="input num" aria-label="Vorlauf in Tagen" title="So viele Tage vorher wird gewarnt" bind:value={paperDraft.leadDays} />
+						<button class="btn btn-sm" disabled={!paperDraft.until} onclick={addPaper}><Plus size={14} /> Hinzufügen</button>
+					</div>
+				</section>
+			</div>
+		{/if}
+	{/snippet}
+	{#snippet footer()}<button class="btn" type="button" onclick={() => (acteOpen = false)}>Schließen</button>{/snippet}
 </Dialog>
 
 <Dialog bind:open={absOpen} title="Abwesenheit eintragen">

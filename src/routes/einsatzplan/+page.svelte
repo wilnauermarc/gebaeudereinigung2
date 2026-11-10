@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isPlannable } from '#lib/personal.ts';
 	import { db } from '#lib/db.svelte.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { addDays, mondayOf, weekday, fromMinutes, toMinutes } from '#lib/calc.ts';
@@ -211,7 +212,7 @@
 		{:else}<p class="hidden text-xs text-muted sm:block">Person auf einen Einsatz ziehen = Vertretung einteilen. Zulässige Felder leuchten grün.</p>{/if}
 	</div>
 	<ul class="flex flex-wrap gap-1.5">
-		{#each db.data.employees as e (e.id)}
+		{#each db.data.employees.filter(isPlannable) as e (e.id)}
 			{@const away = db.isAbsent(e.id, today)}
 			<li draggable="true" ondragstart={(ev) => startDrag(ev, { kind: 'emp', empId: e.id })} ondragend={endDrag} class="flex cursor-grab items-center gap-2 rounded-full border border-line bg-surface py-1 pr-3 pl-1 text-sm shadow-sm transition hover:-translate-y-px hover:shadow-md active:cursor-grabbing {away ? 'opacity-50' : ''} {drag?.empId === e.id ? 'ring-2 ring-accent' : ''}" title="{e.name}, {e.role}{away ? ' (heute abwesend)' : ''}">
 				<Avatar name={e.name} size={26} square={false} person /><span class="font-medium">{e.name.split(' ')[0]}</span><span class="text-xs text-muted">{e.role === 'Springer' ? 'Springer' : e.contract === 'minijob' ? 'Minijob' : ''}</span>

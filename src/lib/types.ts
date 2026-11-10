@@ -151,6 +151,18 @@ export interface Invoice {
 	extraIds?: string[];
 }
 export type ContractType = 'vollzeit' | 'teilzeit' | 'minijob';
+/** Stand der Person im Betrieb. Fehlt die Angabe, gilt sie als aktiv (Bestand vor dieser Funktion). */
+export type EmployeeStatus = 'bewerber' | 'einstellung' | 'vertrag' | 'aktiv' | 'ruhend' | 'gekuendigt' | 'freigestellt' | 'ausgeschieden';
+export type OnboardingStep = 'fragebogen' | 'vertrag' | 'sofortmeldung' | 'unterweisung' | 'zugang';
+/** Papier mit Ablaufdatum (Arbeitserlaubnis, Aufenthaltstitel, Befristung, ...) */
+export interface PersonPaper {
+	id: string;
+	kind: 'arbeitserlaubnis' | 'aufenthaltstitel' | 'befristung' | 'gesundheitszeugnis' | 'fuehrerschein' | 'sonstiges';
+	label?: string;
+	until: string;
+	/** so viele Tage vorher wird gewarnt */
+	leadDays: number;
+}
 export interface Employee {
 	id: string;
 	name: string;
@@ -158,6 +170,14 @@ export interface Employee {
 	contract: ContractType;
 	weeklyHours: number;
 	phone: string;
+	personnelNo?: string;
+	email?: string;
+	status?: EmployeeStatus;
+	/** Beginn der Beschäftigung */
+	startOn?: string;
+	/** erledigte Schritte der Einstellung (Unterweisung ergibt sich aus dem Datum der Unterweisung) */
+	onboarding?: Partial<Record<OnboardingStep, boolean>>;
+	papers?: PersonPaper[];
 	/** letzte dokumentierte Unterweisung (Gefahrstoffe, Arbeitsschutz), mindestens jährlich */
 	instructedOn: string | null;
 }
