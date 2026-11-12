@@ -74,4 +74,33 @@ export function paperDeadlines(employees: Employee[], today: string) {
 	}
 	return out;
 }
+/** Vorschläge für Qualifikationen (frei erweiterbar) */
+export const SKILL_CATALOG = ['Desinfektor', 'Glasreinigung', 'Höhenarbeit (Höhenschein)', 'Hubarbeitsbühne', 'Führerschein B', 'Infektionsschutzbelehrung', 'Sonderreinigung', 'Teppich- und Polsterreinigung'];
+export const hasSkill = (e: Pick<Employee, 'skills'>, name: string, today: string) => (e.skills ?? []).some((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase() && (!s.until || s.until >= today));
+/** Welche der geforderten Qualifikationen fehlen oder sind abgelaufen? */
+export const missingSkills = (e: Pick<Employee, 'skills'>, required: string[] | undefined, today: string) => (required ?? []).filter((r) => !hasSkill(e, r, today));
+
+export interface SofortmeldungCheck { ok: boolean; missing: string[]; lines: [string, string][] }
+/** Datenpaket für die Sofortmeldung (Pflichtangaben laut DRV: Name, Versicherungsnummer oder Geburtsdaten und Anschrift, Betriebsnummer, Beginn). Die App meldet nichts selbst. */
+export function sofortmeldungPaket(e: Employee, betriebsnummer: string | undefined): SofortmeldungCheck {
+	const missing: string[] = [];
+	const [first, ...rest] = e.name.trim().split(/\s+/);
+	const last = rest.join(' ');
+	if (!first || !last) missing.push('Vor- und Nachname');
+	if (!betriebsnummer?.trim()) missing.push('Betriebsnummer des Betriebs');
+	if (!e.startOn) missing.push('Beschäftigungsbeginn');
+	const hasNo = !!e.insuranceNo?.trim();
+	if (!hasNo) {
+		if (!e.birthDate) missing.push('Geburtsdatum (ohne Versicherungsnummer nötig)');
+		if (!e.birthPlace?.trim()) missing.push('Geburtsort (ohne Versicherungsnummer nötig)');
+		if (!e.address?.street?.trim() || !e.address?.city?.trim()) missing.push('Anschrift (ohne Versicherungsnummer nötig)');
+	}
+	const d = (k?: string) => (k ? k.split('-').reverse().join('.') : '');
+	const lines: [string, string][] = [
+		['Familienname', last], ['Vorname(n)', first ?? ''], ['Versicherungsnummer', e.insuranceNo?.trim() || '(nicht bekannt)'],
+		['Geburtsdatum', d(e.birthDate)], ['Geburtsort', e.birthPlace ?? ''], ['Anschrift', e.address ? `${e.address.street}, ${e.address.postal} ${e.address.city}` : ''],
+		['Betriebsnummer', betriebsnummer?.trim() ?? ''], ['Beschäftigungsbeginn', d(e.startOn)]
+	];
+	return { ok: missing.length === 0, missing, lines };
+}
 export { addDays };

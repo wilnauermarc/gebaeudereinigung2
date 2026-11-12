@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isPlannable, SKILL_CATALOG } from '#lib/personal.ts';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { db } from '#lib/db.svelte.ts';
@@ -76,15 +77,16 @@
 		toasts.push('Ansprechperson hinzugefügt.', { tone: 'success' });
 	}
 
+	const skillChoices = $derived([...new Set([...SKILL_CATALOG, ...db.data.employees.flatMap((e) => (e.skills ?? []).map((k) => k.name)), ...db.data.customers.flatMap((c) => c.sites.flatMap((s) => s.plan?.requires ?? []))])]);
 	let sOpen = $state(false);
 	let sId = $state<string | null>(null);
-	let sf = $state({ name: '', street: '', postal: '', city: '', note: '', chemicals: '', planOn: false, days: [] as number[], start: '08:00', hours: 2, staffIds: [] as string[], areaM2: '' as number | '' });
+	let sf = $state({ name: '', street: '', postal: '', city: '', note: '', chemicals: '', planOn: false, days: [] as number[], start: '08:00', hours: 2, staffIds: [] as string[], areaM2: '' as number | '', requires: [] as string[] });
 	let sErr = $state('');
 	function openSite(id: string | null) {
 		sId = id;
 		const s = customer!.sites.find((x) => x.id === id);
 		const p = s?.plan;
-		sf = { name: s?.name ?? '', street: s?.street ?? customer!.street, postal: s?.postal ?? customer!.postal, city: s?.city ?? customer!.city, note: s?.note ?? '', chemicals: s?.chemicals ?? '', planOn: !!p, days: p ? [...p.days] : [0, 1, 2, 3, 4], start: p?.start ?? '08:00', hours: p?.hours ?? 2, staffIds: p ? [...p.staffIds] : [], areaM2: p?.areaM2 ?? '' };
+		sf = { name: s?.name ?? '', street: s?.street ?? customer!.street, postal: s?.postal ?? customer!.postal, city: s?.city ?? customer!.city, note: s?.note ?? '', chemicals: s?.chemicals ?? '', planOn: !!p, days: p ? [...p.days] : [0, 1, 2, 3, 4], start: p?.start ?? '08:00', hours: p?.hours ?? 2, staffIds: p ? [...p.staffIds] : [], areaM2: p?.areaM2 ?? '', requires: [...(p?.requires ?? [])] };
 		sErr = '';
 		sOpen = true;
 	}
@@ -92,7 +94,7 @@
 		e.preventDefault();
 		if (sf.name.trim().length < 2) return (sErr = 'Bitte dem Objekt einen Namen geben.');
 		if (sf.planOn && (!sf.days.length || !(sf.hours > 0) || !sf.staffIds.length)) return (sErr = 'Für den Reinigungsplan: Wochentage, Stunden und mindestens eine Person wählen.');
-		const plan = sf.planOn ? { days: [...sf.days].sort(), start: sf.start, hours: Number(sf.hours), staffIds: [...sf.staffIds], areaM2: sf.areaM2 === '' ? null : Number(sf.areaM2) } : null;
+		const plan = sf.planOn ? { days: [...sf.days].sort(), start: sf.start, hours: Number(sf.hours), staffIds: [...sf.staffIds], areaM2: sf.areaM2 === '' ? null : Number(sf.areaM2), requires: sf.requires.length ? [...sf.requires] : undefined } : null;
 		const data = { name: sf.name.trim(), street: sf.street, postal: sf.postal, city: sf.city, note: sf.note, chemicals: sf.chemicals.trim(), plan };
 		if (sId) Object.assign(customer!.sites.find((x) => x.id === sId)!, data);
 		else customer!.sites.push({ id: customer!.id + '-s' + Date.now().toString(36), ...data });
@@ -405,8 +407,11 @@
 				<div class="col-span-2"><label class="label" for="s-b">Beginn</label><input id="s-b" type="time" class="input num" bind:value={sf.start} /></div>
 				<div class="col-span-2"><label class="label" for="s-h">Stunden je Einsatz</label><input id="s-h" type="number" min="0.5" step="0.5" class="input num" bind:value={sf.hours} /></div>
 				<div class="col-span-2"><label class="label" for="s-a">Fläche in m²</label><input id="s-a" type="number" min="0" class="input num" bind:value={sf.areaM2} /></div>
+				<div class="col-span-6"><span class="label">Qualifikationen für dieses Objekt (optional)</span>
+					<div class="flex flex-wrap gap-1.5">{#each skillChoices as k}<button type="button" class="btn btn-sm {sf.requires.includes(k) ? 'border-accent bg-accent text-white' : ''}" aria-pressed={sf.requires.includes(k)} onclick={() => toggle(sf.requires, k)}>{k}</button>{/each}</div>
+					<p class="mt-1 text-xs text-muted">Der Einsatzplan warnt, wenn eingeteilte Personen die Qualifikation nicht (mehr) haben. Gesperrt wird nichts.</p></div>
 				<div class="col-span-6"><span class="label">Stammbesetzung</span>
-					<div class="grid gap-1.5 sm:grid-cols-2">{#each db.data.employees as e (e.id)}<label class="flex cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-subtle"><input type="checkbox" class="size-4 accent-[var(--accent)]" checked={sf.staffIds.includes(e.id)} onchange={() => toggle(sf.staffIds, e.id)} /> {e.name}<span class="ml-auto text-xs text-muted">{e.role}</span></label>{/each}</div></div>
+					<div class="grid gap-1.5 sm:grid-cols-2">{#each db.data.employees.filter((x) => isPlannable(x) || sf.staffIds.includes(x.id)) as e (e.id)}<label class="flex cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-subtle"><input type="checkbox" class="size-4 accent-[var(--accent)]" checked={sf.staffIds.includes(e.id)} onchange={() => toggle(sf.staffIds, e.id)} /> {e.name}<span class="ml-auto text-xs text-muted">{e.role}</span></label>{/each}</div></div>
 			{/if}
 			{#if sErr}<p class="col-span-6 text-xs text-danger">{sErr}</p>{/if}
 		</form>

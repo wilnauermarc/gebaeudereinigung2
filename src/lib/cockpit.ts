@@ -3,6 +3,7 @@
  * Lücken-Detektor, Vertretungs-Assistent und Lohn-Simulation. Alle Schwellen sind Annahmen und
  * mit den eigenen Zielwerten abzugleichen. Auswertungen sind je Objekt bzw. als Betriebssumme, nicht je Person bewertet.
  */
+import { isPlannable, missingSkills } from './personal';
 import { addDays, addMonths, entryHours, fromMinutes, hourlyRate, toMinutes, weekday } from './calc';
 import { MINIJOB_LIMIT_CENTS } from './tariff';
 import { surchargeCents } from './surcharge';
@@ -216,6 +217,8 @@ export interface CoverCandidate {
 	capacityLeft: number;
 	minijobLeftCents: number | null;
 	costCents: number;
+	/** geforderte Qualifikationen, die der Person fehlen (Hinweis, keine Sperre) */
+	missing: string[];
 }
 
 /** Wochenstunden laut Plan (Stammbesetzung) */
@@ -238,7 +241,7 @@ export function coverCandidates(d: Data, siteId: string, date: string): CoverCan
 	const month = date.slice(0, 7);
 	const shiftPay = Math.round(p.hours * d.calc.wageCents) + surchargeCents(date, p.start, end, d.calc.wageCents);
 	const cost = Math.round(shiftPay * (1 + d.calc.lnkPct / 100));
-	return d.employees.filter((e) => !p.staffIds.includes(e.id)).map((e): CoverCandidate => {
+	return d.employees.filter((e) => !p.staffIds.includes(e.id) && isPlannable(e)).map((e): CoverCandidate => {
 		const capacityLeft = e.weeklyHours - plannedWeeklyHours(d, e.id);
 		const left = e.contract === 'minijob' ? MINIJOB_LIMIT_CENTS - earnedInMonth(d, e.id, month) : null;
 		let reason = '';
@@ -260,9 +263,10 @@ export function coverCandidates(d: Data, siteId: string, date: string): CoverCan
 			if (clash || coverClash) reason = 'Termin zur selben Zeit';
 			else if (left !== null && shiftPay > left) reason = 'würde Minijob-Grenze überschreiten';
 		}
-		return { employee: e, allowed: !reason, reason, capacityLeft, minijobLeftCents: left, costCents: cost };
+		return { employee: e, allowed: !reason, reason, capacityLeft, minijobLeftCents: left, costCents: cost, missing: missingSkills(e, p.requires, date) };
 	}).sort((a, b) =>
 		Number(b.allowed) - Number(a.allowed) ||
+		a.missing.length - b.missing.length ||
 		Number(b.employee.role === 'Springer') - Number(a.employee.role === 'Springer') ||
 		b.capacityLeft - a.capacityLeft || a.costCents - b.costCents
 	);

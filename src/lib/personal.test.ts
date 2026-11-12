@@ -46,3 +46,31 @@ describe('Papiere', () => {
 		expect(list[0].title).toBe('Arbeitserlaubnis: Test Person');
 	});
 });
+
+import { missingSkills, hasSkill, sofortmeldungPaket } from './personal';
+describe('Qualifikationen', () => {
+	const e: Employee = { ...base, skills: [{ name: 'Desinfektor', until: '2026-12-31' }, { name: 'Führerschein B' }] };
+	it('gültig, abgelaufen und fehlend', () => {
+		expect(hasSkill(e, 'desinfektor', '2026-11-05')).toBe(true);
+		expect(hasSkill(e, 'Desinfektor', '2027-01-01')).toBe(false);
+		expect(missingSkills(e, ['Desinfektor', 'Höhenschein'], '2026-11-05')).toEqual(['Höhenschein']);
+		expect(missingSkills(e, undefined, '2026-11-05')).toEqual([]);
+	});
+});
+describe('Sofortmeldung vorbereiten', () => {
+	it('ohne Versicherungsnummer sind Geburtsdaten und Anschrift nötig', () => {
+		const r = sofortmeldungPaket({ ...base, name: 'Cher', startOn: '2026-12-01' }, '12345678');
+		expect(r.ok).toBe(false);
+		expect(r.missing.join()).toMatch(/Geburtsdatum/);
+		expect(r.missing.join()).toMatch(/Anschrift/);
+		expect(r.missing.join()).toMatch(/Nachname/);
+	});
+	it('mit Versicherungsnummer genügen Name, Betriebsnummer und Beginn', () => {
+		const r = sofortmeldungPaket({ ...base, name: 'Maria Kowalski', startOn: '2026-12-01', insuranceNo: '12 010190 K 123' }, '12345678');
+		expect(r.ok).toBe(true);
+		expect(r.lines.find(([k]) => k === 'Beschäftigungsbeginn')![1]).toBe('01.12.2026');
+	});
+	it('ohne Betriebsnummer fehlt sie', () => {
+		expect(sofortmeldungPaket({ ...base, name: 'A B', startOn: '2026-12-01', insuranceNo: '1' }, undefined).missing).toContain('Betriebsnummer des Betriebs');
+	});
+});

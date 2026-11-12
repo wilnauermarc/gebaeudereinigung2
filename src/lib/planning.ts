@@ -1,14 +1,15 @@
 /** Planungswarnungen für den Einsatzplan: Doppelbelegung, Ruhezeit (11 Std., § 5 ArbZG) und Wochenstunden über Vertrag. */
+import { missingSkills } from './personal';
 import { addDays, toMinutes } from './calc';
 type Db = typeof import('./db.svelte').db;
 
 export interface PlanWarning {
-	kind: 'doppelt' | 'ruhezeit' | 'ueberstunden';
+	kind: 'doppelt' | 'ruhezeit' | 'ueberstunden' | 'qualifikation';
 	employeeId: string;
 	date: string;
 	text: string;
 }
-interface Shift { employeeId: string; date: string; start: number; end: number; label: string }
+interface Shift { employeeId: string; date: string; start: number; end: number; label: string; siteId: string }
 
 export const REST_MIN = 11 * 60;
 const OVERTIME_TOLERANCE_H = 5;
@@ -22,13 +23,14 @@ export function shiftsOf(db: Pick<Db, 'plannedSites' | 'staffing'>, days: string
 			const st = db.staffing(site.id, d);
 			if (!st) continue;
 			const start = toMinutes(p.start);
-			for (const e of [...st.present, ...st.covers.map((c) => c.emp)]) out.push({ employeeId: e.id, date: d, start, end: start + Math.round(p.hours * 60), label: `${customer.name.slice(0, 24)} ${p.start}` });
+			for (const e of [...st.present, ...st.covers.map((c) => c.emp)]) out.push({ employeeId: e.id, date: d, start, end: start + Math.round(p.hours * 60), label: `${customer.name.slice(0, 24)} ${p.start}`, siteId: site.id });
 		}
 	}
 	return out;
 }
 
 export function planWarnings(db: Pick<Db, 'plannedSites' | 'staffing' | 'employee'>, days: string[]): PlanWarning[] {
+	const required = new Map(db.plannedSites().map(({ site, customer }) => [site.id, { req: site.plan!.requires ?? [], name: customer.name.slice(0, 24) }]));
 	const out: PlanWarning[] = [];
 	// einen Tag davor einbeziehen, damit die Ruhezeit zum Wochenbeginn stimmt
 	const shifts = shiftsOf(db, [addDays(days[0], -1), ...days]);
@@ -36,6 +38,16 @@ export function planWarnings(db: Pick<Db, 'plannedSites' | 'staffing' | 'employe
 	const byEmp = new Map<string, Shift[]>();
 	for (const s of shifts) byEmp.set(s.employeeId, [...(byEmp.get(s.employeeId) ?? []), s]);
 	for (const [id, list] of byEmp) {
+		// fehlende oder abgelaufene Qualifikation (nur Hinweis)
+		const skillEmp = db.employee(id);
+		const seen = new Set<string>();
+		for (const s of list) {
+			const r = required.get(s.siteId);
+			if (!days.includes(s.date) || !r?.req.length || !skillEmp) continue;
+			const miss = missingSkills(skillEmp, r.req, s.date);
+			const key = s.siteId + miss.join();
+			if (miss.length && !seen.has(key)) { seen.add(key); out.push({ kind: 'qualifikation', employeeId: id, date: s.date, text: `${name(id)}: ${r.name} verlangt ${miss.join(', ')} (fehlt oder abgelaufen)` }); }
+		}
 		const abs = (s: Shift) => dayIndex(s.date, list) * 1440 + s.start;
 		const sorted = [...list].sort((a, b) => abs(a) - abs(b));
 		for (let i = 1; i < sorted.length; i++) {

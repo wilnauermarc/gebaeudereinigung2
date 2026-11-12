@@ -24,7 +24,7 @@
 		rows.flatMap((r) => days.map((d) => ({ r, d, st: db.staffing(r.site.id, d) })).filter((x) => x.st && (x.st.empty || x.st.understaffed)))
 	);
 	const warnings = $derived(planWarnings(db, days));
-	const warnLabel = { doppelt: 'Doppelbelegung', ruhezeit: 'Ruhezeit', ueberstunden: 'Über Vertrag' } as const;
+	const warnLabel = { doppelt: 'Doppelbelegung', ruhezeit: 'Ruhezeit', ueberstunden: 'Über Vertrag', qualifikation: 'Qualifikation' } as const;
 	// ── Springer-Ablauf: für jeden Ausfall der Woche den besten Vorschlag (Springer zuerst, dann Kapazität, dann Kosten) mit einem Klick einteilen ──
 	const gapsToFill = $derived(
 		issues.filter((x) => x.st!.empty || x.st!.understaffed).map((x) => {
@@ -292,6 +292,7 @@
 								<p class="text-sm font-medium">{c.employee.name} <span class="font-normal text-muted">· {c.employee.role}</span>{#if c.allowed && i === 0}<span class="badge badge-success ml-1.5">Empfohlen</span>{/if}</p>
 								{#if c.allowed}
 									<p class="num text-xs text-muted">{c.capacityLeft > 0 ? `${c.capacityLeft.toLocaleString('de-DE')} Std./Woche frei` : 'ausgelastet'} · Kosten ca. {formatEur(c.costCents)}{c.minijobLeftCents !== null ? ` · Minijob-Rest ${formatEur(c.minijobLeftCents)}` : ''}</p>
+									{#if c.missing.length}<p class="text-xs text-warn">Qualifikation fehlt: {c.missing.join(', ')}</p>{/if}
 								{:else}<p class="text-xs text-danger">{c.reason}</p>{/if}
 							</div>
 							{#if c.allowed}

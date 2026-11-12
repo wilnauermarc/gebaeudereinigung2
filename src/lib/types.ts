@@ -35,6 +35,8 @@ export interface SitePlan {
 	hours: number;
 	staffIds: string[];
 	areaM2: number | null;
+	/** Qualifikationen, die für dieses Objekt gebraucht werden (nur Warnung, nie Sperre) */
+	requires?: string[];
 }
 export interface Site {
 	id: string;
@@ -178,6 +180,16 @@ export interface Employee {
 	/** erledigte Schritte der Einstellung (Unterweisung ergibt sich aus dem Datum der Unterweisung) */
 	onboarding?: Partial<Record<OnboardingStep, boolean>>;
 	papers?: PersonPaper[];
+	/** Qualifikationen (z. B. Desinfektor, Höhenschein), optional mit Gültigkeit */
+	skills?: { name: string; until?: string }[];
+	/** Angaben für die Sofortmeldung und die Lohnabrechnung */
+	birthDate?: string;
+	birthPlace?: string;
+	address?: { street: string; postal: string; city: string };
+	/** Versicherungsnummer: nur eintragen, wenn Sie sie hier speichern wollen (die Datenbank ist nicht verschlüsselt) */
+	insuranceNo?: string;
+	/** Die Sofortmeldung wurde vom Betrieb abgegeben (Nachweis, die App sendet selbst nichts) */
+	sofortmeldung?: { at: string; by: string; via: string };
 	/** letzte dokumentierte Unterweisung (Gefahrstoffe, Arbeitsschutz), mindestens jährlich */
 	instructedOn: string | null;
 }
@@ -425,6 +437,8 @@ export interface Data {
 		modules?: import('./modules.ts').ModuleChoice;
 		/** Der Bestand besteht aus erfundenen Demodaten (steuert den Hinweis in der Kopfleiste) */
 		demo?: boolean;
+		/** Betriebsnummer für Meldungen an die Sozialversicherung */
+		betriebsnummer?: string;
 	};
 	/** Gewähltes Profilfoto je Person (Name → Foto-Kürzel, siehe photos.ts) */
 	avatars?: Record<string, string>;

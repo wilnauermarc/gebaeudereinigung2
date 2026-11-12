@@ -8,9 +8,9 @@
 	import Badge from '#lib/components/Badge.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import { Plus, CalendarOff, Trash2, TriangleAlert, ShieldCheck, KeyRound, ArrowLeftRight, ArrowRight, Check, X } from '@lucide/svelte';
+	import { Plus, CalendarOff, Trash2, TriangleAlert, ShieldCheck, KeyRound, ArrowLeftRight, ArrowRight, Check, X, Copy } from '@lucide/svelte';
 	import type { ContractType, EmployeeStatus, PersonPaper } from '#lib/types.ts';
-	import { STATUS, statusOf, statusLabel, onboarding, canActivate, openSteps, PAPER_KINDS, paperLabel, paperState, worstPaper } from '#lib/personal.ts';
+	import { STATUS, statusOf, statusLabel, onboarding, canActivate, openSteps, PAPER_KINDS, paperLabel, paperState, worstPaper, SKILL_CATALOG, hasSkill, sofortmeldungPaket } from '#lib/personal.ts';
 
 	const today = todayKey();
 	const month = db.refMonth;
@@ -77,6 +77,33 @@
 		person.papers.push({ id: 'pp' + Date.now().toString(36), kind: paperDraft.kind, label: paperDraft.label.trim() || undefined, until: paperDraft.until, leadDays: Math.max(0, Math.min(365, Math.round(paperDraft.leadDays) || 60)) });
 		paperDraft = { ...paperDraft, label: '', until: '' };
 	}
+	// Qualifikationen
+	let skillDraft = $state({ name: '', until: '' });
+	const skillNames = $derived([...new Set([...SKILL_CATALOG, ...db.data.employees.flatMap((e) => (e.skills ?? []).map((k) => k.name))])]);
+	function addSkill() {
+		if (!person || !skillDraft.name.trim()) return;
+		(person.skills ??= []);
+		person.skills.push({ name: skillDraft.name.trim(), until: skillDraft.until || undefined });
+		skillDraft = { name: '', until: '' };
+	}
+	function removeSkill(i: number) { person?.skills?.splice(i, 1); }
+	// Sofortmeldung vorbereiten
+	const sm = $derived(person ? sofortmeldungPaket(person, db.data.settings?.betriebsnummer) : null);
+	let smDraft = $state({ at: todayKey(), via: 'Lohnbüro' });
+	function setAddr(k: 'street' | 'postal' | 'city', v: string) { if (person) person.address = { street: '', postal: '', city: '', ...person.address, [k]: v }; }
+	function setBetriebsnummer(v: string) { db.data.settings = { ...(db.data.settings ?? {}), betriebsnummer: v.trim() }; }
+	function smText() {
+		if (!person || !sm) return '';
+		return sm.lines.filter(([k, v]) => v && !(k === 'Versicherungsnummer' && v.startsWith('('))).map(([k, v]) => `${k}: ${v}`).join('\n');
+	}
+	async function copyText(t: string, ok: string) { try { await navigator.clipboard.writeText(t); toasts.push(ok, { tone: 'success' }); } catch { toasts.push('Kopieren nicht möglich. Bitte den Text markieren und selbst kopieren.', { tone: 'error' }); } }
+	function smDone() {
+		if (!person) return;
+		person.sofortmeldung = { at: smDraft.at, by: db.me, via: smDraft.via };
+		person.onboarding = { ...(person.onboarding ?? {}), sofortmeldung: true };
+		toasts.push('Sofortmeldung als abgegeben eingetragen. Die App hat nichts übermittelt.', { tone: 'success' });
+	}
+	function smUndo() { if (!person) return; person.sofortmeldung = undefined; person.onboarding = { ...(person.onboarding ?? {}), sofortmeldung: false }; }
 	function removePaper(id: string) { if (person?.papers) person.papers = person.papers.filter((x) => x.id !== id); }
 
 	// Abwesenheit
@@ -265,6 +292,12 @@
 						<div><label class="label" for="pa-c">Vertrag</label><select id="pa-c" class="input" bind:value={person.contract}><option value="vollzeit">Vollzeit</option><option value="teilzeit">Teilzeit</option><option value="minijob">Minijob</option></select></div>
 						<div><label class="label" for="pa-h">Stunden pro Woche</label><input id="pa-h" type="number" min="1" max="48" step="0.5" class="input num" bind:value={person.weeklyHours} /></div>
 						<div><label class="label" for="pa-b">Beschäftigungsbeginn</label><input id="pa-b" type="date" class="input" bind:value={person.startOn} /></div>
+						<div><label class="label" for="pa-gd">Geburtsdatum</label><input id="pa-gd" type="date" class="input" bind:value={person.birthDate} /></div>
+						<div><label class="label" for="pa-go">Geburtsort</label><input id="pa-go" class="input" bind:value={person.birthPlace} /></div>
+						<div class="col-span-2"><label class="label" for="pa-st1">Anschrift</label>
+							<div class="grid grid-cols-[1fr_90px_1fr] gap-2"><input id="pa-st1" class="input" placeholder="Straße und Nr." aria-label="Straße" value={person.address?.street ?? ''} oninput={(e) => setAddr('street', e.currentTarget.value)} /><input class="input num" placeholder="PLZ" aria-label="PLZ" value={person.address?.postal ?? ''} oninput={(e) => setAddr('postal', e.currentTarget.value)} /><input class="input" placeholder="Ort" aria-label="Ort" value={person.address?.city ?? ''} oninput={(e) => setAddr('city', e.currentTarget.value)} /></div></div>
+						<div class="col-span-2"><label class="label" for="pa-vn">Versicherungsnummer (optional)</label><input id="pa-vn" class="input num" autocomplete="off" bind:value={person.insuranceNo} />
+							<p class="mt-1 text-xs text-muted">Nur eintragen, wenn Sie sie hier speichern wollen. Die Datenbank ist nicht verschlüsselt, die Nummer sehen nur Verwaltungszugänge. Sonst geben Sie sie direkt im Lohnbüro an.</p></div>
 					</div>
 				</section>
 
@@ -287,6 +320,52 @@
 						<div class="mt-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2.5 text-sm {canActivate(person) ? 'bg-accent-soft' : 'bg-subtle'}">
 							<span class="flex-1">{canActivate(person) ? 'Alle Schritte sind erledigt. Die Person kann jetzt aktiviert und eingeplant werden.' : `Noch ${openSteps(person).length} Schritte offen, bevor die Person eingeplant werden kann.`}</span>
 							<button class="btn btn-primary btn-sm" disabled={!canActivate(person)} onclick={() => setStatus('aktiv')}><Check size={14} /> Aktivieren</button>
+						</div>
+					{/if}
+				</section>
+
+				<section aria-labelledby="pa-sk">
+					<h3 id="pa-sk" class="mb-2 text-sm font-semibold">Qualifikationen</h3>
+					{#if (person.skills ?? []).length}
+						<ul class="mb-3 flex flex-wrap gap-1.5">
+							{#each person.skills ?? [] as k, i}
+								<li class="flex items-center gap-1.5 rounded-full border border-line bg-surface py-1 pr-1 pl-3 text-sm">
+									<span class="font-medium">{k.name}</span>{#if k.until}<span class="num text-xs {hasSkill(person, k.name, today) ? 'text-muted' : 'text-danger'}">{hasSkill(person, k.name, today) ? `bis ${formatDate(k.until)}` : `abgelaufen ${formatDate(k.until)}`}</span>{/if}
+									<button class="btn btn-ghost btn-icon btn-sm" aria-label="Qualifikation {k.name} entfernen" onclick={() => removeSkill(i)}><X size={12} /></button>
+								</li>
+							{/each}
+						</ul>
+					{:else}<p class="mb-3 text-sm text-muted">Noch keine Qualifikationen. Der Einsatzplan warnt, wenn ein Objekt eine Qualifikation verlangt, die der Person fehlt.</p>{/if}
+					<div class="grid grid-cols-[1fr_140px_auto] gap-2">
+						<input class="input" list="skill-names" placeholder="z. B. Desinfektor" aria-label="Qualifikation" bind:value={skillDraft.name} />
+						<datalist id="skill-names">{#each skillNames as n}<option value={n}></option>{/each}</datalist>
+						<input type="date" class="input" aria-label="Gültig bis (optional)" bind:value={skillDraft.until} />
+						<button class="btn btn-sm" disabled={!skillDraft.name.trim()} onclick={addSkill}><Plus size={14} /> Hinzufügen</button>
+					</div>
+				</section>
+
+				<section aria-labelledby="pa-sm">
+					<h3 id="pa-sm" class="mb-2 text-sm font-semibold">Sofortmeldung vorbereiten</h3>
+					<p class="mb-3 rounded-lg bg-subtle px-3 py-2 text-xs text-muted">Das ist eine Vorbereitung, <strong>keine amtliche Meldung</strong>. Die App sendet nichts an die Rentenversicherung. Die Meldung geht spätestens mit Beschäftigungsbeginn über Ihr Lohnprogramm, Ihr Lohnbüro oder die Ausfüllhilfe sv.net. Ob Ihr Betrieb meldepflichtig ist, klären Sie bitte mit Ihrem Lohnbüro.</p>
+					<div class="mb-3 max-w-xs"><label class="label" for="pa-bn">Betriebsnummer des Betriebs</label><input id="pa-bn" class="input num" value={db.data.settings?.betriebsnummer ?? ''} oninput={(e) => setBetriebsnummer(e.currentTarget.value)} /></div>
+					{#if sm}
+						{#if sm.ok}<p class="mb-2 text-sm font-medium text-success">Alle Pflichtangaben sind vorhanden.</p>
+						{:else}<p class="mb-2 text-sm font-medium text-warn">Es fehlt noch: {sm.missing.join(', ')}.</p>{/if}
+						<dl class="mb-3 grid grid-cols-[150px_1fr] gap-x-3 gap-y-1 rounded-lg border border-line px-3 py-2 text-sm">
+							{#each sm.lines as [k, v]}<dt class="text-muted">{k}</dt><dd class="num {v ? '' : 'text-faint'}">{v || '–'}</dd>{/each}
+						</dl>
+						<div class="mb-3 flex flex-wrap gap-2">
+							<button class="btn btn-sm" onclick={() => copyText(smText(), 'Daten kopiert.')}><Copy size={13} /> Daten kopieren</button>
+							<button class="btn btn-sm" onclick={() => copyText(`Guten Tag ${person.name},\n\nzu Ihrem Beschäftigungsbeginn am ${formatDate(person.startOn ?? today)} wurde eine Sofortmeldung an die Rentenversicherung abgegeben. Sie enthält folgende Angaben:\n\n${smText()}\n\nMit freundlichen Grüßen`, 'Mitteilung kopiert.')}><Copy size={13} /> Mitteilung an die Person kopieren</button>
+						</div>
+					{/if}
+					{#if person.sofortmeldung}
+						<div class="flex flex-wrap items-center gap-3 rounded-lg bg-accent-soft px-3 py-2.5 text-sm"><span class="flex-1">Als abgegeben eingetragen am <span class="num">{formatDate(person.sofortmeldung.at)}</span> über {person.sofortmeldung.via} (von {person.sofortmeldung.by}).</span><button class="btn btn-sm" onclick={smUndo}>Zurücknehmen</button></div>
+					{:else}
+						<div class="flex flex-wrap items-end gap-2">
+							<div><label class="label" for="pa-sa">Abgegeben am</label><input id="pa-sa" type="date" class="input" bind:value={smDraft.at} /></div>
+							<div><label class="label" for="pa-sv">Über</label><select id="pa-sv" class="input" bind:value={smDraft.via}><option>Lohnbüro</option><option>Lohnprogramm</option><option>sv.net</option><option>Sonstiges</option></select></div>
+							<button class="btn btn-primary btn-sm" onclick={smDone}><Check size={14} /> Als abgegeben eintragen</button>
 						</div>
 					{/if}
 				</section>

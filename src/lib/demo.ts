@@ -210,6 +210,9 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 	// Beispiele für Papiere mit Ablaufdatum: eines läuft bald ab, eines ist abgelaufen, eines ist gültig
 	employees[4].papers = [{ id: 'pp1', kind: 'arbeitserlaubnis', until: on(40), leadDays: 60 }];
 	employees[5].papers = [{ id: 'pp2', kind: 'aufenthaltstitel', until: on(900), leadDays: 90 }];
+	employees[0].skills = [{ name: 'Desinfektor' }, { name: 'Führerschein B' }];
+	employees[1].skills = [{ name: 'Desinfektor', until: on(120) }];
+	employees[7].skills = [{ name: 'Desinfektor', until: on(-20) }];
 	employees[6].papers = [{ id: 'pp3', kind: 'befristung', until: on(-6), leadDays: 30 }];
 
 	// ── Erweiterung auf 12 Personen: vier weitere Mitarbeitende und zusätzliche Objekte aktiver Kunden ──
@@ -240,7 +243,7 @@ export function createDemoData(team: 8 | 12 = 8): Data {
 		'k8-s1': { days: [0, 2, 4], start: '06:00', hours: 3, staffIds: ['m6', 'm7'], areaM2: 900 },
 		'k8-s2': { days: [1, 3], start: '06:00', hours: 3, staffIds: ['m6', 'm7'], areaM2: 820 },
 		'k8-s3': { days: [2], start: '09:30', hours: 1.5, staffIds: ['m7'], areaM2: 1400 },
-		'k14-s1': { days: [0, 1, 2, 3, 4], start: '06:30', hours: 4, staffIds: ['m1', 'm8'], areaM2: 1850 }
+		'k14-s1': { days: [0, 1, 2, 3, 4], start: '06:30', hours: 4, staffIds: ['m1', 'm8'], areaM2: 1850, requires: ['Desinfektor'] }
 	};
 	if (team === 12) {
 		plans['k1-s3'] = { days: [2, 4], start: '18:00', hours: 1.5, staffIds: ['m10'], areaM2: 300 };
