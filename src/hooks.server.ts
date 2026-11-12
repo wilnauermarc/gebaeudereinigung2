@@ -12,7 +12,7 @@ import { licenseEnvFor, maintainTenants, tenantById, tenantBySlug, tenantStore, 
 import { serverModules, staffEndpointModule } from '#lib/server/modules.ts';
 import { isDemoServer, maintainDemo } from '#lib/server/demo.ts';
 
-const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme', '/api/demo/enter', '/api/signup', '/api/signup/confirm']);
+const PUBLIC = new Set(['/api/session', '/api/login', '/api/setup', '/api/abnahme', '/api/melden', '/api/demo/enter', '/api/signup', '/api/signup/confirm']);
 const ANY_USER = (p: string) => p.startsWith('/api/me/') || p === '/api/logout' || p === '/api/password';
 
 /** Mehrere Betriebe (TENANTS=1): das Cookie nennt den Betrieb, die Anfrage läuft mit dessen Speicher und Lizenz */
@@ -27,7 +27,7 @@ export const handle: Handle = async (input) => {
 		else token = undefined; // Betrieb gibt es nicht (mehr)
 	}
 	// Öffentliche Abnahme-Seite: der Betrieb steht als Kürzel (?b=) im Link, weil es dort keine Sitzung gibt
-	if (input.event.url.pathname === '/api/abnahme') {
+	if (input.event.url.pathname === '/api/abnahme' || input.event.url.pathname === '/api/melden') {
 		const b = input.event.url.searchParams.get('b');
 		const t = b ? tenantBySlug(b) : undefined;
 		if (t) { ctx = { id: t.id, slug: t.slug, store: tenantStore(t.id), env: licenseEnvFor(t) }; token = undefined; }
@@ -66,6 +66,7 @@ const run = async ({ event, resolve }: Parameters<Handle>[0], token: string | un
 		}
 		// Öffentliche Abnahme-Seite des Kunden: nur mit eingeschaltetem Baustein
 		if (path === '/api/abnahme' && !serverModules().has('nachweis')) return json(404, { error: 'Dieser Link ist ungültig oder wurde ersetzt.' });
+		if (path === '/api/melden' && !serverModules().has('maengel')) return json(404, { error: 'Dieser Link ist ungültig oder wurde ersetzt.' });
 	}
 	const res = await resolve(event);
 	res.headers.set('X-Content-Type-Options', 'nosniff');

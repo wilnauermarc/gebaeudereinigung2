@@ -11,7 +11,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export type Role = 'inhaber' | 'buero' | 'objektleitung' | 'mitarbeiter';
 export const MANAGEMENT: Role[] = ['inhaber', 'buero', 'objektleitung'];
 export interface SwapRow { id: string; site_id: string; date: string; offered_by: string; taken_by: string | null; status: 'offen' | 'angenommen' | 'bestaetigt' | 'abgelehnt' | 'zurueckgezogen'; created_at: string; decided_at: string | null; applied: number }
-export type InboxKind = 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance';
+export type InboxKind = 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance' | 'customer_report';
 export interface UserRow { id: string; login: string; display: string; role: Role; employee_id: string | null; pw_hash: string; must_change: number; disabled: number; created_at: string; failed: number; locked_until: number }
 export interface SessionUser { id: string; login: string; display: string; role: Role; employeeId: string | null; mustChange: boolean }
 

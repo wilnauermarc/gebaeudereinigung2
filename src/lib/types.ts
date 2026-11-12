@@ -52,6 +52,8 @@ export interface Site {
 	plan: SitePlan | null;
 	/** Geheimer Schlüssel im Abnahme-Link für den Kunden (nur Verwaltung sieht ihn; „Neuer Link“ macht alte Links ungültig) */
 	acceptToken?: string;
+	/** geheimer Schlüssel für den Meldelink/QR-Code, mit dem Kunden Mängel ohne Anmeldung melden */
+	reportToken?: string;
 	/** Leistungsverzeichnis in Versionen mit Gültigkeitsdatum (neueste zuletzt) */
 	lv?: LvVersion[];
 	/** Position für die Karte (WGS84). Ohne Backend von Hand oder per Klick auf der Karte gesetzt. */

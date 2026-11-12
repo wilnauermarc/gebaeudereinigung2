@@ -255,6 +255,28 @@ ok('Mitarbeiter sieht Meldungen mit Status in „Meine Meldungen“', after.requ
 	ok('Verwaltung sieht die Abnahme des Kunden im Eingang', acc?.payload.acceptance === 'abgenommen' && acc.payload.by === 'Frau Muster');
 	ok('Mitarbeiter können die öffentliche Abnahme nicht über /api/me nutzen und sehen keine Kundenmeldungen', !JSON.stringify((await st2.req('GET', '/api/me/view')).j).includes('Frau Muster'));
 	ok('Verwaltungs-API bleibt ohne Anmeldung gesperrt (401)', (await pub.req('GET', '/api/inbox')).s === 401);
+
+	// Kundenmeldung per Link (Meldelink): eigener geheimer Schlüssel je Objekt
+	const cur2 = (await owner.req('GET', '/api/state')).j;
+	const site2 = cur2.data.customers.flatMap((c) => c.sites).find((x) => x.id === site.id);
+	site2.reportToken = 'MELDE-TESTSCHLUESSEL-0123456789';
+	ok('Verwaltung legt Meldelink-Schlüssel an', (await owner.req('PUT', '/api/state', { rev: cur2.rev, data: cur2.data })).s === 200);
+	const mq = (t) => `/api/melden?s=${site.id}&t=${t}`;
+	const mp = (b) => pub.req('POST', '/api/melden', { s: site.id, t: 'MELDE-TESTSCHLUESSEL-0123456789', ...b });
+	ok('Meldelink ohne Schlüssel: 404', (await pub.req('GET', `/api/melden?s=${site.id}`)).s === 404);
+	ok('Meldelink mit falschem Schlüssel: 404', (await pub.req('GET', mq('FALSCHER-SCHLUESSEL-0123456789'))).s === 404);
+	ok('Der Abnahme-Schlüssel gilt nicht als Meldelink-Schlüssel: 404', (await pub.req('GET', mq('ABNAHME-TESTSCHLUESSEL-0123456789'))).s === 404);
+	const mg = await pub.req('GET', mq('MELDE-TESTSCHLUESSEL-0123456789'));
+	ok('Meldeseite zeigt nur Firma, Objekt und Adresse', mg.s === 200 && Object.keys(mg.j).sort().join() === 'address,company,site', JSON.stringify(mg.j));
+	ok('Meldung ohne Text abgelehnt (400)', (await mp({ text: 'x' })).s === 400);
+	ok('Meldung mit < > abgelehnt (400)', (await mp({ text: '<script>alert(1)</script>' })).s === 400);
+	ok('Fremder Ursprung bei der Meldung: 403', (await pub.req('POST', '/api/melden', { s: site.id, t: 'MELDE-TESTSCHLUESSEL-0123456789', text: 'Test Meldung' }, { origin: 'http://evil.example' })).s === 403);
+	const nIb = (await owner.req('GET', '/api/inbox')).j.items.length;
+	ok('Köderfeld: neutrale Antwort, nichts im Eingang', (await mp({ text: 'Spam Meldung hier', website: 'http://spam' })).s === 200 && (await owner.req('GET', '/api/inbox')).j.items.length === nIb);
+	ok('Meldung wird angenommen', (await mp({ text: 'WC im 2. OG nicht gereinigt', by: 'Frau Muster', contact: '0123 456' })).s === 200);
+	const cr = (await owner.req('GET', '/api/inbox')).j.items.find((i) => i.kind === 'customer_report');
+	ok('Verwaltung sieht die Kundenmeldung im Eingang', cr?.payload.text === 'WC im 2. OG nicht gereinigt' && cr.payload.siteId === site.id);
+	ok('Mitarbeiter sehen die Kundenmeldung nicht', !JSON.stringify((await st2.req('GET', '/api/me/view')).j).includes('WC im 2. OG'));
 }
 
 // ── Live-Stand für den Leitstand ──
@@ -382,6 +404,8 @@ ok('auch das richtige Passwort wird dann abgelehnt', (await brute.req('POST', '/
 	ok('Mitarbeiter-Ansicht meldet ausgeschaltete Bausteine', v1.s === 200 && v1.j.modules.nachweis === false && v1.j.modules.zeiten === true && v1.j.modules.active === true, JSON.stringify(v1.j.modules));
 	ok('Ausgeschaltet: Checkliste wird auf dem Server abgelehnt (403)', (await st2.req('POST', '/api/me/checklist', { siteId: todayShift.siteId, doneIds: [] })).s === 403);
 	ok('Ausgeschaltet: öffentliche Abnahme-Seite liefert 404', (await anon.req('GET', `/api/abnahme?s=${todayShift.siteId}&t=ABNAHME-TESTSCHLUESSEL-0123456789`)).s === 404);
+	ok('Mängel aus: öffentlicher Meldelink liefert 404', (await setModules(owner, { maengel: false })).s === 200 && (await anon.req('GET', `/api/melden?s=${todayShift.siteId}&t=MELDE-TESTSCHLUESSEL-0123456789`)).s === 404);
+	await setModules(owner, { nachweis: false });
 	ok('Zeiterfassung bleibt nutzbar (Korrektur-Endpunkt antwortet nicht mit 403)', (await st2.req('POST', '/api/me/correction', {})).s !== 403);
 	ok('Zeiten aus: Stempeln und Mitarbeiter-App folgen (403)', (await setModules(owner, { zeiten: false })).s === 200 && (await st2.req('POST', '/api/me/punch', { action: 'in', siteId: todayShift.siteId })).s === 403);
 	ok('Mitarbeiter-App aus: nur noch die Ansicht mit Hinweis, alles andere 403', (await setModules(owner, { mitarbeiter: false })).s === 200 && (await st2.req('GET', '/api/me/view')).j.modules.active === false && (await st2.req('POST', '/api/me/request', { kind: 'krank', from: '2026-11-04', to: '2026-11-04' })).s === 403);

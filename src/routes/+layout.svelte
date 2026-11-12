@@ -151,11 +151,11 @@
 	$effect(() => { db.init(); });
 	$effect(() => { applyPalette(ui.palette, ui.custom); });
 	const path = $derived(page.url.pathname);
-	const bare = $derived(path.startsWith('/login') || path.startsWith('/mitarbeiter') || path.startsWith('/abnahme') || path.startsWith('/demo') || path.startsWith('/start'));
+	const bare = $derived(path.startsWith('/login') || path.startsWith('/mitarbeiter') || path.startsWith('/abnahme') || path.startsWith('/melden') || path.startsWith('/demo') || path.startsWith('/start'));
 	$effect(() => {
 		if (!db.ready) return;
 		const u = db.session;
-		if (path.startsWith('/abnahme') || path.startsWith('/demo') || path.startsWith('/start')) return; // öffentliche Abnahme-Seite für Kunden (nur mit Schlüssel im Link)
+		if (path.startsWith('/abnahme') || path.startsWith('/melden') || path.startsWith('/demo') || path.startsWith('/start')) return; // öffentliche Abnahme-Seite für Kunden (nur mit Schlüssel im Link)
 		if (u && u.management && !features.path(path)) {
 			// einmal melden und weiterleiten; ohne untrack würde der Hinweis diesen Effekt erneut auslösen (Endlosschleife)
 			untrack(() => { if (blockedPath !== path) { blockedPath = path; toasts.push('Dieser Bereich ist ausgeschaltet. Administratoren können ihn unter Einstellungen → Funktionsumfang einschalten.'); } goto('/'); });

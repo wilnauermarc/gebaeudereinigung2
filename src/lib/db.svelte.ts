@@ -108,7 +108,7 @@ class Db {
 		try {
 			const r = await fetch('/api/inbox');
 			if (!r.ok) return;
-			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance'; payload: any; createdAt: string; hasPhoto: boolean }[] };
+			const { items } = (await r.json()) as { items: { id: string; employeeId: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance' | 'customer_report'; payload: any; createdAt: string; hasPhoto: boolean }[] };
 			if (!items.length) return;
 			const today = todayKey();
 			const d = this.data;
@@ -171,6 +171,16 @@ class Db {
 					r.sourceIds = [...(r.sourceIds ?? []), it.id];
 					if (p.acceptance === 'beanstandet') d.tasks.push({ id: 'a' + it.id, title: `Beanstandung vom Kunden: ${found.site.name} ${p.date.split('-').reverse().slice(0, 2).join('.')}.`, dueOn: today, customerId: found.customer.id, done: false });
 					this.addEvent(found.customer.id, 'notiz', `Leistung vom ${p.date.split('-').reverse().join('.')} ${p.acceptance === 'abgenommen' ? 'abgenommen' : 'beanstandet'} (${String(p.by ?? 'Kunde')}, per Link).`);
+					n++;
+				} else if (it.kind === 'customer_report') {
+					const did = 'd' + it.id.slice(0, 12);
+					if (d.defects.some((x) => x.id === did)) continue;
+					const found = this.site(it.payload.siteId);
+					if (!found) continue;
+					const text = String(it.payload.text).slice(0, 500), by = String(it.payload.by ?? '').trim(), contact = String(it.payload.contact ?? '').trim();
+					d.defects.push({ id: did, customerId: found.customer.id, siteId: found.site.id, title: text.slice(0, 80), description: `${text}\n(Gemeldet per Meldelink${by ? ` von ${by}` : ''}${contact ? `, Kontakt: ${contact}` : ''})`, status: 'offen', severity: 'normal', reportedOn: today, dueOn: todayKeyPlus(today, 3), closedOn: null, recheck: true, source: 'kunde' });
+					d.tasks.push({ id: 'a' + it.id, title: `Kundenmeldung prüfen: ${found.site.name}, ${text.slice(0, 50)}`, dueOn: today, customerId: found.customer.id, done: false });
+					this.addEvent(found.customer.id, 'notiz', `Meldung über den Meldelink (${found.site.name}): ${text.slice(0, 100)}`);
 					n++;
 				} else if (it.kind === 'defect') {
 					const did = 'd' + it.id.slice(0, 12);

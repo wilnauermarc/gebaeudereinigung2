@@ -16,7 +16,7 @@ export interface StaffTime { id: string; date: string; start: string; end: strin
 export interface StaffRequest { id: string; kind: 'absence' | 'defect' | 'correction'; label: string; from?: string; to?: string; status: string; reply?: string; createdAt: string }
 export interface StaffOpen { id: string; startedAt: string; siteId: string; site: string }
 /** Eingang des Servers für diese Person (Stempelungen und Meldungen, die die Verwaltung noch nicht übernommen hat oder die gerade laufen) */
-export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance'; payload: any; created_at: string; status: string; closed: boolean }
+export interface StaffInboxItem { id: string; kind: 'punch' | 'absence' | 'defect' | 'correction' | 'checklist' | 'acceptance' | 'customer_report'; payload: any; created_at: string; status: string; closed: boolean }
 export interface StaffView {
 	name: string; role: string; contract: 'vollzeit' | 'teilzeit' | 'minijob'; weeklyHours: number;
 	shifts: StaffShift[];
